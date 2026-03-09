@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut } from 'lucide-react';
+import gpiLogo from '@/assets/gpi-logo.png';
 
 export default function ClienteLayout() {
   const { profile, signOut } = useAuth();
