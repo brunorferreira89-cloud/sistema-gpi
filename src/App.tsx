@@ -19,6 +19,7 @@ import PlanoDeContasPage from "./pages/PlanoDeContasPage";
 import PlanoDeContasClientePage from "./pages/PlanoDeContasClientePage";
 import ClienteFichaPage from "./pages/ClienteFichaPage";
 import KanbanPage from "./pages/KanbanPage";
+import ImportacaoNiboPage from "./pages/ImportacaoNiboPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
