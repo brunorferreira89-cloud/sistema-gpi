@@ -72,6 +72,9 @@ export interface DreResult {
   // KPIs
   cmv_pct: number | null;
   cmo_pct: number | null;
+  custo_per_capita: number | null;
+  mc_por_funcionario: number | null;
+  indice_cobertura: number | null;
   // PE
   pe_valor: number | null;
   margem_seguranca: number | null;
