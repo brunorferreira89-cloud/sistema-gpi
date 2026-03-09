@@ -104,9 +104,26 @@ function SortableRow({
             {conta.nome}
           </span>
         )}
-        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${tipoBadgeColors[conta.tipo as ContaTipo]}`}>
-          {tipoLabels[conta.tipo as ContaTipo]}
-        </span>
+        {editingTipo ? (
+          <select
+            className="shrink-0 rounded border border-primary bg-surface-hi px-1.5 py-0.5 text-[10px] font-medium text-txt outline-none"
+            value={conta.tipo}
+            onChange={(e) => { onChangeTipo(conta.id, e.target.value as ContaTipo); setEditingTipo(false); }}
+            onBlur={() => setEditingTipo(false)}
+            autoFocus
+          >
+            {Object.entries(tipoLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        ) : (
+          <button
+            onClick={() => setEditingTipo(true)}
+            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium cursor-pointer hover:ring-1 hover:ring-primary/50 ${tipoBadgeColors[conta.tipo as ContaTipo]}`}
+          >
+            {tipoLabels[conta.tipo as ContaTipo]}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
