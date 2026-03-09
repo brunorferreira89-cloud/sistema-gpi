@@ -298,6 +298,12 @@ export default function ClienteFichaPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <ReuniaoDialog
+        open={reuniaoDialogOpen}
+        onOpenChange={setReuniaoDialogOpen}
+        preselectedClienteId={clienteId}
+      />
     </div>
   );
 }
