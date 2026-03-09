@@ -222,10 +222,22 @@ export default function ClienteFichaPage() {
             {/* Próxima Reunião card */}
             <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
               <p className="text-sm font-semibold text-txt">Próxima Reunião</p>
-              <p className="text-sm text-txt-muted">Nenhuma reunião agendada</p>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Calendar className="h-3.5 w-3.5" /> Agendar
-              </Button>
+              {proximaReuniao ? (
+                <>
+                  <p className="text-sm text-txt">
+                    {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {proximaReuniao.horario && ` · ${(proximaReuniao.horario as string).slice(0, 5).replace(':', 'h')}`}
+                  </p>
+                  <span className="text-xs text-txt-muted capitalize">{proximaReuniao.formato === 'video' ? 'Vídeo' : 'Presencial'}</span>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-txt-muted">Nenhuma reunião agendada</p>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setReuniaoDialogOpen(true)}>
+                    <Calendar className="h-3.5 w-3.5" /> Agendar
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
