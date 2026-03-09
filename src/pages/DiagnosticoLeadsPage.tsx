@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScoreRing } from '@/components/ui/score-ring';
 import { fmtBRL, fmtPct, getScoreLabel, calcularDRE, type DiagnosticoInputs } from '@/lib/diagnostico-calculos';
-import NovoClienteDialog from '@/components/clientes/NovoClienteDialog';
+import { NovoClienteDialog } from '@/components/clientes/NovoClienteDialog';
 
 interface Lead {
   id: string;
