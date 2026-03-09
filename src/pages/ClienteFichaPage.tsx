@@ -253,6 +253,17 @@ export default function ClienteFichaPage() {
                 </>
               )}
             </div>
+            {/* Saúde Financeira card */}
+            <div className="rounded-xl border border-border bg-surface p-5 flex flex-col items-center justify-center gap-2 sm:col-span-2">
+              <p className="text-sm font-semibold text-txt">Saúde Financeira</p>
+              <ScoreRing score={healthScore} size={80} />
+              <button
+                onClick={() => navigate(`/kpis`)}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Ver KPIs detalhados →
+              </button>
+            </div>
           </div>
 
           {/* Informações do responsável */}
