@@ -216,25 +216,7 @@ export default function ReunioesPage() {
         </TabsContent>
 
         <TabsContent value="coletivas" className="space-y-4">
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-          ) : (
-            groupByMonth(filterReunioes('coletiva')).length === 0 ? (
-              <div className="flex flex-col items-center py-16 text-txt-muted">
-                <CalendarCheck className="mb-3 h-12 w-12 opacity-30" />
-                <p>Nenhuma reunião coletiva encontrada</p>
-              </div>
-            ) : (
-              groupByMonth(filterReunioes('coletiva')).map(([month, items]) => (
-                <div key={month} className="space-y-2">
-                  <h3 className="text-sm font-semibold text-txt-sec capitalize">{month}</h3>
-                  {items.map(renderReuniaoCard)}
-                </div>
-              ))
-            )
-          )}
+          <ColetivasTab />
         </TabsContent>
       </Tabs>
 
