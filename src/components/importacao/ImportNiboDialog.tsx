@@ -67,11 +67,17 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Upsert valores_mensais
-      const rows = activeLines.map((l) => ({
-        conta_id: l.mappedContaId!,
+      // Aggregate values by conta_id (multiple lines may map to the same account)
+      const aggregated = new Map<string, number>();
+      for (const l of activeLines) {
+        const current = aggregated.get(l.mappedContaId!) || 0;
+        aggregated.set(l.mappedContaId!, current + l.valor);
+      }
+
+      const rows = Array.from(aggregated.entries()).map(([conta_id, valor_realizado]) => ({
+        conta_id,
         competencia,
-        valor_realizado: l.valor,
+        valor_realizado,
       }));
 
       if (rows.length > 0) {
