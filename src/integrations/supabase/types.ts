@@ -67,11 +67,17 @@ export type Database = {
       }
       clientes: {
         Row: {
+          administrador_cpf: string | null
+          administrador_nome: string | null
+          cep: string | null
+          cnpj: string | null
           created_at: string
+          endereco_completo: string | null
           faturamento_faixa: string
           id: string
           nome_empresa: string
           observacoes: string | null
+          razao_social: string | null
           responsavel_email: string | null
           responsavel_nome: string | null
           responsavel_whatsapp: string | null
@@ -79,11 +85,17 @@ export type Database = {
           status: string
         }
         Insert: {
+          administrador_cpf?: string | null
+          administrador_nome?: string | null
+          cep?: string | null
+          cnpj?: string | null
           created_at?: string
+          endereco_completo?: string | null
           faturamento_faixa: string
           id?: string
           nome_empresa: string
           observacoes?: string | null
+          razao_social?: string | null
           responsavel_email?: string | null
           responsavel_nome?: string | null
           responsavel_whatsapp?: string | null
@@ -91,11 +103,17 @@ export type Database = {
           status?: string
         }
         Update: {
+          administrador_cpf?: string | null
+          administrador_nome?: string | null
+          cep?: string | null
+          cnpj?: string | null
           created_at?: string
+          endereco_completo?: string | null
           faturamento_faixa?: string
           id?: string
           nome_empresa?: string
           observacoes?: string | null
+          razao_social?: string | null
           responsavel_email?: string | null
           responsavel_nome?: string | null
           responsavel_whatsapp?: string | null
