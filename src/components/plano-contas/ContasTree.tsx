@@ -52,6 +52,7 @@ function SortableRow({
   const [metaValue, setMetaValue] = useState<string>(meta != null ? String(meta) : '');
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(conta.nome);
+  const [editingTipo, setEditingTipo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: conta.id });
