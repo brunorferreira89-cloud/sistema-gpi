@@ -53,6 +53,60 @@ export type Database = {
         }
         Relationships: []
       }
+      importacoes_nibo: {
+        Row: {
+          arquivo_nome: string | null
+          cliente_id: string
+          competencia: string
+          created_at: string | null
+          id: string
+          importado_por: string | null
+          observacao: string | null
+          status: string | null
+          total_contas_importadas: number | null
+          total_contas_nao_mapeadas: number | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          cliente_id: string
+          competencia: string
+          created_at?: string | null
+          id?: string
+          importado_por?: string | null
+          observacao?: string | null
+          status?: string | null
+          total_contas_importadas?: number | null
+          total_contas_nao_mapeadas?: number | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          cliente_id?: string
+          competencia?: string
+          created_at?: string | null
+          id?: string
+          importado_por?: string | null
+          observacao?: string | null
+          status?: string | null
+          total_contas_importadas?: number | null
+          total_contas_nao_mapeadas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacoes_nibo_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacoes_nibo_importado_por_fkey"
+            columns: ["importado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_checklist: {
         Row: {
           cliente_id: string
