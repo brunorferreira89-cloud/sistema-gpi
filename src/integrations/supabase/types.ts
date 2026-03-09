@@ -41,6 +41,57 @@ export type Database = {
         }
         Relationships: []
       }
+      plano_de_contas: {
+        Row: {
+          cliente_id: string
+          conta_pai_id: string | null
+          created_at: string | null
+          id: string
+          is_total: boolean | null
+          nivel: number
+          nome: string
+          ordem: number
+          tipo: string
+        }
+        Insert: {
+          cliente_id: string
+          conta_pai_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_total?: boolean | null
+          nivel?: number
+          nome: string
+          ordem?: number
+          tipo: string
+        }
+        Update: {
+          cliente_id?: string
+          conta_pai_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_total?: boolean | null
+          nivel?: number
+          nome?: string
+          ordem?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_de_contas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_de_contas_conta_pai_id_fkey"
+            columns: ["conta_pai_id"]
+            isOneToOne: false
+            referencedRelation: "plano_de_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           cliente_id: string | null
@@ -69,6 +120,41 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      valores_mensais: {
+        Row: {
+          competencia: string
+          conta_id: string
+          created_at: string | null
+          id: string
+          valor_meta: number | null
+          valor_realizado: number | null
+        }
+        Insert: {
+          competencia: string
+          conta_id: string
+          created_at?: string | null
+          id?: string
+          valor_meta?: number | null
+          valor_realizado?: number | null
+        }
+        Update: {
+          competencia?: string
+          conta_id?: string
+          created_at?: string | null
+          id?: string
+          valor_meta?: number | null
+          valor_realizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valores_mensais_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_de_contas"
             referencedColumns: ["id"]
           },
         ]
