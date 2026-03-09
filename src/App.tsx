@@ -46,6 +46,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/diagnostico/publico" element={<DiagnosticoPublicoPage />} />
             <Route path="/" element={<RootRedirect />} />
 
             {/* Admin / Consultor routes */}
