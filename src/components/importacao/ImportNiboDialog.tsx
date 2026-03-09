@@ -76,12 +76,12 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
 
       if (rows.length > 0) {
         const { error } = await supabase.from('valores_mensais').upsert(rows, { onConflict: 'conta_id,competencia' });
-        if (error) throw error;
+        if (error) { console.error('Erro upsert valores:', error); throw error; }
       }
 
       // Record import
       const { data: userData } = await supabase.auth.getUser();
-      await supabase.from('importacoes_nibo' as any).insert({
+      const { error: importError } = await supabase.from('importacoes_nibo').insert({
         cliente_id: clienteId,
         competencia,
         arquivo_nome: fileName,
@@ -90,12 +90,14 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
         total_contas_nao_mapeadas: unmappedCount,
         importado_por: userData.user?.id || null,
       });
+      if (importError) { console.error('Erro insert importacao:', importError); throw importError; }
 
       queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
       queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
       toast.success(`Importação concluída. ${activeLines.length} valores registrados para ${competenciaLabel}.`);
       handleClose();
-    } catch {
+    } catch (err) {
+      console.error('Erro ao salvar importação:', err);
       toast.error('Erro ao salvar importação');
     } finally {
       setIsSaving(false);

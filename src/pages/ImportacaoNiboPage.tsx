@@ -37,8 +37,8 @@ export default function ImportacaoNiboPage() {
     queryKey: ['importacoes-nibo', clienteId],
     enabled: !!clienteId,
     queryFn: async () => {
-      const { data } = await supabase.from('importacoes_nibo' as any).select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false });
-      return (data || []) as any[];
+      const { data } = await supabase.from('importacoes_nibo').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false });
+      return (data || []);
     },
   });
 
