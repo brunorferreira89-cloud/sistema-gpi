@@ -17,6 +17,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import MinhaAreaPage from "./pages/MinhaAreaPage";
 import PlanoDeContasPage from "./pages/PlanoDeContasPage";
 import PlanoDeContasClientePage from "./pages/PlanoDeContasClientePage";
+import ClienteFichaPage from "./pages/ClienteFichaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
+                <Route path="/clientes/:clienteId" element={<ClienteFichaPage />} />
                 <Route path="/torre-de-controle" element={<TorrePage />} />
                 <Route path="/kpis" element={<KPIsPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />

@@ -20,6 +20,10 @@ export type Database = {
           faturamento_faixa: string
           id: string
           nome_empresa: string
+          observacoes: string | null
+          responsavel_email: string | null
+          responsavel_nome: string | null
+          responsavel_whatsapp: string | null
           segmento: string
           status: string
         }
@@ -28,6 +32,10 @@ export type Database = {
           faturamento_faixa: string
           id?: string
           nome_empresa: string
+          observacoes?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_whatsapp?: string | null
           segmento: string
           status?: string
         }
@@ -36,10 +44,65 @@ export type Database = {
           faturamento_faixa?: string
           id?: string
           nome_empresa?: string
+          observacoes?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          responsavel_whatsapp?: string | null
           segmento?: string
           status?: string
         }
         Relationships: []
+      }
+      onboarding_checklist: {
+        Row: {
+          cliente_id: string
+          concluido: boolean | null
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string | null
+          id: string
+          item: string
+          ordem: number
+          semana: number
+        }
+        Insert: {
+          cliente_id: string
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string | null
+          id?: string
+          item: string
+          ordem?: number
+          semana: number
+        }
+        Update: {
+          cliente_id?: string
+          concluido?: boolean | null
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string | null
+          id?: string
+          item?: string
+          ordem?: number
+          semana?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_checklist_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_checklist_concluido_por_fkey"
+            columns: ["concluido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plano_de_contas: {
         Row: {
@@ -117,6 +180,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treinamento_progresso: {
+        Row: {
+          cliente_id: string
+          concluido: boolean | null
+          concluido_em: string | null
+          created_at: string | null
+          id: string
+          modulo: string
+          observacao: string | null
+          ordem: number
+          titulo: string
+        }
+        Insert: {
+          cliente_id: string
+          concluido?: boolean | null
+          concluido_em?: string | null
+          created_at?: string | null
+          id?: string
+          modulo: string
+          observacao?: string | null
+          ordem?: number
+          titulo: string
+        }
+        Update: {
+          cliente_id?: string
+          concluido?: boolean | null
+          concluido_em?: string | null
+          created_at?: string | null
+          id?: string
+          modulo?: string
+          observacao?: string | null
+          ordem?: number
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treinamento_progresso_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
