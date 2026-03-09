@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet } from 'lucide-react';
+import { Upload, FileSpreadsheet, Pencil, Trash2 } from 'lucide-react';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
-import { formatCurrency } from '@/lib/plano-contas-utils';
+import { ImportActionDialog } from '@/components/importacao/ImportActionDialog';
 
 const competencias = getCompetenciaOptions();
 
@@ -15,6 +15,8 @@ export default function ImportacaoNiboPage() {
   const [clienteId, setClienteId] = useState('');
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [importOpen, setImportOpen] = useState(false);
+  const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
@@ -49,6 +51,12 @@ export default function ImportacaoNiboPage() {
     if (s === 'processado') return <Badge className="bg-green/10 text-green border-0">Processado</Badge>;
     if (s === 'parcial') return <Badge className="bg-amber/10 text-amber border-0">Parcial</Badge>;
     return <Badge className="bg-red/10 text-red border-0">Erro</Badge>;
+  };
+
+  const handleActionComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
+    queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
+    setActionDialog(null);
   };
 
   return (
@@ -93,6 +101,7 @@ export default function ImportacaoNiboPage() {
                 <th className="p-3">Importadas</th>
                 <th className="p-3">Não mapeadas</th>
                 <th className="p-3">Data</th>
+                <th className="p-3 w-24">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -104,6 +113,28 @@ export default function ImportacaoNiboPage() {
                   <td className="p-3 text-txt">{h.total_contas_importadas}</td>
                   <td className="p-3 text-txt">{h.total_contas_nao_mapeadas}</td>
                   <td className="p-3 text-txt-muted text-xs">{new Date(h.created_at).toLocaleDateString('pt-BR')}</td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-txt-muted hover:text-primary"
+                        onClick={() => setActionDialog({ type: 'edit', importId: h.id, currentCompetencia: h.competencia })}
+                        title="Alterar competência"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-txt-muted hover:text-destructive"
+                        onClick={() => setActionDialog({ type: 'delete', importId: h.id, currentCompetencia: h.competencia })}
+                        title="Excluir importação"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -127,6 +158,17 @@ export default function ImportacaoNiboPage() {
           competencia={competencia}
           competenciaLabel={compLabel}
           contas={contas || []}
+        />
+      )}
+
+      {actionDialog && (
+        <ImportActionDialog
+          type={actionDialog.type}
+          importId={actionDialog.importId}
+          currentCompetencia={actionDialog.currentCompetencia}
+          competenciaOptions={competencias}
+          onComplete={handleActionComplete}
+          onCancel={() => setActionDialog(null)}
         />
       )}
     </div>
