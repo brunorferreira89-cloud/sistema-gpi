@@ -77,6 +77,26 @@ export default function ClienteFichaPage() {
     enabled: !!clienteId,
   });
 
+  const { data: proximaReuniao } = useQuery({
+    queryKey: ['proxima-reuniao', clienteId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('reunioes' as any)
+        .select('*')
+        .eq('cliente_id', clienteId!)
+        .eq('tipo', 'individual')
+        .eq('status', 'agendada')
+        .gte('data_reuniao', today)
+        .order('data_reuniao', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!clienteId,
+  });
+
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase.from('clientes').update(updates as any).eq('id', clienteId!);
