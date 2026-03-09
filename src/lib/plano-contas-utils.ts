@@ -21,12 +21,47 @@ export interface ImportedConta {
 }
 
 export const tipoLabels: Record<ContaTipo, string> = {
-  receita: 'Receita',
-  custo_variavel: 'Custo Variável',
-  despesa_fixa: 'Despesa Fixa',
-  investimento: 'Investimento',
-  financeiro: 'Financeiro',
+  receita: 'Receitas',
+  custo_variavel: 'Despesas Variáveis',
+  despesa_fixa: 'Despesas Fixas',
+  investimento: 'Ativ. de Investimentos',
+  financeiro: 'Ativ. de Financiamento',
 };
+
+/** Maps DRE parent category names to ContaTipo */
+const dreParentCategories: { pattern: RegExp; tipo: ContaTipo }[] = [
+  { pattern: /^receita[s]?\s+operaciona/i, tipo: 'receita' },
+  { pattern: /^custo[s]?\s+operaciona/i, tipo: 'custo_variavel' },
+  { pattern: /^despesa[s]?\s+operaciona/i, tipo: 'despesa_fixa' },
+  { pattern: /^atividade[s]?\s+de\s+investimento/i, tipo: 'investimento' },
+  { pattern: /^atividade[s]?\s+de\s+financiamento/i, tipo: 'financeiro' },
+];
+
+/** Detects if a name matches a DRE parent category */
+export function detectDreParentTipo(nome: string): ContaTipo | null {
+  const trimmed = nome.trim();
+  for (const cat of dreParentCategories) {
+    if (cat.pattern.test(trimmed)) return cat.tipo;
+  }
+  return null;
+}
+
+/** Post-process imported contas: propagate tipo from DRE parent categories to children */
+export function propagateTipoFromParents(contas: ImportedConta[]): ImportedConta[] {
+  let currentParentTipo: ContaTipo | null = null;
+
+  return contas.map((conta) => {
+    const parentTipo = detectDreParentTipo(conta.nome);
+    if (parentTipo) {
+      currentParentTipo = parentTipo;
+      return { ...conta, tipo: parentTipo };
+    }
+    if (currentParentTipo && conta.nivel > 1) {
+      return { ...conta, tipo: currentParentTipo };
+    }
+    return conta;
+  });
+}
 
 export const tipoBadgeColors: Record<ContaTipo, string> = {
   receita: 'bg-primary/10 text-primary',

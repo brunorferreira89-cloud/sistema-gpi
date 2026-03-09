@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { classifyTipo, isTotalLine, type ImportedConta } from '@/lib/plano-contas-utils';
+import { classifyTipo, isTotalLine, propagateTipoFromParents, type ImportedConta } from '@/lib/plano-contas-utils';
 
 export function parseXlsx(file: File): Promise<ImportedConta[]> {
   return new Promise((resolve, reject) => {
