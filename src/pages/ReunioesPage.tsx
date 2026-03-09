@@ -5,11 +5,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarCheck, Plus, FileText, Video, MapPin, Pencil, X } from 'lucide-react';
+import { CalendarCheck, Plus, FileText, Video, MapPin, Pencil, X, Users2 } from 'lucide-react';
 import { segmentColors, segmentLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { AtaSheet } from '@/components/reunioes/AtaSheet';
+import { useNavigate } from 'react-router-dom';
 
 const statusBadge: Record<string, { className: string; label: string }> = {
   agendada: { className: 'border-amber/30 bg-amber/10 text-amber', label: 'Agendada' },
