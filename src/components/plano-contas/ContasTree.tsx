@@ -38,6 +38,7 @@ function SortableRow({
   onMetaSave,
   onDelete,
   onRename,
+  onChangeTipo,
 }: {
   conta: ContaRow;
   meta: number | null;
@@ -47,6 +48,7 @@ function SortableRow({
   onMetaSave: (contaId: string, valor: number | null) => void;
   onDelete: (contaId: string) => void;
   onRename: (contaId: string, nome: string) => void;
+  onChangeTipo: (contaId: string, tipo: ContaTipo) => void;
 }) {
   const [editingMeta, setEditingMeta] = useState(false);
   const [metaValue, setMetaValue] = useState<string>(meta != null ? String(meta) : '');
