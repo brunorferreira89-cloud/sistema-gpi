@@ -99,6 +99,18 @@ export default function ClienteFichaPage() {
     enabled: !!clienteId,
   });
 
+  const currentComp = (() => { const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]; })();
+  const { data: kpiData } = useQuery({
+    queryKey: ['kpi-ficha', clienteId, currentComp],
+    queryFn: () => fetchKpiData(clienteId!, currentComp),
+    enabled: !!clienteId,
+  });
+  const healthScore = kpiData ? calcHealthScore({
+    mc_pct: kpiData.mc_pct, cmv_pct: kpiData.cmv_pct,
+    cmo_pct: kpiData.cmo_pct, gc_pct: kpiData.gc_pct, hasData: kpiData.hasData,
+  }) : 0;
+
+
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase.from('clientes').update(updates as any).eq('id', clienteId!);
