@@ -162,9 +162,16 @@ export function calcularDRE(inputs: DiagnosticoInputs): DreResult {
   const total_dividas = div_arr.some(v => v != null) ? div_arr.reduce((s, v) => s + (v || 0), 0) : null;
   const endiv_pct = fat && total_dividas != null ? (total_dividas / (fat * 12)) * 100 : null;
 
+  // Per-capita indicators
+  const nFunc = inputs.num_funcionarios > 0 ? inputs.num_funcionarios : null;
+  const custo_per_capita = nFunc && folha_total != null ? folha_total / nFunc : null;
+  const mc_por_funcionario = nFunc && mc != null ? mc / nFunc : null;
+  const indice_cobertura = custo_per_capita && mc_por_funcionario ? mc_por_funcionario / custo_per_capita : null;
+
   // Score & penalidades
   const { score, penalidades, campos_null } = calcularScore(inputs, {
     mc_pct, cmv_pct, cmo_pct, gc_pct, ret_pct_fat, ret_pct_gc, endiv_pct, ms,
+    lucro_op,
   });
 
   return {
@@ -181,6 +188,7 @@ export function calcularDRE(inputs: DiagnosticoInputs): DreResult {
     marketing: mkt, capex, retiradas: ret, parcelas: parc,
     geracao_caixa: gc, gc_pct,
     cmv_pct, cmo_pct,
+    custo_per_capita, mc_por_funcionario, indice_cobertura,
     pe_valor: pe, margem_seguranca: ms,
     retiradas_pct_fat: ret_pct_fat, retiradas_pct_gc: ret_pct_gc,
     total_dividas, endividamento_pct: endiv_pct,
