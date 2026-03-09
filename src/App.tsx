@@ -49,6 +49,8 @@ const App = () => (
                 <Route path="/kpis" element={<KPIsPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/plano-de-contas" element={<PlanoDeContasPage />} />
+                <Route path="/plano-de-contas/:clienteId" element={<PlanoDeContasClientePage />} />
               </Route>
             </Route>
 
