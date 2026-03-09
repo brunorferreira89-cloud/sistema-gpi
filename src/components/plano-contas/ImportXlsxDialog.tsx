@@ -69,7 +69,7 @@ export function ImportXlsxDialog({ open, onOpenChange, clienteId, clienteFaixa }
       setIsSaving(false);
       return;
     }
-    setSavedContaIds(data || []);
+    setSavedContaIds((data || []).map(c => ({ ...c, tipo: c.tipo as ContaTipo })));
 
     // Pre-fill meta suggestions
     const fRef = getFaturamentoReferencia(clienteFaixa);

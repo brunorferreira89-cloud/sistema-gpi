@@ -83,7 +83,7 @@ export function CopyFromClienteDialog({ open, onOpenChange, clienteId, clienteSe
       return;
     }
 
-    setSavedContaIds(data || []);
+    setSavedContaIds((data || []).map(c => ({ ...c, tipo: c.tipo as ContaTipo })));
     const fRef = getFaturamentoReferencia(clienteFaixa);
     const metasInit: Record<string, number | null> = {};
     data?.forEach((c) => {
