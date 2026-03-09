@@ -14,6 +14,7 @@ const navItems = [
   { icon: Target, label: 'KPIs', to: '/kpis' },
   { icon: CalendarCheck, label: 'Reuniões', to: '/reunioes' },
   { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },
+  { icon: Stethoscope, label: 'Diagnósticos', to: '/diagnostico' },
   { icon: ClipboardList, label: 'Onboarding', to: '/onboarding' },
 ];
 
