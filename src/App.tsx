@@ -23,6 +23,8 @@ import ImportacaoNiboPage from "./pages/ImportacaoNiboPage";
 import AlertasPage from "./pages/AlertasPage";
 import ReuniaoColetivaPrincipalPage from "./pages/ReuniaoColetivaPrincipalPage";
 import ReuniaoColetivDetalhe from "./pages/ReuniaoColetivDetalhe";
+import DiagnosticoPublicoPage from "./pages/DiagnosticoPublicoPage";
+import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
