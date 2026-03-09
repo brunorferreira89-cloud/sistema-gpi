@@ -14,13 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          created_at: string
+          faturamento_faixa: string
+          id: string
+          nome_empresa: string
+          segmento: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          faturamento_faixa: string
+          id?: string
+          nome_empresa: string
+          segmento: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          faturamento_faixa?: string
+          id?: string
+          nome_empresa?: string
+          segmento?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          id: string
+          nome: string | null
+          role: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          id: string
+          nome?: string | null
+          role?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          nome?: string | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_cliente_id: { Args: { _user_id: string }; Returns: string }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
