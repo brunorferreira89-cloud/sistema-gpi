@@ -48,6 +48,7 @@ const App = () => (
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
                 <Route path="/clientes/:clienteId" element={<ClienteFichaPage />} />
+                <Route path="/kanban" element={<KanbanPage />} />
                 <Route path="/torre-de-controle" element={<TorrePage />} />
                 <Route path="/kpis" element={<KPIsPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />
