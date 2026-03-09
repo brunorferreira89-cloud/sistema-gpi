@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, Clipboar
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import gpiLogo from '@/assets/gpi-logo.png';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
