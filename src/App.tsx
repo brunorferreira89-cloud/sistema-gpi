@@ -1,12 +1,31 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import LoginPage from "./pages/LoginPage";
+import AppLayout from "./layouts/AppLayout";
+import ClienteLayout from "./layouts/ClienteLayout";
+import DashboardPage from "./pages/DashboardPage";
+import ClientesPage from "./pages/ClientesPage";
+import TorrePage from "./pages/TorrePage";
+import KPIsPage from "./pages/KPIsPage";
+import ReunioesPage from "./pages/ReunioesPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import MinhaAreaPage from "./pages/MinhaAreaPage";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function RootRedirect() {
+  const { session, profile, loading } = useAuth();
+  if (loading) return null;
+  if (!session) return <Navigate to="/login" replace />;
+  if (profile?.role === 'cliente') return <Navigate to="/minha-area" replace />;
+  return <Navigate to="/dashboard" replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -14,11 +33,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<RootRedirect />} />
+
+            {/* Admin / Consultor routes */}
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'consultor']}><AppLayout /></ProtectedRoute>}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/clientes" element={<ClientesPage />} />
+              <Route path="/torre-de-controle" element={<TorrePage />} />
+              <Route path="/kpis" element={<KPIsPage />} />
+              <Route path="/reunioes" element={<ReunioesPage />} />
+              <Route path="/onboarding" element={<OnboardingPage />} />
+            </Route>
+
+            {/* Cliente routes */}
+            <Route element={<ProtectedRoute allowedRoles={['cliente']}><ClienteLayout /></ProtectedRoute>}>
+              <Route path="/minha-area" element={<MinhaAreaPage />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
