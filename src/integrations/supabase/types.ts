@@ -187,6 +187,66 @@ export type Database = {
           },
         ]
       }
+      tarefas_operacionais: {
+        Row: {
+          cliente_id: string
+          concluido_em: string | null
+          created_at: string | null
+          data_tarefa: string
+          descricao: string | null
+          id: string
+          observacao: string | null
+          prioridade: string
+          responsavel_id: string | null
+          status: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          cliente_id: string
+          concluido_em?: string | null
+          created_at?: string | null
+          data_tarefa: string
+          descricao?: string | null
+          id?: string
+          observacao?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          status?: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          cliente_id?: string
+          concluido_em?: string | null
+          created_at?: string | null
+          data_tarefa?: string
+          descricao?: string | null
+          id?: string
+          observacao?: string | null
+          prioridade?: string
+          responsavel_id?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_operacionais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_operacionais_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treinamento_progresso: {
         Row: {
           cliente_id: string
