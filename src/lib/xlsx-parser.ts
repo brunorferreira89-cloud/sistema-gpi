@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { classifyTipo, isTotalLine, type ImportedConta } from '@/lib/plano-contas-utils';
+import { classifyTipo, isTotalLine, propagateTipoFromParents, type ImportedConta } from '@/lib/plano-contas-utils';
 
 export function parseXlsx(file: File): Promise<ImportedConta[]> {
   return new Promise((resolve, reject) => {
@@ -67,14 +67,17 @@ export function parseXlsx(file: File): Promise<ImportedConta[]> {
           finalRows = rows.map((r) => ({ nome: r.nome, nivel: 1 }));
         }
 
-        // Strategy 3: Keyword detection for is_total (always runs)
-        const contas: ImportedConta[] = finalRows.map((row) => ({
+        // Initial classification by name
+        const initialContas: ImportedConta[] = finalRows.map((row) => ({
           nome: row.nome,
           nivel: row.nivel,
           tipo: classifyTipo(row.nome),
           is_total: isTotalLine(row.nome),
           selected: true,
         }));
+
+        // Propagate tipo from DRE parent categories to children
+        const contas = propagateTipoFromParents(initialContas);
 
         resolve(contas);
       } catch (err) {
