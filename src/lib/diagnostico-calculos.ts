@@ -72,6 +72,9 @@ export interface DreResult {
   // KPIs
   cmv_pct: number | null;
   cmo_pct: number | null;
+  custo_per_capita: number | null;
+  mc_por_funcionario: number | null;
+  indice_cobertura: number | null;
   // PE
   pe_valor: number | null;
   margem_seguranca: number | null;
@@ -159,9 +162,16 @@ export function calcularDRE(inputs: DiagnosticoInputs): DreResult {
   const total_dividas = div_arr.some(v => v != null) ? div_arr.reduce((s, v) => s + (v || 0), 0) : null;
   const endiv_pct = fat && total_dividas != null ? (total_dividas / (fat * 12)) * 100 : null;
 
+  // Per-capita indicators
+  const nFunc = inputs.num_funcionarios > 0 ? inputs.num_funcionarios : null;
+  const custo_per_capita = nFunc && folha_total != null ? folha_total / nFunc : null;
+  const mc_por_funcionario = nFunc && mc != null ? mc / nFunc : null;
+  const indice_cobertura = custo_per_capita && mc_por_funcionario ? mc_por_funcionario / custo_per_capita : null;
+
   // Score & penalidades
   const { score, penalidades, campos_null } = calcularScore(inputs, {
     mc_pct, cmv_pct, cmo_pct, gc_pct, ret_pct_fat, ret_pct_gc, endiv_pct, ms,
+    lucro_op,
   });
 
   return {
@@ -178,6 +188,7 @@ export function calcularDRE(inputs: DiagnosticoInputs): DreResult {
     marketing: mkt, capex, retiradas: ret, parcelas: parc,
     geracao_caixa: gc, gc_pct,
     cmv_pct, cmo_pct,
+    custo_per_capita, mc_por_funcionario, indice_cobertura,
     pe_valor: pe, margem_seguranca: ms,
     retiradas_pct_fat: ret_pct_fat, retiradas_pct_gc: ret_pct_gc,
     total_dividas, endividamento_pct: endiv_pct,
@@ -190,14 +201,13 @@ function calcularScore(
   kpis: {
     mc_pct: number | null; cmv_pct: number | null; cmo_pct: number | null;
     gc_pct: number | null; ret_pct_fat: number | null; ret_pct_gc: number | null;
-    endiv_pct: number | null; ms: number | null;
+    endiv_pct: number | null; ms: number | null; lucro_op: number | null;
   }
 ) {
   let score = 100;
   const penalidades: string[] = [];
 
-  // Count null fields (checkboxes "Não sabe")
-  const naoSabeFields = [
+  const campos_null = [
     inputs.faturamento_nao_sabe, inputs.cmv_nao_sabe, inputs.impostos_nao_sabe,
     inputs.taxas_cartao_nao_sabe, inputs.despesas_admin_nao_sabe,
     inputs.salarios_nao_sabe, inputs.inss_irrf_nao_sabe, inputs.fgts_nao_sabe,
@@ -207,53 +217,62 @@ function calcularScore(
     inputs.retiradas_nao_sabe, inputs.parcelas_nao_sabe,
     inputs.fornecedores_nao_sabe, inputs.impostos_atrasados_nao_sabe,
     inputs.emprestimos_saldo_nao_sabe, inputs.outras_dividas_nao_sabe,
-  ];
-  const campos_null = naoSabeFields.filter(Boolean).length;
+  ].filter(Boolean).length;
 
-  if (campos_null >= 8) {
-    score -= 20;
-    penalidades.push('Muitos campos sem informação (visibilidade crítica)');
-  } else if (campos_null >= 4) {
-    score -= 10;
-    penalidades.push('Diversos campos sem informação');
-  }
-
-  // MC
-  if (kpis.mc_pct != null) {
-    if (kpis.mc_pct < 30) { score -= 25; penalidades.push('MC% abaixo de 30% — margem crítica'); }
-    else if (kpis.mc_pct < 40) { score -= 15; penalidades.push('MC% entre 30–40% — margem abaixo do ideal'); }
+  // Faturamento não informado
+  if (inputs.faturamento_nao_sabe || inputs.faturamento == null) {
+    score -= 20; penalidades.push('Faturamento não informado — visibilidade zero');
   }
 
   // CMV
-  if (kpis.cmv_pct != null) {
-    if (kpis.cmv_pct > 42) { score -= 15; penalidades.push('CMV acima de 42% — custo de mercadoria elevado'); }
-    else if (kpis.cmv_pct > 38) { score -= 5; penalidades.push('CMV entre 38–42% — atenção ao custo'); }
+  if (inputs.cmv_nao_sabe) {
+    score -= 20; penalidades.push('CMV não informado — custo de mercadoria desconhecido');
+  } else if (kpis.cmv_pct != null) {
+    if (kpis.cmv_pct > 38) { score -= 15; penalidades.push('CMV acima de 38% — custo de mercadoria elevado'); }
+    else if (kpis.cmv_pct >= 35) { score -= 5; penalidades.push('CMV entre 35–38% — atenção ao custo'); }
   }
 
-  // CMO
-  if (kpis.cmo_pct != null) {
-    if (kpis.cmo_pct > 30) { score -= 15; penalidades.push('CMO acima de 30% — custo de pessoal elevado'); }
-    else if (kpis.cmo_pct > 25) { score -= 5; penalidades.push('CMO entre 25–30% — atenção ao custo de pessoal'); }
+  // MC
+  if (kpis.mc_pct == null) {
+    score -= 15; penalidades.push('Margem de Contribuição não calculável');
+  } else if (kpis.mc_pct < 30) {
+    score -= 25; penalidades.push('MC% abaixo de 30% — margem crítica');
+  } else if (kpis.mc_pct < 40) {
+    score -= 15; penalidades.push('MC% abaixo de 40% — margem abaixo do ideal');
+  }
+
+  // Lucro operacional
+  if (kpis.lucro_op == null) {
+    score -= 15; penalidades.push('Lucro Operacional não monitorado');
+  } else if (kpis.lucro_op < 0) {
+    score -= 20; penalidades.push('Lucro Operacional negativo — operação no vermelho');
   }
 
   // GC
   if (kpis.gc_pct != null) {
     if (kpis.gc_pct < 0) { score -= 20; penalidades.push('Geração de Caixa negativa — empresa consumindo caixa'); }
-    else if (kpis.gc_pct < 7) { score -= 10; penalidades.push('GC% abaixo de 7% — geração de caixa insuficiente'); }
+    else if (kpis.gc_pct < 10) { score -= 10; penalidades.push('GC% abaixo de 10% — geração de caixa insuficiente'); }
   }
 
   // Retiradas
   if (kpis.ret_pct_gc != null && kpis.ret_pct_gc > 50) {
     score -= 10; penalidades.push('Retiradas acima de 50% da Geração de Caixa');
   }
-  if (kpis.ret_pct_fat != null && kpis.ret_pct_fat > 5) {
-    score -= 5; penalidades.push('Retiradas acima de 5% do faturamento');
+
+  // Impostos atrasados não informados
+  if (inputs.impostos_atrasados_nao_sabe) {
+    score -= 10; penalidades.push('Impostos atrasados não informados');
   }
 
   // Endividamento
   if (kpis.endiv_pct != null) {
     if (kpis.endiv_pct > 50) { score -= 15; penalidades.push('Endividamento acima de 50% — risco elevado'); }
     else if (kpis.endiv_pct > 30) { score -= 5; penalidades.push('Endividamento entre 30–50% — atenção'); }
+  }
+
+  // Provisões não informadas
+  if (inputs.ferias_nao_sabe || inputs.decimo_rescisoes_nao_sabe) {
+    score -= 5; penalidades.push('Provisões de férias/13º não informadas — custo real subestimado');
   }
 
   return { score: Math.max(0, Math.min(100, score)), penalidades, campos_null };
