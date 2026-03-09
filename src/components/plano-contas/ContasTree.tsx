@@ -38,6 +38,7 @@ function SortableRow({
   onMetaSave,
   onDelete,
   onRename,
+  onChangeTipo,
 }: {
   conta: ContaRow;
   meta: number | null;
@@ -47,11 +48,13 @@ function SortableRow({
   onMetaSave: (contaId: string, valor: number | null) => void;
   onDelete: (contaId: string) => void;
   onRename: (contaId: string, nome: string) => void;
+  onChangeTipo: (contaId: string, tipo: ContaTipo) => void;
 }) {
   const [editingMeta, setEditingMeta] = useState(false);
   const [metaValue, setMetaValue] = useState<string>(meta != null ? String(meta) : '');
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(conta.nome);
+  const [editingTipo, setEditingTipo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: conta.id });
@@ -103,9 +106,26 @@ function SortableRow({
             {conta.nome}
           </span>
         )}
-        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${tipoBadgeColors[conta.tipo as ContaTipo]}`}>
-          {tipoLabels[conta.tipo as ContaTipo]}
-        </span>
+        {editingTipo ? (
+          <select
+            className="shrink-0 rounded border border-primary bg-surface-hi px-1.5 py-0.5 text-[10px] font-medium text-txt outline-none"
+            value={conta.tipo}
+            onChange={(e) => { onChangeTipo(conta.id, e.target.value as ContaTipo); setEditingTipo(false); }}
+            onBlur={() => setEditingTipo(false)}
+            autoFocus
+          >
+            {Object.entries(tipoLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        ) : (
+          <button
+            onClick={() => setEditingTipo(true)}
+            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium cursor-pointer hover:ring-1 hover:ring-primary/50 ${tipoBadgeColors[conta.tipo as ContaTipo]}`}
+          >
+            {tipoLabels[conta.tipo as ContaTipo]}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
@@ -243,6 +263,11 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     onRefresh();
   };
 
+  const handleChangeTipo = async (contaId: string, tipo: ContaTipo) => {
+    await supabase.from('plano_de_contas').update({ tipo }).eq('id', contaId);
+    onRefresh();
+  };
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={visibleContas.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -265,6 +290,7 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
               onMetaSave={handleMetaSave}
               onDelete={handleDelete}
               onRename={handleRename}
+              onChangeTipo={handleChangeTipo}
             />
           ))}
         </div>
