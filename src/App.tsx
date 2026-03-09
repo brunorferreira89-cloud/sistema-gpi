@@ -18,6 +18,7 @@ import MinhaAreaPage from "./pages/MinhaAreaPage";
 import PlanoDeContasPage from "./pages/PlanoDeContasPage";
 import PlanoDeContasClientePage from "./pages/PlanoDeContasClientePage";
 import ClienteFichaPage from "./pages/ClienteFichaPage";
+import KanbanPage from "./pages/KanbanPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
                 <Route path="/clientes/:clienteId" element={<ClienteFichaPage />} />
+                <Route path="/kanban" element={<KanbanPage />} />
                 <Route path="/torre-de-controle" element={<TorrePage />} />
                 <Route path="/kpis" element={<KPIsPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />

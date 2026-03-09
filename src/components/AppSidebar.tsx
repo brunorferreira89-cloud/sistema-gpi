@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, ClipboardList, KanbanSquare, LogOut } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
   { icon: Users, label: 'Clientes', to: '/clientes' },
+  { icon: KanbanSquare, label: 'Kanban', to: '/kanban' },
   { icon: BookOpen, label: 'Plano de Contas', to: '/plano-de-contas' },
   { icon: BarChart3, label: 'Torre / DRE', to: '/torre-de-controle' },
   { icon: Target, label: 'KPIs', to: '/kpis' },
