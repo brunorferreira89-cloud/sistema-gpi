@@ -20,6 +20,7 @@ import PlanoDeContasClientePage from "./pages/PlanoDeContasClientePage";
 import ClienteFichaPage from "./pages/ClienteFichaPage";
 import KanbanPage from "./pages/KanbanPage";
 import ImportacaoNiboPage from "./pages/ImportacaoNiboPage";
+import AlertasPage from "./pages/AlertasPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="/torre-de-controle" element={<TorrePage />} />
                 <Route path="/importacao-nibo" element={<ImportacaoNiboPage />} />
                 <Route path="/kpis" element={<KPIsPage />} />
+                <Route path="/alertas" element={<AlertasPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/plano-de-contas" element={<PlanoDeContasPage />} />

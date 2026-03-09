@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,11 +14,13 @@ import { OnboardingTab } from '@/components/clientes/OnboardingTab';
 import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
+import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ['cliente', clienteId],
@@ -71,6 +73,26 @@ export default function ClienteFichaPage() {
         metasPendentes = contaIds.length - metasMap.size;
       }
       return { contas: contas?.length || 0, metasPendentes };
+    },
+    enabled: !!clienteId,
+  });
+
+  const { data: proximaReuniao } = useQuery({
+    queryKey: ['proxima-reuniao', clienteId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('reunioes' as any)
+        .select('*')
+        .eq('cliente_id', clienteId!)
+        .eq('tipo', 'individual')
+        .eq('status', 'agendada')
+        .gte('data_reuniao', today)
+        .order('data_reuniao', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
     },
     enabled: !!clienteId,
   });
@@ -200,10 +222,22 @@ export default function ClienteFichaPage() {
             {/* Próxima Reunião card */}
             <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
               <p className="text-sm font-semibold text-txt">Próxima Reunião</p>
-              <p className="text-sm text-txt-muted">Nenhuma reunião agendada</p>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Calendar className="h-3.5 w-3.5" /> Agendar
-              </Button>
+              {proximaReuniao ? (
+                <>
+                  <p className="text-sm text-txt">
+                    {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {proximaReuniao.horario && ` · ${(proximaReuniao.horario as string).slice(0, 5).replace(':', 'h')}`}
+                  </p>
+                  <span className="text-xs text-txt-muted capitalize">{proximaReuniao.formato === 'video' ? 'Vídeo' : 'Presencial'}</span>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-txt-muted">Nenhuma reunião agendada</p>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setReuniaoDialogOpen(true)}>
+                    <Calendar className="h-3.5 w-3.5" /> Agendar
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -264,6 +298,12 @@ export default function ClienteFichaPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <ReuniaoDialog
+        open={reuniaoDialogOpen}
+        onOpenChange={setReuniaoDialogOpen}
+        preselectedClienteId={clienteId}
+      />
     </div>
   );
 }

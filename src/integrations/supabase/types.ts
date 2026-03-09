@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      alertas_semanais: {
+        Row: {
+          cliente_id: string
+          conteudo: Json | null
+          created_at: string | null
+          enviado_em: string | null
+          enviado_por: string | null
+          id: string
+          semana_fim: string
+          semana_inicio: string
+          status: string | null
+        }
+        Insert: {
+          cliente_id: string
+          conteudo?: Json | null
+          created_at?: string | null
+          enviado_em?: string | null
+          enviado_por?: string | null
+          id?: string
+          semana_fim: string
+          semana_inicio: string
+          status?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          conteudo?: Json | null
+          created_at?: string | null
+          enviado_em?: string | null
+          enviado_por?: string | null
+          id?: string
+          semana_fim?: string
+          semana_inicio?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_semanais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_semanais_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           created_at: string
@@ -237,6 +288,66 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reunioes: {
+        Row: {
+          ata: string | null
+          cliente_id: string | null
+          created_at: string | null
+          data_reuniao: string
+          formato: string | null
+          horario: string | null
+          id: string
+          pauta: string | null
+          realizada_por: string | null
+          status: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          ata?: string | null
+          cliente_id?: string | null
+          created_at?: string | null
+          data_reuniao: string
+          formato?: string | null
+          horario?: string | null
+          id?: string
+          pauta?: string | null
+          realizada_por?: string | null
+          status?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          ata?: string | null
+          cliente_id?: string | null
+          created_at?: string | null
+          data_reuniao?: string
+          formato?: string | null
+          horario?: string | null
+          id?: string
+          pauta?: string | null
+          realizada_por?: string | null
+          status?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reunioes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reunioes_realizada_por_fkey"
+            columns: ["realizada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
