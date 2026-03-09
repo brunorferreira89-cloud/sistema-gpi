@@ -13,6 +13,7 @@ const navItems = [
   { icon: Bell, label: 'Alertas', to: '/alertas' },
   { icon: Target, label: 'KPIs', to: '/kpis' },
   { icon: CalendarCheck, label: 'Reuniões', to: '/reunioes' },
+  { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },
   { icon: ClipboardList, label: 'Onboarding', to: '/onboarding' },
 ];
 
