@@ -51,6 +51,7 @@ const App = () => (
                 <Route path="/clientes/:clienteId" element={<ClienteFichaPage />} />
                 <Route path="/kanban" element={<KanbanPage />} />
                 <Route path="/torre-de-controle" element={<TorrePage />} />
+                <Route path="/importacao-nibo" element={<ImportacaoNiboPage />} />
                 <Route path="/kpis" element={<KPIsPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
