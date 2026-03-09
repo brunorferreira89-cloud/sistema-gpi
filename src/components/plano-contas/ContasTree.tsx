@@ -179,8 +179,8 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
   const [orderedContas, setOrderedContas] = useState(contas);
   const queryClient = useQueryClient();
 
-  // Sync when contas prop changes
-  if (contas !== orderedContas && contas.length !== orderedContas.length) {
+  // Sync when contas prop changes (compare by reference)
+  if (contas !== orderedContas) {
     setOrderedContas(contas);
   }
 
