@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, Clipboar
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import gpiLogo from '@/assets/gpi-logo.png';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
@@ -28,9 +29,7 @@ export function AppSidebar() {
     <aside className="flex h-screen w-56 flex-col border-r border-border bg-surface">
       {/* Logo */}
       <div className="flex flex-col items-center gap-1.5 px-4 py-6">
-        <div className="flex h-9 w-16 items-center justify-center rounded-full bg-txt">
-          <span className="text-sm font-bold tracking-wider text-primary-foreground">GPI</span>
-        </div>
+        <img src={gpiLogo} alt="GPI" className="h-10 w-auto object-contain" />
         <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-txt-muted">
           Inteligência Financeira
         </span>
