@@ -15,6 +15,8 @@ import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
+import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
+import { fetchKpiData } from '@/lib/kpi-utils';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
@@ -96,6 +98,18 @@ export default function ClienteFichaPage() {
     },
     enabled: !!clienteId,
   });
+
+  const currentComp = (() => { const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]; })();
+  const { data: kpiData } = useQuery({
+    queryKey: ['kpi-ficha', clienteId, currentComp],
+    queryFn: () => fetchKpiData(clienteId!, currentComp),
+    enabled: !!clienteId,
+  });
+  const healthScore = kpiData ? calcHealthScore({
+    mc_pct: kpiData.mc_pct, cmv_pct: kpiData.cmv_pct,
+    cmo_pct: kpiData.cmo_pct, gc_pct: kpiData.gc_pct, hasData: kpiData.hasData,
+  }) : 0;
+
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
@@ -238,6 +252,17 @@ export default function ClienteFichaPage() {
                   </Button>
                 </>
               )}
+            </div>
+            {/* Saúde Financeira card */}
+            <div className="rounded-xl border border-border bg-surface p-5 flex flex-col items-center justify-center gap-2 sm:col-span-2">
+              <p className="text-sm font-semibold text-txt">Saúde Financeira</p>
+              <ScoreRing score={healthScore} size={80} />
+              <button
+                onClick={() => navigate(`/kpis`)}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Ver KPIs detalhados →
+              </button>
             </div>
           </div>
 
