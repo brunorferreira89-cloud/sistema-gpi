@@ -39,18 +39,22 @@ const App = () => (
             <Route path="/" element={<RootRedirect />} />
 
             {/* Admin / Consultor routes */}
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'consultor']}><AppLayout /></ProtectedRoute>}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/clientes" element={<ClientesPage />} />
-              <Route path="/torre-de-controle" element={<TorrePage />} />
-              <Route path="/kpis" element={<KPIsPage />} />
-              <Route path="/reunioes" element={<ReunioesPage />} />
-              <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'consultor']} />}>
+              <Route element={<AppLayout />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/clientes" element={<ClientesPage />} />
+                <Route path="/torre-de-controle" element={<TorrePage />} />
+                <Route path="/kpis" element={<KPIsPage />} />
+                <Route path="/reunioes" element={<ReunioesPage />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
+              </Route>
             </Route>
 
             {/* Cliente routes */}
-            <Route element={<ProtectedRoute allowedRoles={['cliente']}><ClienteLayout /></ProtectedRoute>}>
-              <Route path="/minha-area" element={<MinhaAreaPage />} />
+            <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>
+              <Route element={<ClienteLayout />}>
+                <Route path="/minha-area" element={<MinhaAreaPage />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<NotFound />} />
