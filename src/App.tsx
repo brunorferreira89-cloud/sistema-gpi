@@ -23,6 +23,8 @@ import ImportacaoNiboPage from "./pages/ImportacaoNiboPage";
 import AlertasPage from "./pages/AlertasPage";
 import ReuniaoColetivaPrincipalPage from "./pages/ReuniaoColetivaPrincipalPage";
 import ReuniaoColetivDetalhe from "./pages/ReuniaoColetivDetalhe";
+import DiagnosticoPublicoPage from "./pages/DiagnosticoPublicoPage";
+import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/diagnostico/publico" element={<DiagnosticoPublicoPage />} />
             <Route path="/" element={<RootRedirect />} />
 
             {/* Admin / Consultor routes */}
@@ -60,6 +63,7 @@ const App = () => (
                 <Route path="/reunioes" element={<ReunioesPage />} />
                 <Route path="/reuniao-coletiva" element={<ReuniaoColetivaPrincipalPage />} />
                 <Route path="/reuniao-coletiva/:id" element={<ReuniaoColetivDetalhe />} />
+                <Route path="/diagnostico" element={<DiagnosticoLeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/plano-de-contas" element={<PlanoDeContasPage />} />
                 <Route path="/plano-de-contas/:clienteId" element={<PlanoDeContasClientePage />} />

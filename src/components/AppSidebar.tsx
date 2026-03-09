@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, ClipboardList, KanbanSquare, FileSpreadsheet, Bell, CalendarCheck, Users2, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, ClipboardList, KanbanSquare, FileSpreadsheet, Bell, CalendarCheck, Users2, Stethoscope, LogOut } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const navItems = [
   { icon: Target, label: 'KPIs', to: '/kpis' },
   { icon: CalendarCheck, label: 'Reuniões', to: '/reunioes' },
   { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },
+  { icon: Stethoscope, label: 'Diagnósticos', to: '/diagnostico' },
   { icon: ClipboardList, label: 'Onboarding', to: '/onboarding' },
 ];
 

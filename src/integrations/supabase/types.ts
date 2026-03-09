@@ -104,6 +104,51 @@ export type Database = {
         }
         Relationships: []
       }
+      diagnostico_leads: {
+        Row: {
+          cnpj: string | null
+          created_at: string | null
+          dados_diagnostico: Json | null
+          email: string
+          faturamento: number | null
+          id: string
+          nome_empresa: string
+          responsavel_nome: string | null
+          score: number | null
+          segmento: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string | null
+          dados_diagnostico?: Json | null
+          email: string
+          faturamento?: number | null
+          id?: string
+          nome_empresa: string
+          responsavel_nome?: string | null
+          score?: number | null
+          segmento?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string | null
+          dados_diagnostico?: Json | null
+          email?: string
+          faturamento?: number | null
+          id?: string
+          nome_empresa?: string
+          responsavel_nome?: string | null
+          score?: number | null
+          segmento?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       importacoes_nibo: {
         Row: {
           arquivo_nome: string | null
