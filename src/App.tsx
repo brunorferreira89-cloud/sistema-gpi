@@ -21,6 +21,8 @@ import ClienteFichaPage from "./pages/ClienteFichaPage";
 import KanbanPage from "./pages/KanbanPage";
 import ImportacaoNiboPage from "./pages/ImportacaoNiboPage";
 import AlertasPage from "./pages/AlertasPage";
+import ReuniaoColetivaPrincipalPage from "./pages/ReuniaoColetivaPrincipalPage";
+import ReuniaoColetivDetalhe from "./pages/ReuniaoColetivDetalhe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
