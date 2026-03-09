@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, BarChart3, Target, Calendar, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, ClipboardList, LogOut } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
