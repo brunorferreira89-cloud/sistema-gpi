@@ -26,6 +26,7 @@ export default function ReunioesPage() {
   const [filtroCliente, setFiltroCliente] = useState('todos');
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
