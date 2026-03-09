@@ -10,9 +10,7 @@ export default function ClienteLayout() {
     <div className="flex min-h-screen flex-col items-center bg-background">
       <header className="sticky top-0 z-30 flex w-full max-w-[430px] items-center justify-between border-b border-border bg-surface px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-14 items-center justify-center rounded-full bg-txt">
-            <span className="text-xs font-bold tracking-wider text-primary-foreground">GPI</span>
-          </div>
+          <img src={gpiLogo} alt="GPI" className="h-8 w-auto object-contain" />
           <span className="text-sm font-semibold text-txt">{profile?.nome || 'Cliente'}</span>
         </div>
         <button onClick={signOut} className="rounded-md p-1.5 text-txt-muted hover:text-red">

@@ -43,9 +43,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-8 rounded-xl border border-border bg-surface p-8 shadow-lg shadow-primary-md">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-20 items-center justify-center rounded-full bg-txt">
-            <span className="text-lg font-bold text-primary-foreground tracking-wider">GPI</span>
-          </div>
+          <img src={gpiLogo} alt="GPI Inteligência Financeira" className="mx-auto mb-2 h-14 w-auto object-contain" />
           <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-txt-muted">
             Inteligência Financeira
           </p>
