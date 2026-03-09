@@ -9,6 +9,7 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/kpis': { title: 'KPIs', subtitle: 'Indicadores de performance' },
   '/reunioes': { title: 'Reuniões', subtitle: 'Agenda e histórico' },
   '/onboarding': { title: 'Onboarding', subtitle: 'Integração de novos clientes' },
+  '/plano-de-contas': { title: 'Plano de Contas', subtitle: 'Estrutura DRE por cliente' },
 };
 
 export function AppTopbar() {
