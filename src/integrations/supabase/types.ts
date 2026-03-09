@@ -352,6 +352,62 @@ export type Database = {
           },
         ]
       }
+      reunioes_coletivas: {
+        Row: {
+          ata: string | null
+          created_at: string | null
+          dados_anonimizados: Json | null
+          data_reuniao: string
+          descricao_tema: string | null
+          formato: string | null
+          horario: string | null
+          id: string
+          participantes_confirmados: number | null
+          realizada_por: string | null
+          status: string | null
+          tema_principal: string | null
+          titulo: string
+        }
+        Insert: {
+          ata?: string | null
+          created_at?: string | null
+          dados_anonimizados?: Json | null
+          data_reuniao: string
+          descricao_tema?: string | null
+          formato?: string | null
+          horario?: string | null
+          id?: string
+          participantes_confirmados?: number | null
+          realizada_por?: string | null
+          status?: string | null
+          tema_principal?: string | null
+          titulo: string
+        }
+        Update: {
+          ata?: string | null
+          created_at?: string | null
+          dados_anonimizados?: Json | null
+          data_reuniao?: string
+          descricao_tema?: string | null
+          formato?: string | null
+          horario?: string | null
+          id?: string
+          participantes_confirmados?: number | null
+          realizada_por?: string | null
+          status?: string | null
+          tema_principal?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reunioes_coletivas_realizada_por_fkey"
+            columns: ["realizada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas_operacionais: {
         Row: {
           cliente_id: string

@@ -21,6 +21,8 @@ import ClienteFichaPage from "./pages/ClienteFichaPage";
 import KanbanPage from "./pages/KanbanPage";
 import ImportacaoNiboPage from "./pages/ImportacaoNiboPage";
 import AlertasPage from "./pages/AlertasPage";
+import ReuniaoColetivaPrincipalPage from "./pages/ReuniaoColetivaPrincipalPage";
+import ReuniaoColetivDetalhe from "./pages/ReuniaoColetivDetalhe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +58,8 @@ const App = () => (
                 <Route path="/kpis" element={<KPIsPage />} />
                 <Route path="/alertas" element={<AlertasPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />
+                <Route path="/reuniao-coletiva" element={<ReuniaoColetivaPrincipalPage />} />
+                <Route path="/reuniao-coletiva/:id" element={<ReuniaoColetivDetalhe />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/plano-de-contas" element={<PlanoDeContasPage />} />
                 <Route path="/plano-de-contas/:clienteId" element={<PlanoDeContasClientePage />} />

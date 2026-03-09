@@ -5,11 +5,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CalendarCheck, Plus, FileText, Video, MapPin, Pencil, X } from 'lucide-react';
+import { CalendarCheck, Plus, FileText, Video, MapPin, Pencil, X, Users2 } from 'lucide-react';
 import { segmentColors, segmentLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { AtaSheet } from '@/components/reunioes/AtaSheet';
+import { useNavigate } from 'react-router-dom';
 
 const statusBadge: Record<string, { className: string; label: string }> = {
   agendada: { className: 'border-amber/30 bg-amber/10 text-amber', label: 'Agendada' },
@@ -25,6 +26,7 @@ export default function ReunioesPage() {
   const [filtroCliente, setFiltroCliente] = useState('todos');
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
@@ -214,25 +216,7 @@ export default function ReunioesPage() {
         </TabsContent>
 
         <TabsContent value="coletivas" className="space-y-4">
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-          ) : (
-            groupByMonth(filterReunioes('coletiva')).length === 0 ? (
-              <div className="flex flex-col items-center py-16 text-txt-muted">
-                <CalendarCheck className="mb-3 h-12 w-12 opacity-30" />
-                <p>Nenhuma reunião coletiva encontrada</p>
-              </div>
-            ) : (
-              groupByMonth(filterReunioes('coletiva')).map(([month, items]) => (
-                <div key={month} className="space-y-2">
-                  <h3 className="text-sm font-semibold text-txt-sec capitalize">{month}</h3>
-                  {items.map(renderReuniaoCard)}
-                </div>
-              ))
-            )
-          )}
+          <ColetivasTab />
         </TabsContent>
       </Tabs>
 
@@ -250,5 +234,118 @@ export default function ReunioesPage() {
         />
       )}
     </div>
+  );
+}
+
+function ColetivasTab() {
+  const navigate = useNavigate();
+  const [expandedAta, setExpandedAta] = useState<string | null>(null);
+
+  const { data: coletivas, isLoading } = useQuery({
+    queryKey: ['reunioes-coletivas-tab'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reunioes_coletivas' as any)
+        .select('*')
+        .order('data_reuniao', { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const fmtDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const weekday = d.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const day = d.getDate();
+    const month = d.toLocaleDateString('pt-BR', { month: 'long' });
+    return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${day} de ${month}`;
+  };
+
+  const fmtTime = (t: string | null) => {
+    if (!t) return '';
+    return ` · ${t.slice(0, 5).replace(':', 'h')}`;
+  };
+
+  const groupByMonth = (items: any[]) => {
+    const groups: Record<string, any[]> = {};
+    items?.forEach((r) => {
+      const d = new Date(r.data_reuniao + 'T00:00:00');
+      const key = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    });
+    return Object.entries(groups);
+  };
+
+  const statusMap: Record<string, { className: string; label: string }> = {
+    planejando: { className: 'border-amber/30 bg-amber/10 text-amber', label: 'Planejando' },
+    pronta: { className: 'border-green/30 bg-green/10 text-green', label: 'Pronta' },
+    realizada: { className: 'border-green/30 bg-green/10 text-green', label: 'Realizada' },
+    cancelada: { className: 'border-muted bg-muted/50 text-txt-muted', label: 'Cancelada' },
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-10">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  const groups = groupByMonth(coletivas || []);
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-16 text-txt-muted">
+        <CalendarCheck className="mb-3 h-12 w-12 opacity-30" />
+        <p>Nenhuma reunião coletiva encontrada</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {groups.map(([month, items]) => (
+        <div key={month} className="space-y-2">
+          <h3 className="text-sm font-semibold text-txt-sec capitalize">{month}</h3>
+          {items.map((r: any) => {
+            const st = statusMap[r.status] || statusMap.planejando;
+            return (
+              <div key={r.id} className="group rounded-xl border border-border bg-surface p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-txt">{fmtDate(r.data_reuniao)}{fmtTime(r.horario)}</span>
+                    <Badge variant="outline" className="text-xs border-primary/30 bg-primary-lo text-primary">
+                      <Users2 className="h-3 w-3 mr-1" /> Reunião Coletiva
+                    </Badge>
+                    <Badge variant="outline" className={`text-xs ${st.className}`}>{st.label}</Badge>
+                    {r.participantes_confirmados > 0 && (
+                      <Badge variant="outline" className="text-xs">{r.participantes_confirmados} participantes</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {r.status === 'realizada' && r.ata && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setExpandedAta(expandedAta === r.id ? null : r.id)}>
+                        <FileText className="h-3 w-3 mr-1" /> {expandedAta === r.id ? 'Fechar ata' : 'Ver ata'}
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate(`/reuniao-coletiva/${r.id}`)}>
+                      Ver detalhes
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-txt-muted">{r.titulo}</p>
+                {r.tema_principal && <p className="text-xs text-txt-sec">Tema: {r.tema_principal}</p>}
+                {expandedAta === r.id && r.ata && (
+                  <div className="mt-2 rounded-lg bg-surface-hi p-3 text-sm text-txt whitespace-pre-wrap border border-border">
+                    {r.ata}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </>
   );
 }
