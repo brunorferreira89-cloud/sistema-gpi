@@ -263,6 +263,11 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     onRefresh();
   };
 
+  const handleChangeTipo = async (contaId: string, tipo: ContaTipo) => {
+    await supabase.from('plano_de_contas').update({ tipo }).eq('id', contaId);
+    onRefresh();
+  };
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={visibleContas.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -285,6 +290,7 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
               onMetaSave={handleMetaSave}
               onDelete={handleDelete}
               onRename={handleRename}
+              onChangeTipo={handleChangeTipo}
             />
           ))}
         </div>
