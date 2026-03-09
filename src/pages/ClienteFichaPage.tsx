@@ -20,6 +20,7 @@ export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ['cliente', clienteId],
