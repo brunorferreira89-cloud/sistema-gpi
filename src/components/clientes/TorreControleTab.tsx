@@ -451,6 +451,7 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const compLabel = competencia ? fmtCompetencia(competencia) : '';
   const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
+  const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
 
   // ── Render row helpers ────────────────────────────────────────
   const renderRow = (node: DreNode, depth: number) => {
