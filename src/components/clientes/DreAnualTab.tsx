@@ -125,7 +125,7 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
 }
 
 // --- Benchmark helpers ---
-function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): React.ReactNode | null {
+function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | undefined, benchmarks: BenchmarkThresholds): React.ReactNode | null {
   // Only custo_variavel has benchmarks
   if (tipo !== 'custo_variavel') return null;
 
@@ -134,14 +134,12 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): Re
 
   let color: string;
   if (isPessoal) {
-    // CMO benchmark
-    if (avPct < 25) color = '#00A86B';
-    else if (avPct <= 35) color = '#D97706';
+    if (avPct < benchmarks.cmo_verde) color = '#00A86B';
+    else if (avPct <= benchmarks.cmo_amarelo) color = '#D97706';
     else color = '#DC2626';
   } else {
-    // CMV benchmark
-    if (avPct < 38) color = '#00A86B';
-    else if (avPct <= 50) color = '#D97706';
+    if (avPct < benchmarks.cmv_verde) color = '#00A86B';
+    else if (avPct <= benchmarks.cmv_amarelo) color = '#D97706';
     else color = '#DC2626';
   }
 
@@ -154,9 +152,11 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): Re
 
 // --- component ---
 
-interface Props { clienteId: string; }
+import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
 
-export function DreAnualTab({ clienteId }: Props) {
+interface Props { clienteId: string; benchmarks?: BenchmarkThresholds; }
+
+export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
