@@ -5,7 +5,7 @@ import { type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { nomeExibido, formatCnpj } from '@/lib/clientes-utils';
-import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesAnterior as getMesAnterior, fmtCompetencia } from '@/lib/torre-utils';
+import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesAnterior as getMesAnterior, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 
 // ── Types ───────────────────────────────────────────────────────
 interface DreNode { conta: ContaRow; children: DreNode[] }
