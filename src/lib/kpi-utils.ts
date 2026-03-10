@@ -71,9 +71,9 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
   const fatMeta = sumLeafByTipo(contas, metaMap, 'receita');
   const mcReal = calcIndicador(contas, realizadoMap, ['receita', 'custo_variavel']);
   const mcMeta = calcIndicador(contas, metaMap, ['receita', 'custo_variavel']);
-  const cmvReal = Math.abs(sumLeafByTipo(contas, realizadoMap, 'custo_variavel'));
-  const cmvMeta = Math.abs(sumLeafByTipo(contas, metaMap, 'custo_variavel'));
-  const dfReal = Math.abs(sumLeafByTipo(contas, realizadoMap, 'despesa_fixa'));
+  const cmvReal = sumLeafByTipo(contas, realizadoMap, 'custo_variavel');
+  const cmvMeta = sumLeafByTipo(contas, metaMap, 'custo_variavel');
+  const dfReal = sumLeafByTipo(contas, realizadoMap, 'despesa_fixa');
 
   // CMO: look for personnel-related leaf accounts within despesa_fixa
   const cmoKeywords = ['pessoal', 'salário', 'salario', 'folha', 'cmo', 'mão de obra', 'mao de obra', 'pró-labore', 'pro-labore'];
@@ -82,8 +82,8 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
   );
   let cmoReal = 0, cmoMeta = 0;
   cmoContas.forEach((c) => {
-    cmoReal += Math.abs(realizadoMap[c.id] || 0);
-    cmoMeta += Math.abs(metaMap[c.id] || 0);
+    cmoReal += realizadoMap[c.id] || 0;
+    cmoMeta += metaMap[c.id] || 0;
   });
 
   // GC = Resultado de Caixa (all 5 types)
@@ -96,14 +96,14 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
     (c) => retKeywords.some((kw) => c.nome.toLowerCase().includes(kw))
   );
   let retReal = 0;
-  retContas.forEach((c) => { retReal += Math.abs(realizadoMap[c.id] || 0); });
+  retContas.forEach((c) => { retReal += realizadoMap[c.id] || 0; });
 
   const fatVal = fatReal || 1;
   const mc_pct = fatReal ? (mcReal / fatReal) * 100 : 0;
-  const cmv_pct = fatReal ? (cmvReal / fatReal) * 100 : 0;
-  const cmo_pct = fatReal ? (cmoReal / fatReal) * 100 : 0;
+  const cmv_pct = fatReal ? (Math.abs(cmvReal) / fatReal) * 100 : 0;
+  const cmo_pct = fatReal ? (Math.abs(cmoReal) / fatReal) * 100 : 0;
   const gc_pct = fatReal ? (gcReal / fatReal) * 100 : 0;
-  const pe = mc_pct > 0 ? dfReal / (mc_pct / 100) : 0;
+  const pe = mc_pct > 0 ? Math.abs(dfReal) / (mc_pct / 100) : 0;
   const ms = fatReal > 0 && pe > 0 ? ((fatReal - pe) / fatReal) * 100 : 0;
 
   const hasData = (valores || []).length > 0;
@@ -148,7 +148,7 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
         (sparkValores || []).filter((sv: any) => sv.competencia === m).forEach((sv: any) => {
           monthMap[sv.conta_id] = sv.valor_realizado;
         });
-        return Math.abs(sumLeafByTipo(contas, monthMap, 'custo_variavel'));
+        return sumLeafByTipo(contas, monthMap, 'custo_variavel');
       }),
       cmo: months.map(() => cmoReal), // simplified
       gc: getSparkForTypes(['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']),

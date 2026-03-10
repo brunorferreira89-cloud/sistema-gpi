@@ -41,7 +41,7 @@ function calcIndicatorValue(leafs: ContaRow[], valMap: Record<string, number | n
     if (!tipos.includes(c.tipo)) continue;
     const v = valMap[c.id];
     if (v == null) continue;
-    total += c.tipo === 'receita' ? v : -Math.abs(v);
+    total += v;
   }
   return total;
 }
@@ -51,7 +51,7 @@ function sumByTipo(leafs: ContaRow[], valMap: Record<string, number | null>, tip
   for (const c of leafs) {
     if (c.tipo !== tipo) continue;
     const v = valMap[c.id];
-    if (v != null) total += Math.abs(v);
+    if (v != null) total += v;
   }
   return total;
 }
@@ -70,10 +70,10 @@ function getSubgroups(
     let valPrev = 0;
     for (const ch of children) {
       const v = valMap[ch.id];
-      if (v != null) val += Math.abs(v);
+      if (v != null) val += v;
       if (prevMap) {
         const vp = prevMap[ch.id];
-        if (vp != null) valPrev += Math.abs(vp);
+        if (vp != null) valPrev += vp;
       }
     }
     const filhas = children

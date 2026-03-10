@@ -54,7 +54,7 @@ export function getLeafContas(contas: ContaRow[]): ContaRow[] {
 
 /**
  * Calculate indicator value by summing only nivel=2 (leaf) accounts.
- * Receita adds positively, all other types subtract.
+ * Values are used directly from the database — sign is already correct.
  */
 export function calcIndicador(
   contas: ContaRow[],
@@ -67,11 +67,7 @@ export function calcIndicador(
     if (acumula.includes(c.tipo)) {
       const val = valoresMap[c.id];
       if (val != null) {
-        if (c.tipo === 'receita') {
-          total += val;
-        } else {
-          total -= val;
-        }
+        total += val;
       }
     }
   }

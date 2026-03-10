@@ -122,10 +122,10 @@ export default function DashboardPage() {
 
           const fat = receita || 1;
           const s = calcHealthScore({
-            mc_pct: ((receita - custoVar) / fat) * 100,
+            mc_pct: ((receita + custoVar) / fat) * 100,
             cmv_pct: (Math.abs(custoVar) / fat) * 100,
             cmo_pct: (Math.abs(despFixa) / fat) * 100,
-            gc_pct: (financeiro / fat) * 100,
+            gc_pct: ((receita + custoVar + despFixa + financeiro) / fat) * 100,
             hasData: monthVals.length > 0,
           });
           scoresByMonth.push(s);
