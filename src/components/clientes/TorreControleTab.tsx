@@ -783,7 +783,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 onMouseEnter={e => { if (!loadingSugestao) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.14), rgba(0,153,230,0.10))'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))'; }}
               >
-                ✨ Metas
+                👨🏻‍✈️ Comandante GPI
               </button>
             </div>
 
