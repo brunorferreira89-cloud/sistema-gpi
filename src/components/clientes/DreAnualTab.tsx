@@ -395,7 +395,7 @@ export function DreAnualTab({ clienteId }: Props) {
     ...extra,
   });
 
-  const isCurrentMonth = (comp: string) => comp === currentMonthComp;
+  const isCurrentMonth = (comp: string) => comp === mesEfetivo;
 
   // --- AV% helper ---
   const fmtAv = (val: number | null, fat: number): string | null => {
