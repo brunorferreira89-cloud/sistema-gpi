@@ -695,6 +695,7 @@ export function DreAnualTab({ clienteId }: Props) {
     const isExpense = ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(node.conta.tipo);
     let yearTotal = 0;
     let hasYearVal = false;
+    let yearFat = 0;
 
     return (
       <tr key={node.conta.id} style={{ background: '#F0F4FA', borderTop: '1px solid #C4CFEA', borderBottom: '1px solid #C4CFEA' }}>
@@ -712,25 +713,38 @@ export function DreAnualTab({ clienteId }: Props) {
           const monthMap = getMonthMap(m.value);
           const val = sumLeafsOfNode(node, monthMap);
           if (val != null) { yearTotal += val; hasYearVal = true; }
+          yearFat += faturamentoPorMes[m.value] || 0;
+          const fat = faturamentoPorMes[m.value] || 0;
           const f = fmtVal(val);
           const prevVal = i > 0 ? sumLeafsOfNode(node, getMonthMap(months[i - 1].value)) : null;
+          const isCur = isCurrentMonth(m.value);
+          const bgAv = isCur ? '#E8EEF8' : '#F0F4FA';
+          const grupoAvStr = val != null && fat ? `${((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1)}%` : null;
           return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
               fontFamily: 'monospace', fontWeight: 700, fontSize: 12, color: f.color, padding: '10px 12px',
-              background: isCurrentMonth(m.value) ? '#E8EEF8' : undefined,
+              background: isCur ? '#E8EEF8' : undefined,
               width: 80, minWidth: 80,
             }}>
               {f.text}
             </td>,
-            showAV ? <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW, background: isCurrentMonth(m.value) ? '#E8EEF8' : '#F0F4FA' }} /> : null,
-            renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#E8EEF8' : '#F0F4FA'),
+            showAV ? (
+              <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: bgAv }}>
+                {grupoAvStr && <span style={{ color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{grupoAvStr}</span>}
+              </td>
+            ) : null,
+            renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCur ? '#E8EEF8' : '#F0F4FA'),
           ];
         })}
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, padding: '10px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
-        {showAV && <td style={{ width: avColW, minWidth: avColW, background: '#F6F9FF' }} />}
+        {showAV && (
+          <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: '#F6F9FF' }}>
+            {hasYearVal && yearFat ? <span style={{ color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{((Math.abs(yearTotal) / Math.abs(yearFat)) * 100).toFixed(1)}%</span> : null}
+          </td>
+        )}
         {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
