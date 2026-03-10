@@ -711,7 +711,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
                       <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
                       <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 130 }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>PROJETADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
                       <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 96 }}>STATUS</th>
                     </tr>
                   </thead>
