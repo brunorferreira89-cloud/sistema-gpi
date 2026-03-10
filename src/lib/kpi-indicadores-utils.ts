@@ -155,20 +155,28 @@ export function calcularIndicadores(
         });
       }
     } else if (ind.tipo_fonte === 'subgrupo') {
-      if (ind.conta_id) {
-        const children = contas.filter(c => c.conta_pai_id === ind.conta_id && c.nivel === 2);
+      // Use conta_ids array if available, fallback to conta_id
+      const contaIds: string[] = (ind as any).conta_ids && Array.isArray((ind as any).conta_ids) && (ind as any).conta_ids.length > 0
+        ? (ind as any).conta_ids
+        : ind.conta_id ? [ind.conta_id] : [];
+      
+      if (contaIds.length > 0) {
         let total = 0;
         let hasAny = false;
-        children.forEach(c => {
-          const v = valoresMap[c.id];
-          if (v != null) {
-            hasAny = true;
-            total += v;
-            detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
-          }
-        });
+        for (const cid of contaIds) {
+          const children = contas.filter(c => c.conta_pai_id === cid && c.nivel === 2);
+          children.forEach(c => {
+            const v = valoresMap[c.id];
+            if (v != null) {
+              hasAny = true;
+              total += v;
+              detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+            }
+          });
+        }
         valor = hasAny ? total : null;
       } else {
+        // Legacy fallback for CMV/CMO without conta_ids
         if (ind.nome === 'CMV') {
           valor = sumLeafByTipo(contas, valoresMap, 'custo_variavel');
           leafs.filter(c => c.tipo === 'custo_variavel').forEach(c => {
