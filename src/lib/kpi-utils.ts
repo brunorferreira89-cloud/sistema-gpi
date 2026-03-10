@@ -148,7 +148,7 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
         (sparkValores || []).filter((sv: any) => sv.competencia === m).forEach((sv: any) => {
           monthMap[sv.conta_id] = sv.valor_realizado;
         });
-        return Math.abs(sumLeafByTipo(contas, monthMap, 'custo_variavel'));
+        return sumLeafByTipo(contas, monthMap, 'custo_variavel');
       }),
       cmo: months.map(() => cmoReal), // simplified
       gc: getSparkForTypes(['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']),
