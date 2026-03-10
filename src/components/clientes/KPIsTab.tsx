@@ -410,12 +410,16 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
   onSaved: () => void;
 }) {
   const isOverride = indicador.cliente_id === clienteId;
-  const isDefault = indicador.cliente_id === null;
 
   const [nome, setNome] = useState(indicador.nome);
   const [descricao, setDescricao] = useState(indicador.descricao || '');
   const [tipoFonte, setTipoFonte] = useState(indicador.tipo_fonte);
-  const [contaId, setContaId] = useState(indicador.conta_id || '');
+  const [selectedContaIds, setSelectedContaIds] = useState<string[]>(() => {
+    const ids = (indicador as any)?.conta_ids;
+    if (ids && Array.isArray(ids) && ids.length > 0) return ids;
+    if (indicador?.conta_id) return [indicador.conta_id];
+    return [];
+  });
   const [totalizadorKey, setTotalizadorKey] = useState(indicador.totalizador_key || 'MC');
   const [direcao, setDirecao] = useState(indicador.direcao);
   const [limiteVerde, setLimiteVerde] = useState(String(indicador.limite_verde));
@@ -423,10 +427,31 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
   const [ativo, setAtivo] = useState(indicador.ativo);
 
   const subgrupos = contas.filter(c => c.nivel === 1 && ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(c.tipo));
+  const groupedSubgrupos = useMemo(() => {
+    const groups: Record<string, typeof subgrupos> = {};
+    for (const s of subgrupos) {
+      if (!groups[s.tipo]) groups[s.tipo] = [];
+      groups[s.tipo].push(s);
+    }
+    return groups;
+  }, [subgrupos]);
+
+  const TIPO_LABELS: Record<string, string> = {
+    custo_variavel: 'CUSTOS VARIÁVEIS',
+    despesa_fixa: 'DESPESAS FIXAS',
+    investimento: 'INVESTIMENTOS',
+    financeiro: 'FINANCEIRO',
+  };
 
   const verde = Number(limiteVerde);
   const ambar = Number(limiteAmbar);
   const hasValid = !isNaN(verde) && !isNaN(ambar) && limiteVerde !== '' && limiteAmbar !== '';
+
+  const toggleContaId = (id: string) => {
+    setSelectedContaIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -435,7 +460,8 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
         nome,
         descricao: descricao || null,
         tipo_fonte: tipoFonte,
-        conta_id: tipoFonte === 'subgrupo' && contaId ? contaId : null,
+        conta_id: tipoFonte === 'subgrupo' && selectedContaIds.length > 0 ? selectedContaIds[0] : null,
+        conta_ids: tipoFonte === 'subgrupo' ? selectedContaIds : [],
         totalizador_key: tipoFonte === 'totalizador' ? totalizadorKey : null,
         limite_verde: verde,
         limite_ambar: ambar,
@@ -467,7 +493,7 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
 
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent style={{ minWidth: 520, maxWidth: 580 }} className="w-[95vw] sm:w-auto">
         <DialogHeader>
           <DialogTitle>Configurar {indicador.nome}</DialogTitle>
           <p className="text-xs" style={{ color: '#8A9BBC' }}>
@@ -500,15 +526,54 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
 
           {tipoFonte === 'subgrupo' && (
             <div>
-              <Label className="text-xs">Subgrupo</Label>
-              <Select value={contaId} onValueChange={setContaId}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {subgrupos.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.nome.replace(/^\([+-]\)\s*/, '')} ({s.tipo})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs">Subgrupos que compõem este indicador</Label>
+              <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 2 }}>
+                Selecione todos os subgrupos cujos valores são somados para calcular este indicador
+              </p>
+
+              {selectedContaIds.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedContaIds.map(id => {
+                    const conta = contas.find(c => c.id === id);
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 rounded" style={{ background: '#1A3CFF0F', color: '#1A3CFF', padding: '2px 8px', fontSize: 12 }}>
+                        {conta?.nome.replace(/^\([+-]\)\s*/, '') || id}
+                        <button onClick={() => toggleContaId(id)} className="hover:opacity-70">
+                          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" /></svg>
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: '#8A9BBC', marginTop: 8 }}>Nenhum subgrupo selecionado</p>
+              )}
+
+              <div className="mt-2 rounded-lg border overflow-y-auto" style={{ borderColor: '#DDE4F0', maxHeight: 200 }}>
+                {Object.entries(groupedSubgrupos).map(([tipo, subs]) => (
+                  <div key={tipo}>
+                    <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.06em', background: '#F0F4FA', borderBottom: '1px solid #DDE4F0' }}>
+                      {TIPO_LABELS[tipo] || tipo}
+                    </div>
+                    {subs.map(s => {
+                      const isSelected = selectedContaIds.includes(s.id);
+                      return (
+                        <label
+                          key={s.id}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
+                          style={{
+                            borderBottom: '1px solid #F8F9FB',
+                            background: isSelected ? '#1A3CFF0F' : undefined,
+                          }}
+                        >
+                          <input type="checkbox" checked={isSelected} onChange={() => toggleContaId(s.id)} className="accent-[#1A3CFF]" />
+                          <span style={{ fontSize: 13, color: '#0D1B35' }}>{s.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -541,26 +606,25 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Limite Verde</Label>
-              <div className="flex items-center gap-1 mt-1">
-                <Input type="number" value={limiteVerde} onChange={e => setLimiteVerde(e.target.value)} placeholder="ex: 38" />
-                <span className="text-xs" style={{ color: '#8A9BBC' }}>%</span>
+              <div className="relative mt-1">
+                <Input type="number" value={limiteVerde} onChange={e => setLimiteVerde(e.target.value)} placeholder="ex: 38" className="pr-8" />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#8A9BBC' }}>%</span>
               </div>
             </div>
             <div>
               <Label className="text-xs">Limite Âmbar</Label>
-              <div className="flex items-center gap-1 mt-1">
-                <Input type="number" value={limiteAmbar} onChange={e => setLimiteAmbar(e.target.value)} placeholder="ex: 50" />
-                <span className="text-xs" style={{ color: '#8A9BBC' }}>%</span>
+              <div className="relative mt-1">
+                <Input type="number" value={limiteAmbar} onChange={e => setLimiteAmbar(e.target.value)} placeholder="ex: 50" className="pr-8" />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#8A9BBC' }}>%</span>
               </div>
             </div>
           </div>
 
-          {/* Preview */}
           {hasValid && (
-            <div className="flex items-center gap-3" style={{ fontSize: 11 }}>
+            <div className="flex flex-wrap items-center gap-3" style={{ fontSize: 11 }}>
               <span className="inline-flex items-center gap-1">
                 <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#00A86B" /></svg>
                 {direcao === 'menor_melhor' ? `< ${verde}%` : `> ${verde}%`}
@@ -582,17 +646,23 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          {isOverride && (
-            <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1" />
-              Restaurar padrão GPI
-            </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            Salvar para este cliente
-          </Button>
+        <DialogFooter>
+          <div className="flex w-full items-center justify-between">
+            <div>
+              {isOverride && (
+                <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  Restaurar padrão GPI
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
+              <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                Salvar para este cliente
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
