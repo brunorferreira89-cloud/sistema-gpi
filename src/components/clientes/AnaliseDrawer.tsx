@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { X, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/plano-contas-utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,30 +58,111 @@ function SparkLineFull({ data, color, w = 320, h = 48 }: { data: number[]; color
   );
 }
 
+/** Derive competencia date (YYYY-MM-01) from mes_referencia like "Fevereiro 2026" */
+function mesRefToCompetencia(mesRef: string): string | null {
+  const meses: Record<string, string> = {
+    janeiro: '01', fevereiro: '02', março: '03', marco: '03', abril: '04',
+    maio: '05', junho: '06', julho: '07', agosto: '08', setembro: '09',
+    outubro: '10', novembro: '11', dezembro: '12',
+  };
+  const parts = mesRef.trim().toLowerCase().split(/\s+/);
+  if (parts.length < 2) return null;
+  const mm = meses[parts[0]];
+  const yyyy = parts[1];
+  if (!mm || !yyyy) return null;
+  return `${yyyy}-${mm}-01`;
+}
+
+function formatGeradoEm(d: string): string {
+  const dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
+  const { id: clienteId } = useParams<{ id: string }>();
   const [analysis, setAnalysis] = useState<{ titulo: string; analise: string; acao: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [geradoEm, setGeradoEm] = useState<string | null>(null);
 
-  const fetchAnalysis = useCallback(async () => {
+  const competencia = dados ? mesRefToCompetencia(dados.mes_referencia) : null;
+
+  const fetchFromCache = useCallback(async (): Promise<boolean> => {
+    if (!clienteId || !dados || !competencia) return false;
+    try {
+      const { data: cached } = await supabase
+        .from('analises_ia' as any)
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .eq('indicador', dados.indicador)
+        .eq('competencia', competencia)
+        .limit(1)
+        .maybeSingle();
+      if (cached && (cached as any).titulo) {
+        setAnalysis({
+          titulo: (cached as any).titulo || '',
+          analise: (cached as any).analise || '',
+          acao: (cached as any).acao || '',
+        });
+        setGeradoEm((cached as any).gerado_em || null);
+        return true;
+      }
+    } catch (e) {
+      console.error('Erro ao buscar cache:', e);
+    }
+    return false;
+  }, [clienteId, dados, competencia]);
+
+  const callEdgeFunction = useCallback(async () => {
     if (!dados) return;
     setLoading(true);
-    setAnalysis(null);
     try {
-      const { data, error } = await supabase.functions.invoke('analisar-indicador', {
+      const { data: result, error } = await supabase.functions.invoke('analisar-indicador', {
         body: dados,
       });
       if (error) throw error;
-      setAnalysis(data);
+      setAnalysis(result);
+      setGeradoEm(new Date().toISOString());
+
+      // Save to cache
+      if (clienteId && competencia) {
+        await supabase.from('analises_ia' as any).upsert(
+          {
+            cliente_id: clienteId,
+            indicador: dados.indicador,
+            competencia,
+            titulo: result?.titulo || '',
+            analise: result?.analise || '',
+            acao: result?.acao || '',
+            gerado_em: new Date().toISOString(),
+          } as any,
+          { onConflict: 'cliente_id,indicador,competencia' }
+        );
+      }
     } catch (e) {
       console.error('Erro ao analisar:', e);
       setAnalysis({ titulo: 'Análise indisponível', analise: '', acao: '' });
     } finally {
       setLoading(false);
     }
-  }, [dados]);
+  }, [dados, clienteId, competencia]);
+
+  const handleOpen = useCallback(async () => {
+    setAnalysis(null);
+    setGeradoEm(null);
+    const found = await fetchFromCache();
+    if (!found) {
+      await callEdgeFunction();
+    }
+  }, [fetchFromCache, callEdgeFunction]);
+
+  const handleRefresh = useCallback(async () => {
+    setAnalysis(null);
+    setGeradoEm(null);
+    await callEdgeFunction();
+  }, [callEdgeFunction]);
 
   useEffect(() => {
-    if (isOpen && dados) fetchAnalysis();
+    if (isOpen && dados) handleOpen();
   }, [isOpen, dados]);
 
   if (!isOpen || !dados) return null;
@@ -246,11 +328,16 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
                     → Ação recomendada: {analysis.acao}
                   </div>
                 )}
+                {geradoEm && (
+                  <div style={{ fontSize: 11, color: '#8A9BBC', marginTop: 10 }}>
+                    Análise gerada em {formatGeradoEm(geradoEm)}
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
           <button
-            onClick={fetchAnalysis}
+            onClick={handleRefresh}
             disabled={loading}
             style={{
               marginTop: 8, fontSize: 11, color: '#8A9BBC', background: 'none',

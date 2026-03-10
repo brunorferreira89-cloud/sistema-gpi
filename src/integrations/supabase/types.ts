@@ -65,6 +65,47 @@ export type Database = {
           },
         ]
       }
+      analises_ia: {
+        Row: {
+          acao: string | null
+          analise: string | null
+          cliente_id: string | null
+          competencia: string
+          gerado_em: string | null
+          id: string
+          indicador: string
+          titulo: string | null
+        }
+        Insert: {
+          acao?: string | null
+          analise?: string | null
+          cliente_id?: string | null
+          competencia: string
+          gerado_em?: string | null
+          id?: string
+          indicador: string
+          titulo?: string | null
+        }
+        Update: {
+          acao?: string | null
+          analise?: string | null
+          cliente_id?: string | null
+          competencia?: string
+          gerado_em?: string | null
+          id?: string
+          indicador?: string
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analises_ia_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benchmark_config: {
         Row: {
           cliente_id: string
