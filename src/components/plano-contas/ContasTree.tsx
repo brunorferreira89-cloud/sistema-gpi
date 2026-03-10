@@ -301,9 +301,7 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
         {/* Sortable subgroups */}
         <SortableContext items={subIds} strategy={verticalListSortingStrategy}>
           {node.filhos.map(sub => (
-            <SortableRow key={sub.id} id={sub.id} nivel={1}>
-              {(dragListeners: any) => renderSubgrupo(sub, dragListeners)}
-            </SortableRow>
+            <SortableRow key={sub.id} id={sub.id} renderContent={(dragListeners) => renderSubgrupo(sub, dragListeners)} />
           ))}
         </SortableContext>
       </div>
