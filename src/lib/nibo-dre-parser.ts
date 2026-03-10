@@ -38,14 +38,17 @@ function deveIgnorar(nome: string): boolean {
  * A real category has mixed case after removing prefix.
  * Totalizers (groups/subgroups) are ALL UPPERCASE.
  */
-function isCategoriaReal(nome: string): boolean {
-  if (!nome) return false;
-  const semPrefixo = nome.replace(/^\([+-]\)\s*/, '').trim();
-  if (!semPrefixo) return false;
-  const apenasLetras = semPrefixo.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+function isCategoriaReal(nome: string | null | undefined): boolean {
+  if (!nome || nome.trim() === '') return false;
+  // Remove prefix (+) or (-)
+  const semPrefixo = nome.replace(/^\s*\([+-]\)\s*/, '').trim();
+  // Extract only letters (ignore numbers, spaces, hyphens, symbols)
+  const apenasLetras = semPrefixo.replace(/[^a-zA-ZÀ-ú]/g, '');
+  // No letters → skip
   if (apenasLetras.length === 0) return false;
-  // If all letters are uppercase → it's a totalizer, not a real category
+  // All uppercase → totalizer → skip
   if (apenasLetras === apenasLetras.toUpperCase()) return false;
+  // Has at least one lowercase letter → real category → import
   return true;
 }
 
