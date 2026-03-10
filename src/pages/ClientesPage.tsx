@@ -81,8 +81,12 @@ export default function ClientesPage() {
         ...defaults.filter((d: any) => !overrideNames.has(d.nome)),
       ];
       
-      // If any active subgrupo indicator has no conta_id, it's pending
-      if (merged.some((ind: any) => ind.conta_id === null)) {
+      // If any active subgrupo indicator has no conta_ids configured, it's pending
+      if (merged.some((ind: any) => {
+        const ids = ind.conta_ids;
+        const hasContaIds = ids && Array.isArray(ids) && ids.length > 0;
+        return !hasContaIds && !ind.conta_id;
+      })) {
         set.add(cliente.id);
       }
     }
