@@ -13,8 +13,7 @@ import { BookOpen, ArrowLeft, Calendar } from 'lucide-react';
 import { OnboardingTab } from '@/components/clientes/OnboardingTab';
 import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
-import { KPIsTab } from '@/components/clientes/KPIsTab';
-import { AlertasTab } from '@/components/clientes/AlertasTab';
+import { ImportacaoTab } from '@/components/clientes/ImportacaoTab';
 import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
@@ -196,9 +195,8 @@ export default function ClienteFichaPage() {
       <Tabs defaultValue="visao-geral">
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+          <TabsTrigger value="importacao">Importação</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="kpis">KPIs</TabsTrigger>
-          <TabsTrigger value="alertas">Alertas</TabsTrigger>
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
@@ -260,6 +258,16 @@ export default function ClienteFichaPage() {
           </div>
         </TabsContent>
 
+        {/* Importação */}
+        <TabsContent value="importacao">
+          <ImportacaoTab
+            clienteId={clienteId!}
+            clienteNome={cliente.nome_empresa}
+            clienteSegmento={cliente.segmento}
+            clienteFaixa={cliente.faturamento_faixa}
+          />
+        </TabsContent>
+
         {/* Financeiro */}
         <TabsContent value="financeiro">
           <FinanceiroTab
@@ -268,16 +276,6 @@ export default function ClienteFichaPage() {
             clienteSegmento={cliente.segmento}
             clienteFaixa={cliente.faturamento_faixa}
           />
-        </TabsContent>
-
-        {/* KPIs */}
-        <TabsContent value="kpis">
-          <KPIsTab clienteId={clienteId!} />
-        </TabsContent>
-
-        {/* Alertas */}
-        <TabsContent value="alertas">
-          <AlertasTab clienteId={clienteId!} clienteNome={cliente.nome_empresa} />
         </TabsContent>
 
         {/* Onboarding */}

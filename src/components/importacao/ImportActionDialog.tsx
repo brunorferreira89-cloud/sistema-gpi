@@ -117,12 +117,13 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
       // 2. Clear valor_realizado for this competencia
       if (contas && contas.length > 0) {
         const contaIds = contas.map((c) => c.id);
-        const { error: clearError } = await supabase
+        // Permanently delete valores_mensais for this competencia
+        const { error: deleteError } = await supabase
           .from('valores_mensais')
-          .update({ valor_realizado: null })
+          .delete()
           .in('conta_id', contaIds)
           .eq('competencia', currentCompetencia);
-        if (clearError) throw clearError;
+        if (deleteError) throw deleteError;
       }
 
       // 3. Delete import record
@@ -132,7 +133,7 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
         .eq('id', importId);
       if (error) throw error;
 
-      toast.success('Importação excluída com sucesso. Valores realizados foram limpos.');
+      toast.success('Importação excluída permanentemente. Dados da competência foram removidos.');
       onComplete();
     } catch (err) {
       console.error('Erro ao excluir importação:', err);
@@ -160,7 +161,7 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
               <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  <strong>Atenção:</strong> Esta ação é irreversível. O registro da importação será removido permanentemente. Os valores já registrados nas contas não serão alterados.
+                 <strong>Atenção:</strong> Esta ação é irreversível. O registro da importação e todos os valores financeiros da competência serão removidos permanentemente do banco de dados.
                 </span>
               </div>
             </AlertDialogDescription>
