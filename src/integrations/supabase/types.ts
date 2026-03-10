@@ -654,6 +654,53 @@ export type Database = {
           },
         ]
       }
+      socios: {
+        Row: {
+          cargo: string | null
+          cliente_id: string
+          cpf: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          participacao_percentual: number | null
+          whatsapp: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          cliente_id: string
+          cpf?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          participacao_percentual?: number | null
+          whatsapp?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          cliente_id?: string
+          cpf?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          participacao_percentual?: number | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas_operacionais: {
         Row: {
           cliente_id: string
