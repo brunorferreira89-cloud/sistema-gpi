@@ -609,7 +609,7 @@ export function TorreControleTab({ clienteId }: Props) {
             ) : null}
           </td>
           {/* Nome */}
-          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360, letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined }}>
+          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360, letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined, borderRight: '1px solid #DDE4F0' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
               {hasMeta && !isTotal && !isSubgrupo && !isCat && <span style={{ color: C.primary, fontSize: 6 }}>●</span>}
@@ -657,7 +657,7 @@ export function TorreControleTab({ clienteId }: Props) {
     return (
       <tr key={key} style={{ background: '#0D1B35' }}>
         <td style={{ width: 24 }} />
-        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF' }}>
+        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRight: '1px solid #DDE4F0' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
             {config.nome}
@@ -815,7 +815,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   <thead>
                     <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>CONTA DRE</th>
+                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid #DDE4F0' }}>CONTA DRE</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntLabel || 'MÊS ANT.'}</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>REALIZADO</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>META</th>
