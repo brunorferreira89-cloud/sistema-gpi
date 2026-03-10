@@ -462,7 +462,19 @@ export function TorreControleTab({ clienteId }: Props) {
         },
       });
       if (error) throw error;
-      setSugestoes(data?.sugestoes || []);
+      // Enrich suggestions with conta_nome and map justificativa → motivo
+      const contaMap = new Map((contas || []).map(c => [c.id, c]));
+      const enriched: SugestaoMeta[] = (data?.sugestoes || []).map((s: any) => ({
+        ...s,
+        conta_nome: s.conta_nome || contaMap.get(s.conta_id)?.nome || '',
+        nivel: s.nivel ?? (contaMap.get(s.conta_id)?.nivel ?? 2),
+        motivo: s.motivo || s.justificativa || '',
+        objetivo: s.objetivo || '',
+        parametros: s.parametros || [],
+        impacto_gc: s.impacto_gc || '',
+        confianca: (s.confianca === 'média' ? 'media' : s.confianca) as SugestaoMeta['confianca'],
+      }));
+      setSugestoes(enriched);
       setSugestaoGeradaEm(data?.gerado_em || null);
       setSugestaoFromCache(data?.cached || false);
     } catch (err) {
