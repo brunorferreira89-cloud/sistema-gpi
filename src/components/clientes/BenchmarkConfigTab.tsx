@@ -403,65 +403,130 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
                 <p style={{ fontSize: 12, color: '#8A9BBC', marginTop: 8 }}>Nenhum subgrupo selecionado</p>
               )}
 
+              {/* Search field */}
+              <div className="relative mt-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#8A9BBC' }} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Buscar subgrupo ou categoria..."
+                  style={{
+                    width: '100%',
+                    background: '#F0F4FA',
+                    border: '1px solid #DDE4F0',
+                    borderRadius: 8,
+                    padding: '8px 12px 8px 36px',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#1A3CFF'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#DDE4F0'; }}
+                />
+              </div>
+
               {/* Hierarchical checkbox list */}
               <div className="mt-2 rounded-lg border overflow-y-auto" style={{ borderColor: '#DDE4F0', maxHeight: 200 }}>
-                {Object.entries(contasTree).map(([tipo, items]) => (
-                  <div key={tipo}>
-                    <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.06em', background: '#F0F4FA', borderBottom: '1px solid #DDE4F0' }}>
-                      {TIPO_LABELS[tipo] || tipo}
-                    </div>
-                    {items.map(({ sub, children }) => {
-                      const subSelected = selectedContaIds.includes(sub.id);
-                      return (
-                        <div key={sub.id}>
-                          {/* N1 row */}
-                          <label
-                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
-                            style={{
-                              borderBottom: '1px solid #F8F9FB',
-                              background: subSelected ? '#1A3CFF0F' : undefined,
-                            }}
-                          >
-                            <Checkbox
-                              checked={subSelected}
-                              onCheckedChange={() => toggleContaId(sub.id)}
-                              style={{ borderColor: subSelected ? '#1A3CFF' : undefined }}
-                            />
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#0D1B35' }}>{sub.nome.replace(/^\([+-]\)\s*/, '')}</span>
-                          </label>
-                          {/* N2 children */}
-                          {children.map(cat => {
-                            const catSelected = selectedContaIds.includes(cat.id);
-                            const disabled = subSelected;
-                            return (
-                              <label
-                                key={cat.id}
-                                className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
-                                style={{
-                                  paddingLeft: 36,
-                                  paddingRight: 12,
-                                  borderBottom: '1px solid #FAFBFD',
-                                  background: catSelected ? '#0099E60F' : undefined,
-                                  opacity: disabled ? 0.45 : 1,
-                                  cursor: disabled ? 'not-allowed' : 'pointer',
-                                }}
-                                title={disabled ? 'Já incluída via subgrupo pai' : undefined}
-                              >
-                                <Checkbox
-                                  checked={catSelected || disabled}
-                                  onCheckedChange={() => !disabled && toggleContaId(cat.id)}
-                                  disabled={disabled}
-                                  style={{ borderColor: catSelected ? '#0099E6' : undefined }}
-                                />
-                                <span style={{ fontSize: 12, color: '#4A5E80' }}>{cat.nome.replace(/^\([+-]\)\s*/, '')}</span>
-                              </label>
-                            );
-                          })}
+                {(() => {
+                  const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                  const term = normalize(searchTerm.trim());
+                  let hasAnyResult = false;
+
+                  const content = Object.entries(contasTree).map(([tipo, items]) => {
+                    const filteredItems = items.map(({ sub, children }) => {
+                      const subName = normalize(sub.nome);
+                      const subMatches = !term || subName.includes(term);
+                      const matchingChildren = children.filter(c => normalize(c.nome).includes(term));
+
+                      if (!term) return { sub, children, subMatches: true, matchingChildren: children, showSubCheckbox: true };
+                      if (subMatches) return { sub, children, subMatches: true, matchingChildren: children, showSubCheckbox: true };
+                      if (matchingChildren.length > 0) return { sub, children: matchingChildren, subMatches: false, matchingChildren, showSubCheckbox: false };
+                      return null;
+                    }).filter(Boolean) as { sub: ContaRow; children: ContaRow[]; subMatches: boolean; matchingChildren: ContaRow[]; showSubCheckbox: boolean }[];
+
+                    if (filteredItems.length === 0) return null;
+                    hasAnyResult = true;
+
+                    return (
+                      <div key={tipo}>
+                        <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.06em', background: '#F0F4FA', borderBottom: '1px solid #DDE4F0' }}>
+                          {TIPO_LABELS[tipo] || tipo}
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                        {filteredItems.map(({ sub, children, subMatches, showSubCheckbox }) => {
+                          const subSelected = selectedContaIds.includes(sub.id);
+                          return (
+                            <div key={sub.id}>
+                              {/* N1 row */}
+                              {showSubCheckbox ? (
+                                <label
+                                  className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
+                                  style={{
+                                    borderBottom: '1px solid #F8F9FB',
+                                    background: subSelected ? '#1A3CFF0F' : subMatches && term ? '#F6F9FF' : undefined,
+                                  }}
+                                >
+                                  <Checkbox
+                                    checked={subSelected}
+                                    onCheckedChange={() => toggleContaId(sub.id)}
+                                    style={{ borderColor: subSelected ? '#1A3CFF' : undefined }}
+                                  />
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0D1B35' }}>{sub.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                                </label>
+                              ) : (
+                                /* Parent shown as context only (no checkbox) */
+                                <div
+                                  className="flex items-center gap-2 px-3 py-2"
+                                  style={{ borderBottom: '1px solid #F8F9FB', background: '#F8F9FB' }}
+                                >
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: '#8A9BBC' }}>{sub.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                                </div>
+                              )}
+                              {/* N2 children */}
+                              {children.map(cat => {
+                                const catSelected = selectedContaIds.includes(cat.id);
+                                const disabled = subSelected;
+                                const catHighlight = term && !subMatches;
+                                return (
+                                  <label
+                                    key={cat.id}
+                                    className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
+                                    style={{
+                                      paddingLeft: 36,
+                                      paddingRight: 12,
+                                      borderBottom: '1px solid #FAFBFD',
+                                      background: catSelected ? '#0099E60F' : catHighlight ? '#FFFBEB' : undefined,
+                                      opacity: disabled ? 0.45 : 1,
+                                      cursor: disabled ? 'not-allowed' : 'pointer',
+                                    }}
+                                    title={disabled ? 'Já incluída via subgrupo pai' : undefined}
+                                  >
+                                    <Checkbox
+                                      checked={catSelected || disabled}
+                                      onCheckedChange={() => !disabled && toggleContaId(cat.id)}
+                                      disabled={disabled}
+                                      style={{ borderColor: catSelected ? '#0099E6' : undefined }}
+                                    />
+                                    <span style={{ fontSize: 12, color: '#4A5E80' }}>{cat.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  });
+
+                  if (term && !hasAnyResult) {
+                    return (
+                      <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: '#8A9BBC' }}>
+                        Nenhum resultado para '{searchTerm.trim()}'
+                      </div>
+                    );
+                  }
+
+                  return content;
+                })()}
               </div>
             </div>
           )}
