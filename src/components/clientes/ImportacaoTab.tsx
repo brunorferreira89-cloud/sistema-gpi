@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen } from 'lucide-react';
+import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen, AlertTriangle } from 'lucide-react';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { getCompetenciaAtual } from '@/lib/plano-contas-utils';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 const competencias = getCompetenciaOptions();
 
