@@ -445,6 +445,46 @@ export function TorreControleTab({ clienteId }: Props) {
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMap]);
 
+  const handleSugerirMetas = async () => {
+    if (!cliente) return;
+    setLoadingSugestao(true);
+    setDrawerSugestaoOpen(true);
+    setSugestoes([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('sugerir-metas', {
+        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt },
+      });
+      if (error) throw error;
+      setSugestoes(data?.sugestoes || []);
+    } catch (err) {
+      console.error('Erro ao sugerir metas:', err);
+      toast.error('Erro ao obter sugestões de metas');
+      setSugestoes([]);
+    } finally {
+      setLoadingSugestao(false);
+    }
+  };
+
+  const handleAplicarSugestoes = async (selecionadas: SugestaoMeta[]) => {
+    if (!cliente) return;
+    const upserts = selecionadas.map(s => ({
+      cliente_id: cliente.id,
+      conta_id: s.conta_id,
+      competencia: mesSeg,
+      meta_tipo: s.meta_tipo,
+      meta_valor: s.meta_valor,
+      updated_at: new Date().toISOString(),
+    }));
+    const { error } = await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+    if (error) {
+      toast.error('Erro ao salvar metas');
+      return;
+    }
+    toast.success(`${selecionadas.length} metas aplicadas com sucesso`);
+    setDrawerSugestaoOpen(false);
+    invalidateMetas();
+  };
+
   const toggleCollapse = (id: string) => {
     setCollapsed(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   };
