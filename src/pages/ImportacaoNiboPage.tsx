@@ -107,7 +107,7 @@ export default function ImportacaoNiboPage() {
             <tbody>
               {historico.map((h: any) => (
                 <tr key={h.id} className="border-b border-border/50 hover:bg-surface-hi/50">
-                  <td className="p-3 text-txt">{new Date(h.competencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</td>
+                  <td className="p-3 text-txt">{(() => { const [y, m] = h.competencia.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); })()}</td>
                   <td className="p-3 text-txt truncate max-w-[200px]">{h.arquivo_nome || '—'}</td>
                   <td className="p-3">{statusBadge(h.status)}</td>
                   <td className="p-3 text-txt">{h.total_contas_importadas}</td>
