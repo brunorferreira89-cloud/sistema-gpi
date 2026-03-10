@@ -475,7 +475,7 @@ export function TorreControleTab({ clienteId }: Props) {
     }
 
     const meta = metaMap[conta.id] || null;
-    const projetado = displayAnt != null ? calcProjetado(displayAnt, meta) : null;
+    const projetado = displayReal != null ? calcProjetado(displayReal, meta) : null;
     const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
     const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
 
