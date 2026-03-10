@@ -3,8 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen, AlertTriangle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { type ContaRow } from '@/lib/plano-contas-utils';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
 import { ImportActionDialog } from '@/components/importacao/ImportActionDialog';
