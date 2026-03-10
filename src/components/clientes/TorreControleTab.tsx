@@ -5,7 +5,7 @@ import { type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { nomeExibido, formatCnpj } from '@/lib/clientes-utils';
-import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesAnterior as getMesAnterior, fmtCompetencia } from '@/lib/torre-utils';
+import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesAnterior as getMesAnterior, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 
 // ── Types ───────────────────────────────────────────────────────
 interface DreNode { conta: ContaRow; children: DreNode[] }
@@ -278,6 +278,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
+  const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
 
   // ── Fetch cliente ─────────────────────────────────────────────
   const { data: cliente } = useQuery({
@@ -346,17 +347,17 @@ export function TorreControleTab({ clienteId }: Props) {
   });
 
   const { data: metas, isLoading: loadingMetas } = useQuery({
-    queryKey: ['torre-metas', clienteId, competencia],
-    enabled: !!clienteId && !!competencia,
+    queryKey: ['torre-metas', clienteId, mesSeg],
+    enabled: !!clienteId && !!mesSeg,
     queryFn: async () => {
-      const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor').eq('cliente_id', clienteId).eq('competencia', competencia);
+      const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor').eq('cliente_id', clienteId).eq('competencia', mesSeg);
       return (data || []) as TorreMeta[];
     },
   });
 
   const invalidateMetas = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, competencia] });
-  }, [qc, clienteId, competencia]);
+    qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] });
+  }, [qc, clienteId, mesSeg]);
 
   // ── Maps ──────────────────────────────────────────────────────
   const realizadoMap = useMemo(() => {
@@ -415,33 +416,30 @@ export function TorreControleTab({ clienteId }: Props) {
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
-      const ant = anteriorMap[c.id];
-      if (!meta || meta.meta_valor === null || ant == null) continue;
-      const realizado = realizadoMap[c.id];
-      if (realizado == null) continue;
-      const projetado = calcProjetado(ant, meta);
+      const base = realizadoMap[c.id];
+      if (!meta || meta.meta_valor === null || base == null) continue;
+      const projetado = calcProjetado(base, meta);
       const isReceita = c.tipo === 'receita';
-      const s = calcStatus(realizado, projetado, isReceita);
+      const s = calcStatus(base, projetado, isReceita);
       if (s === 'ok' || s === 'atencao' || s === 'critico') counts[s]++;
     }
     return counts;
-  }, [contas, metaMap, anteriorMap, realizadoMap]);
+  }, [contas, metaMap, realizadoMap]);
 
   // ── GC projetado ──────────────────────────────────────────────
   const gcProjetado = useMemo(() => {
-    // Sum projetado for all leaf contas
     if (!contas) return null;
     let total = 0;
     let hasAny = false;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
-      const ant = anteriorMap[c.id];
-      const proj = (ant != null && meta) ? calcProjetado(ant, meta) : null;
+      const base = realizadoMap[c.id];
+      const proj = (base != null && meta) ? calcProjetado(base, meta) : null;
       if (proj != null) { total += (c.tipo === 'receita' ? proj : -proj); hasAny = true; }
     }
     return hasAny ? total : null;
-  }, [contas, metaMap, anteriorMap]);
+  }, [contas, metaMap, realizadoMap]);
 
   const toggleCollapse = (id: string) => {
     setCollapsed(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
@@ -453,6 +451,7 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const compLabel = competencia ? fmtCompetencia(competencia) : '';
   const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
+  const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
 
   // ── Render row helpers ────────────────────────────────────────
   const renderRow = (node: DreNode, depth: number) => {
@@ -476,7 +475,7 @@ export function TorreControleTab({ clienteId }: Props) {
     }
 
     const meta = metaMap[conta.id] || null;
-    const projetado = displayAnt != null ? calcProjetado(displayAnt, meta) : null;
+    const projetado = displayReal != null ? calcProjetado(displayReal, meta) : null;
     const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
     const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
 
@@ -550,7 +549,7 @@ export function TorreControleTab({ clienteId }: Props) {
               meta={meta}
               contaId={conta.id}
               clienteId={clienteId}
-              competencia={competencia}
+              competencia={mesSeg}
               isTotal={isTotal}
               onSaved={invalidateMetas}
             />
@@ -656,7 +655,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   onClick={() => { setModo('projecao'); }}
                   style={{ padding: '6px 14px', fontSize: 11, fontWeight: modo === 'projecao' ? 700 : 500, color: modo === 'projecao' ? C.primary : C.txtSec, background: modo === 'projecao' ? C.pLo : 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em' }}
                 >
-                  PROJETAR {compLabel} ▶
+                  PROJETAR {mesSegLabel} ▶
                 </button>
               </div>
 
@@ -712,7 +711,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
                       <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
                       <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 130 }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>PROJETADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
                       <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 96 }}>STATUS</th>
                     </tr>
                   </thead>

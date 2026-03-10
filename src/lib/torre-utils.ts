@@ -32,6 +32,12 @@ export function mesAnterior(competencia: string): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
 }
 
+export function mesSeguinte(competencia: string): string {
+  const d = new Date(competencia + 'T12:00:00Z');
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
+}
+
 export function fmtCompetencia(comp: string): string {
   const d = new Date(comp + 'T12:00:00Z');
   return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').toUpperCase();
