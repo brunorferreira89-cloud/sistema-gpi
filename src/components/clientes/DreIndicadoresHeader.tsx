@@ -285,7 +285,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
       )}
 
       {/* 5 indicator cards */}
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div className="grid gap-3 dre-header-cards" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {/* FATURAMENTO */}
         <IndicatorCard index={0} color={BLUE} label="Faturamento" hasData={hasData}>
           <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: BLUE }}>
