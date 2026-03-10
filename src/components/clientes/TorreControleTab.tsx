@@ -801,27 +801,26 @@ export function TorreControleTab({ clienteId }: Props) {
               </button>
             </div>
 
-            <div style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.surface }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 700, tableLayout: 'fixed' }}>
+            <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
+                <table style={{ borderCollapse: 'collapse', minWidth: 780 }}>
                   <colgroup>
                     <col style={{ width: 24 }} />
-                    <col style={{ width: 240 }} />
-                    <col style={{ width: 90 }} />
-                    <col style={{ width: 90 }} />
-                    <col style={{ width: 100 }} />
-                    <col style={{ width: 100 }} />
-                    <col style={{ width: 90 }} />
+                    <col style={{ width: 280 }} />
+                    <col style={{ width: 80, minWidth: 80 }} />
+                    <col style={{ width: 80, minWidth: 80 }} />
+                    <col style={{ width: 100, minWidth: 100 }} />
+                    <col style={{ width: 110, minWidth: 110 }} />
+                    <col style={{ width: 90, minWidth: 90 }} />
                   </colgroup>
                   <thead>
                     <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>{mesAntLabel || 'MÊS ANT.'}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>REALIZADO</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>PROJETADO {mesSegLabel}</th>
-                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>STATUS</th>
+                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>CONTA DRE</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntLabel || 'MÊS ANT.'}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>META</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>PROJETADO {mesSegLabel}</th>
+                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>STATUS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -833,7 +832,6 @@ export function TorreControleTab({ clienteId }: Props) {
                     ))}
                   </tbody>
                 </table>
-              </div>
             </div>
           </>
         )}
