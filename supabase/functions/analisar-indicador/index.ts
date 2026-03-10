@@ -14,6 +14,7 @@ serve(async (req) => {
       indicador, valor_atual, valor_absoluto, faturamento,
       mes_referencia, status, limite_verde, limite_ambar,
       direcao, historico, formula, composicao,
+      instrucao_especifica,
     } = await req.json();
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
