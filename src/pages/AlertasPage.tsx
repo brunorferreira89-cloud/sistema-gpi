@@ -75,7 +75,7 @@ export default function AlertasPage() {
             <SelectTrigger className="w-56"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
             <SelectContent>
               {clientes?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>
               ))}
             </SelectContent>
           </Select>
