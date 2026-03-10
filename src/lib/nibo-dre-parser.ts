@@ -52,11 +52,12 @@ function normalizar(nome: string, manterPrefixo = false): string {
  * When contasDoPlano is provided, match against the plan (preferred).
  * Otherwise fall back to case-based heuristic.
  */
-function isCategoriaReal(nome: string | null | undefined, nomesNormalizados?: Set<string>): boolean {
+function isCategoriaReal(nome: string | null | undefined, nomesNormalizados?: Set<string>, nomesComPrefixo?: Set<string>): boolean {
   if (!nome || nome.trim() === '') return false;
 
-  // If we have the plan, use direct matching
+  // If we have the plan, use direct matching: try full name with prefix first, then without
   if (nomesNormalizados) {
+    if (nomesComPrefixo?.has(normalizar(nome, true))) return true;
     return nomesNormalizados.has(normalizar(nome));
   }
 
