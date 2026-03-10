@@ -583,6 +583,9 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     let lastTipo: string | null = null;
 
     for (const root of sortedRoots) {
+      // Skip group if no children have values
+      if (!nodeHasValues(root)) continue;
+
       if (lastTipo && lastTipo !== root.conta.tipo) {
         const ind = INDICADOR_AFTER_TIPO[lastTipo];
         if (ind) output.push(...renderIndicadorRows(ind));
@@ -593,15 +596,17 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
       if (grupoExpanded) {
         for (const child of root.children) {
           if (child.conta.nivel === 1) {
+            // Skip subgroup if no children have values
+            if (!nodeHasValues(child)) continue;
             output.push(renderSubgrupoRow(child));
             const subExpanded = !collapsed.has(child.conta.id);
             if (subExpanded) {
               for (const cat of child.children) {
-                if (cat.conta.nivel === 2) output.push(renderCategoriaRow(cat));
+                if (cat.conta.nivel === 2 && temValorNoAno(cat.conta.id)) output.push(renderCategoriaRow(cat));
               }
             }
           } else if (child.conta.nivel === 2) {
-            output.push(renderCategoriaRow(child));
+            if (temValorNoAno(child.conta.id)) output.push(renderCategoriaRow(child));
           }
         }
       }
