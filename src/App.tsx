@@ -19,7 +19,7 @@ import ReuniaoColetivaPrincipalPage from "./pages/ReuniaoColetivaPrincipalPage";
 import ReuniaoColetivDetalhe from "./pages/ReuniaoColetivDetalhe";
 import DiagnosticoPublicoPage from "./pages/DiagnosticoPublicoPage";
 import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
-import DebugTributosPage from "./pages/DebugTributosPage";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
