@@ -161,7 +161,7 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
               <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  <strong>Atenção:</strong> Esta ação é irreversível. O registro da importação será removido permanentemente. Os valores já registrados nas contas não serão alterados.
+                 <strong>Atenção:</strong> Esta ação é irreversível. O registro da importação e todos os valores financeiros da competência serão removidos permanentemente do banco de dados.
                 </span>
               </div>
             </AlertDialogDescription>
