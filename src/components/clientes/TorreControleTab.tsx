@@ -830,6 +830,7 @@ export function TorreControleTab({ clienteId }: Props) {
         fromCache={sugestaoFromCache}
         contas={contas || []}
         realizadoMap={realizadoMap}
+        narrativa={narrativa}
       />
     </div>
   );
