@@ -63,7 +63,7 @@ export function ReuniaoDialog({ open, onOpenChange, reuniao, preselectedClienteI
       setTitulo(`Reunião Coletiva Mensal — ${now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`);
     } else if (clienteId && clientes) {
       const c = clientes.find((c) => c.id === clienteId);
-      if (c) setTitulo(`Reunião Individual — ${c.nome_empresa}`);
+      if (c) setTitulo(`Reunião Individual — ${c.razao_social || c.nome_empresa}`);
     }
   }, [tipo, clienteId, clientes, reuniao]);
 
