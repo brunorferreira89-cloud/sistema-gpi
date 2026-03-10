@@ -311,6 +311,22 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return set;
   }, [valoresAnuais]);
 
+  // --- DIAGNOSTIC LOGS (temporary) ---
+  useMemo(() => {
+    console.log('TOTAL valores no ano:', valoresAnuais?.length);
+    console.log('Amostra:', valoresAnuais?.slice(0, 5));
+    const tributos = contas?.filter(c =>
+      c.nome.toUpperCase().includes('TRIBUTO') ||
+      c.nome.toUpperCase().includes('SIMPLES') ||
+      c.nome.toUpperCase().includes('ICMS')
+    );
+    console.log('Contas TRIBUTOS encontradas:', tributos);
+    tributos?.forEach(c => {
+      const valores = valoresAnuais?.filter(v => v.conta_id === c.id);
+      console.log(`Conta ${c.nome} (${c.id}) → valores encontrados:`, valores);
+    });
+  }, [valoresAnuais, contas]);
+
   const temValorNoAno = (contaId: string) => contasComValor.has(contaId);
 
   /** Check if a DreNode (or any of its descendants) has values */
