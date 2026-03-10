@@ -102,7 +102,8 @@ export function parseCategoriasNibo(file: File): Promise<ResultadoParseCategoria
           // Determine prefix from Tipo column
           const prefixo: '+' | '-' = tipoColuna.toLowerCase().includes('entrada') ? '+' : '-';
           const tipo = detectTipoPorGrupo(grupo);
-          const nomeLimpo = limparPrefixo(categoria);
+          // Keep original category name as-is (including any prefix) for exact matching with DRE
+          const nomeLimpo = categoria;
 
           categorias.push({
             grupo,

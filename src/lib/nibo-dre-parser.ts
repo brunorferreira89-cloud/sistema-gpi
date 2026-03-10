@@ -185,7 +185,8 @@ export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<
 
           valores.push({
             nomeOriginal,
-            nomeLimpo: limparPrefixo(nomeOriginal),
+            // Keep full name for exact matching against plano_de_contas
+            nomeLimpo: nomeOriginal,
             valores: valoresRow,
           });
         }
