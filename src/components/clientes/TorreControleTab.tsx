@@ -278,6 +278,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
+  const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
 
   // ── Fetch cliente ─────────────────────────────────────────────
   const { data: cliente } = useQuery({
