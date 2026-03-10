@@ -197,7 +197,7 @@ function IndicatorCard({ index, color, label, children, hasData, onClick }: {
 }
 
 /* ──────── main component ──────── */
-export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
+export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecionado }: Props) {
   const leafs = useMemo(() => getLeafContas(contas), [contas]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTitulo, setDrawerTitulo] = useState('');
@@ -223,9 +223,14 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
   }, [months, valoresAnuais]);
 
   const hasData = monthsWithData.length > 0;
-  const latestMonth = monthsWithData[monthsWithData.length - 1];
-  const prevMonth = monthsWithData.length >= 2 ? monthsWithData[monthsWithData.length - 2] : null;
-  const last6 = monthsWithData.slice(-6);
+
+  // Use mesSelecionado prop if provided, otherwise default to last month with data
+  const selectedIdx = mesSelecionado ? monthsWithData.findIndex(m => m.value === mesSelecionado) : monthsWithData.length - 1;
+  const latestMonth = selectedIdx >= 0 ? monthsWithData[selectedIdx] : monthsWithData[monthsWithData.length - 1];
+  const prevMonth = selectedIdx > 0 ? monthsWithData[selectedIdx - 1] : (monthsWithData.length >= 2 ? monthsWithData[monthsWithData.length - 2] : null);
+  const last6 = mesSelecionado
+    ? monthsWithData.slice(0, selectedIdx + 1).slice(-6)
+    : monthsWithData.slice(-6);
 
   const currentMap = latestMonth ? getMonthMap(latestMonth.value) : {};
   const prevMap = prevMonth ? getMonthMap(prevMonth.value) : {};
