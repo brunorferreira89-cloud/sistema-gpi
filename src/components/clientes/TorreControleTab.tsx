@@ -253,30 +253,6 @@ function AnalyzingDots({ color }: { color: string }) {
   return <span style={{ fontSize: 10, fontWeight: 600, color, letterSpacing: '0.08em' }}>EM ANÁLISE{dots}</span>;
 }
 
-// ── Tower SVG ───────────────────────────────────────────────────
-function TowerSvg() {
-  return (
-    <svg viewBox="0 0 220 140" style={{ width: 160, height: 100, opacity: 0.13 }}>
-      <rect x="90" y="110" width="40" height="20" fill={C.primary} />
-      <rect x="98" y="60" width="24" height="52" fill={C.primary} />
-      <rect x="82" y="40" width="56" height="28" fill={C.primary} />
-      <rect x="88" y="46" width="10" height="10" fill={C.cyan} opacity="0.8" />
-      <rect x="102" y="46" width="10" height="10" fill={C.cyan} opacity="0.8" />
-      <rect x="116" y="46" width="10" height="10" fill={C.cyan} opacity="0.8" />
-      <line x1="110" y1="40" x2="110" y2="10" stroke={C.primary} strokeWidth="2" />
-      <circle cx="110" cy="10" r="4" fill={C.cyan} />
-      <circle cx="110" cy="10" r="12" stroke={C.cyan} strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="4 3" />
-      <circle cx="110" cy="10" r="22" stroke={C.primary} strokeWidth="1" fill="none" opacity="0.35" strokeDasharray="4 3" />
-      <circle cx="110" cy="10" r="32" stroke={C.cyan} strokeWidth="1" fill="none" opacity="0.2" strokeDasharray="4 3" />
-      <line x1="10" y1="130" x2="210" y2="130" stroke={C.primary} opacity="0.4" strokeWidth="1" />
-      {[50, 90, 130, 170].map(x => <line key={x} x1={x} y1="128" x2={x} y2="132" stroke={C.primary} opacity="0.4" strokeWidth="1" />)}
-      <g transform="translate(28,85) rotate(-20)">
-        <path d="M0,5 L18,0 L18,10 Z" fill={C.cyan} opacity="0.7" />
-      </g>
-    </svg>
-  );
-}
-
 // ── Keyframes style tag ─────────────────────────────────────────
 const keyframesCSS = `
 @keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
@@ -284,19 +260,6 @@ const keyframesCSS = `
 @keyframes scanLine { 0%{top:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:100%;opacity:0} }
 @keyframes fadeUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 `;
-
-// ── Toggle button style (copied from DRE) ───────────────────────
-const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
-  background: active ? '#1A3CFF' : '#F0F4FA',
-  color: active ? '#FFFFFF' : '#8A9BBC',
-  border: `1px solid ${active ? '#1A3CFF' : '#DDE4F0'}`,
-  borderRadius: 6,
-  padding: '4px 12px',
-  fontSize: 12,
-  fontWeight: 500,
-  cursor: 'pointer',
-  transition: 'all 0.15s',
-});
 
 // ══════════════════════════════════════════════════════════════════
 interface Props { clienteId: string }
