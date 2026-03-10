@@ -617,15 +617,15 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
           {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 110 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(displayAnt)}
           </td>
           {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(displayReal)}
           </td>
           {/* Meta */}
-          <td style={{ textAlign: 'right', padding: '8px 10px', width: 130 }}>
+          <td style={{ textAlign: 'right', padding: '8px 10px' }}>
             <EditableMetaCell
               meta={meta}
               contaId={conta.id}
@@ -636,11 +636,11 @@ export function TorreControleTab({ clienteId }: Props) {
             />
           </td>
           {/* Projetado */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(projetado)}
           </td>
           {/* Status */}
-          <td style={{ textAlign: 'center', padding: '8px 6px', width: 96 }}>
+          <td style={{ textAlign: 'center', padding: '8px 6px' }}>
             {isCat && !isTotal ? <StatusBadge status={status} /> : null}
           </td>
         </tr>
@@ -663,15 +663,15 @@ export function TorreControleTab({ clienteId }: Props) {
             {config.nome}
           </span>
         </td>
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 110 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
           {fmtTorre(antVal)}
         </td>
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 120 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
           {fmtTorre(realVal)}
         </td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', width: 130, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', width: 120, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td style={{ width: 96 }} />
+        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td />
       </tr>
     );
   };
@@ -803,16 +803,25 @@ export function TorreControleTab({ clienteId }: Props) {
 
             <div style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.surface }}>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 700, tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: 24 }} />
+                    <col style={{ width: 240 }} />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 100 }} />
+                    <col style={{ width: 100 }} />
+                    <col style={{ width: 90 }} />
+                  </colgroup>
                   <thead>
                     <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
                       <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 130 }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
-                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 96 }}>STATUS</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>{mesAntLabel || 'MÊS ANT.'}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>META</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>PROJETADO {mesSegLabel}</th>
+                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em' }}>STATUS</th>
                     </tr>
                   </thead>
                   <tbody>
