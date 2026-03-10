@@ -655,7 +655,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   onClick={() => { setModo('projecao'); }}
                   style={{ padding: '6px 14px', fontSize: 11, fontWeight: modo === 'projecao' ? 700 : 500, color: modo === 'projecao' ? C.primary : C.txtSec, background: modo === 'projecao' ? C.pLo : 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em' }}
                 >
-                  PROJETAR {compLabel} ▶
+                  PROJETAR {mesSegLabel} ▶
                 </button>
               </div>
 
