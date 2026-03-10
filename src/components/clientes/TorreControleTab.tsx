@@ -5,7 +5,7 @@ import { type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { nomeExibido, formatCnpj } from '@/lib/clientes-utils';
-import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesAnterior as getMesAnterior, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
+import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
 
 // ── Types ───────────────────────────────────────────────────────
@@ -32,6 +32,26 @@ const C = {
   txt: '#0D1B35', txtSec: '#4A5E80', txtMuted: '#8A9BBC',
   mono: "'Courier New', monospace",
 };
+
+// ── Helpers ─────────────────────────────────────────────────────
+function getYearOptions() {
+  const now = new Date();
+  const years: string[] = [];
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) years.push(String(y));
+  return years;
+}
+
+function getMonthsForYear(year: string) {
+  const months: { value: string; shortLabel: string }[] = [];
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(Number(year), m, 1);
+    months.push({
+      value: `${year}-${String(m + 1).padStart(2, '0')}-01`,
+      shortLabel: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+    });
+  }
+  return months;
+}
 
 // ── Tree builder ────────────────────────────────────────────────
 function buildDreTree(contas: ContaRow[]): DreNode[] {
@@ -139,7 +159,6 @@ function EditableMetaCell({
     if (meta && meta.meta_valor !== null) upsert(next, meta.meta_valor);
   };
 
-  // Editing mode
   if (editing) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -158,7 +177,6 @@ function EditableMetaCell({
     );
   }
 
-  // No meta: show "+ meta"
   if (!meta || meta.meta_valor === null) {
     return (
       <span
@@ -172,7 +190,6 @@ function EditableMetaCell({
     );
   }
 
-  // Has meta: badge + value
   const display = meta.meta_tipo === 'pct'
     ? `${meta.meta_valor! >= 0 ? '+' : ''}${meta.meta_valor}%`
     : fmtTorre(meta.meta_valor);
@@ -269,14 +286,30 @@ const keyframesCSS = `
 @keyframes fadeUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 `;
 
+// ── Toggle button style (copied from DRE) ───────────────────────
+const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
+  background: active ? '#1A3CFF' : '#F0F4FA',
+  color: active ? '#FFFFFF' : '#8A9BBC',
+  border: `1px solid ${active ? '#1A3CFF' : '#DDE4F0'}`,
+  borderRadius: 6,
+  padding: '4px 12px',
+  fontSize: 12,
+  fontWeight: 500,
+  cursor: 'pointer',
+  transition: 'all 0.15s',
+});
+
 // ══════════════════════════════════════════════════════════════════
 interface Props { clienteId: string }
 
 export function TorreControleTab({ clienteId }: Props) {
   const qc = useQueryClient();
-  const [competencia, setCompetencia] = useState('');
-  const [modo, setModo] = useState<'analise' | 'projecao'>('analise');
+  const years = getYearOptions();
+  const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [modoMeta, setModoMeta] = useState(false);
+  const [modoAnaliseMeta, setModoAnaliseMeta] = useState(false);
+  const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
   const [drawerSugestaoOpen, setDrawerSugestaoOpen] = useState(false);
   const [sugestoes, setSugestoes] = useState<SugestaoMeta[]>([]);
   const [loadingSugestao, setLoadingSugestao] = useState(false);
@@ -284,8 +317,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
   const [narrativa, setNarrativa] = useState<string | null>(null);
 
-  const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
-  const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
+  const months = useMemo(() => getMonthsForYear(ano), [ano]);
 
   // ── Fetch cliente ─────────────────────────────────────────────
   const { data: cliente } = useQuery({
@@ -295,33 +327,6 @@ export function TorreControleTab({ clienteId }: Props) {
       return data as Cliente | null;
     },
   });
-
-  // ── Competências com importação ───────────────────────────────
-  const { data: importacoes } = useQuery({
-    queryKey: ['importacoes-nibo-competencias', clienteId],
-    enabled: !!clienteId,
-    queryFn: async () => {
-      const { data } = await supabase.from('importacoes_nibo').select('competencia').eq('cliente_id', clienteId).order('competencia', { ascending: false });
-      return data || [];
-    },
-  });
-
-  const competenciaOptions = useMemo(() => {
-    if (!importacoes) return [];
-    const unique = [...new Set(importacoes.map(i => i.competencia))];
-    unique.sort((a, b) => b.localeCompare(a));
-    return unique;
-  }, [importacoes]);
-
-  useEffect(() => {
-    if (competenciaOptions.length && !competencia) setCompetencia(competenciaOptions[0]);
-  }, [competenciaOptions, competencia]);
-
-  const navMes = (dir: -1 | 1) => {
-    const idx = competenciaOptions.indexOf(competencia);
-    const next = idx + dir;
-    if (next >= 0 && next < competenciaOptions.length) setCompetencia(competenciaOptions[next]);
-  };
 
   // ── Data queries ──────────────────────────────────────────────
   const { data: contas, isLoading: loadingContas } = useQuery({
@@ -335,27 +340,43 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const contaIds = useMemo(() => contas?.map(c => c.id) || [], [contas]);
 
-  const { data: valores, isLoading: loadingValores } = useQuery({
-    queryKey: ['valores-mensais-torre', clienteId, competencia],
-    enabled: !!clienteId && !!competencia && contaIds.length > 0,
+  // Fetch ALL months of the year (like DRE)
+  const { data: valoresAnuais, isLoading: loadingValores } = useQuery({
+    queryKey: ['valores-mensais-torre-anual', clienteId, ano, contaIds.length],
+    enabled: !!clienteId && contaIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from('valores_mensais').select('*').in('conta_id', contaIds).eq('competencia', competencia);
+      const { data } = await supabase.from('valores_mensais').select('conta_id, competencia, valor_realizado').in('conta_id', contaIds).gte('competencia', `${ano}-01-01`).lte('competencia', `${ano}-12-31`);
       return data || [];
     },
   });
 
-  const { data: valoresAnterior } = useQuery({
-    queryKey: ['valores-mensais-torre-ant', clienteId, mesAnt],
-    enabled: !!clienteId && !!mesAnt && contaIds.length > 0,
-    queryFn: async () => {
-      const { data } = await supabase.from('valores_mensais').select('conta_id, valor_realizado').in('conta_id', contaIds).eq('competencia', mesAnt);
-      return data || [];
-    },
-  });
+  // Values map: contaId -> competencia -> value
+  const valoresMap = useMemo(() => {
+    const map: Record<string, Record<string, number | null>> = {};
+    valoresAnuais?.forEach(v => {
+      if (!map[v.conta_id]) map[v.conta_id] = {};
+      map[v.conta_id][v.competencia] = v.valor_realizado;
+    });
+    return map;
+  }, [valoresAnuais]);
 
+  // Months with data
+  const monthsWithData = useMemo(() => {
+    return months.filter(m => valoresAnuais?.some(v => v.competencia === m.value && v.valor_realizado != null));
+  }, [months, valoresAnuais]);
+
+  // Effective selected month
+  const mesEfetivo = useMemo(() => {
+    if (mesSelecionado && monthsWithData.some(m => m.value === mesSelecionado)) return mesSelecionado;
+    return monthsWithData.length > 0 ? monthsWithData[monthsWithData.length - 1].value : null;
+  }, [mesSelecionado, monthsWithData]);
+
+  const mesSeg = useMemo(() => mesEfetivo ? getMesSeguinte(mesEfetivo) : '', [mesEfetivo]);
+
+  // Metas for mesSeg (next month after selected)
   const { data: metas, isLoading: loadingMetas } = useQuery({
     queryKey: ['torre-metas', clienteId, mesSeg],
-    enabled: !!clienteId && !!mesSeg,
+    enabled: !!clienteId && !!mesSeg && (modoMeta || modoAnaliseMeta),
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor').eq('cliente_id', clienteId).eq('competencia', mesSeg);
       return (data || []) as TorreMeta[];
@@ -365,19 +386,6 @@ export function TorreControleTab({ clienteId }: Props) {
   const invalidateMetas = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] });
   }, [qc, clienteId, mesSeg]);
-
-  // ── Maps ──────────────────────────────────────────────────────
-  const realizadoMap = useMemo(() => {
-    const map: Record<string, number | null> = {};
-    valores?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
-    return map;
-  }, [valores]);
-
-  const anteriorMap = useMemo(() => {
-    const map: Record<string, number | null> = {};
-    valoresAnterior?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
-    return map;
-  }, [valoresAnterior]);
 
   const metaMap = useMemo(() => {
     const map: Record<string, TorreMeta> = {};
@@ -398,8 +406,18 @@ export function TorreControleTab({ clienteId }: Props) {
     return map;
   }, [tree]);
 
-  // ── Totalizador values ────────────────────────────────────────
-  const calcTotais = useCallback((valMap: Record<string, number | null>) => {
+  // Get month map for a given competencia
+  const getMonthMap = useCallback((comp: string): Record<string, number | null> => {
+    const map: Record<string, number | null> = {};
+    contas?.forEach(c => { map[c.id] = valoresMap[c.id]?.[comp] ?? null; });
+    return map;
+  }, [contas, valoresMap]);
+
+  // Realized map for selected month (for meta calculations)
+  const realizadoMapSel = useMemo(() => mesEfetivo ? getMonthMap(mesEfetivo) : {}, [mesEfetivo, getMonthMap]);
+
+  // ── Totalizador calc per month ────────────────────────────────
+  const calcTotaisForMap = useCallback((valMap: Record<string, number | null>) => {
     const fat = sumGrupos(gruposPorTipo['receita'] || [], valMap);
     const custos = sumGrupos(gruposPorTipo['custo_variavel'] || [], valMap);
     const mc = fat + custos;
@@ -412,18 +430,14 @@ export function TorreControleTab({ clienteId }: Props) {
     return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
   }, [gruposPorTipo]);
 
-  const totais = useMemo(() => calcTotais(realizadoMap), [calcTotais, realizadoMap]);
-  const totaisAnt = useMemo(() => calcTotais(anteriorMap), [calcTotais, anteriorMap]);
-  const faturamento = totais.fat;
-
-  // ── Status counts ─────────────────────────────────────────────
+  // ── Status counts (based on selected month) ──────────────────
   const statusCounts = useMemo(() => {
     const counts = { ok: 0, atencao: 0, critico: 0 };
-    if (!contas) return counts;
+    if (!contas || !modoMeta) return counts;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
-      const base = realizadoMap[c.id];
+      const base = realizadoMapSel[c.id];
       if (!meta || meta.meta_valor === null || base == null) continue;
       const projetado = calcProjetado(base, meta);
       const isReceita = c.tipo === 'receita';
@@ -431,39 +445,59 @@ export function TorreControleTab({ clienteId }: Props) {
       if (s === 'ok' || s === 'atencao' || s === 'critico') counts[s]++;
     }
     return counts;
-  }, [contas, metaMap, realizadoMap]);
+  }, [contas, metaMap, realizadoMapSel, modoMeta]);
 
   // ── GC projetado ──────────────────────────────────────────────
   const gcProjetado = useMemo(() => {
-    if (!contas) return null;
+    if (!contas || !modoMeta) return null;
     let total = 0;
     let hasAny = false;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
-      const base = realizadoMap[c.id];
+      const base = realizadoMapSel[c.id];
       const proj = (base != null && meta) ? calcProjetado(base, meta) : null;
       if (proj != null) { total += (c.tipo === 'receita' ? proj : -proj); hasAny = true; }
     }
     return hasAny ? total : null;
-  }, [contas, metaMap, realizadoMap]);
+  }, [contas, metaMap, realizadoMapSel, modoMeta]);
 
+  // ── Variation (R$) helper ─────────────────────────────────────
+  const calcVariacao = useCallback((node: DreNode): number | null => {
+    const conta = node.conta;
+    if (conta.nivel === 2) {
+      const meta = metaMap[conta.id] || null;
+      const real = realizadoMapSel[conta.id] ?? null;
+      if (!meta || meta.meta_valor === null || real == null) return null;
+      if (meta.meta_tipo === 'pct') return Math.abs(real) * (meta.meta_valor / 100);
+      return meta.meta_valor - real;
+    }
+    let total = 0;
+    let hasAny = false;
+    for (const child of node.children) {
+      const v = calcVariacao(child);
+      if (v != null) { total += v; hasAny = true; }
+    }
+    return hasAny ? total : null;
+  }, [metaMap, realizadoMapSel]);
+
+  // ── Sugestão metas handler ────────────────────────────────────
   const handleSugerirMetas = async (forcarRegeneracao = false) => {
-    if (!cliente) return;
+    if (!cliente || !mesEfetivo) return;
     setLoadingSugestao(true);
     setDrawerSugestaoOpen(true);
-    if (forcarRegeneracao) setSugestoes([]); // limpa para mostrar spinner
+    if (forcarRegeneracao) setSugestoes([]);
     try {
+      const mesAnt = (() => { const d = new Date(mesEfetivo + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() - 1); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`; })();
       const { data, error } = await supabase.functions.invoke('sugerir-metas', {
         body: {
           cliente_id: cliente.id,
-          competencia,
+          competencia: mesEfetivo,
           competencia_anterior: mesAnt,
           force: forcarRegeneracao,
         },
       });
       if (error) throw error;
-      // Enrich suggestions with conta_nome and map justificativa → motivo
       const contaMap = new Map((contas || []).map(c => [c.id, c]));
       const enriched: SugestaoMeta[] = (data?.sugestoes || []).map((s: any) => ({
         ...s,
@@ -513,40 +547,46 @@ export function TorreControleTab({ clienteId }: Props) {
   };
 
   const hasContas = contas && contas.length > 0;
-  const hasValores = valores && valores.some(v => v.valor_realizado != null);
-  const isLoading = loadingContas || loadingValores || loadingMetas;
+  const hasAnyData = useMemo(() => valoresAnuais?.some(v => v.valor_realizado != null) ?? false, [valoresAnuais]);
+  const isLoading = loadingContas || loadingValores;
 
-  const compLabel = competencia ? fmtCompetencia(competencia) : '';
-  const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
-  const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
-  // Month-only labels (no year) for column headers
-  const fmtMesOnly = (comp: string) => {
-    const d = new Date(comp + 'T12:00:00Z');
+  // Month nav for selector
+  const navMesSel = (dir: -1 | 1) => {
+    const idx = monthsWithData.findIndex(m => m.value === mesEfetivo);
+    const next = idx + dir;
+    if (next >= 0 && next < monthsWithData.length) setMesSelecionado(monthsWithData[next].value);
+  };
+
+  const mesSegShort = useMemo(() => {
+    if (!mesSeg) return '';
+    const d = new Date(mesSeg + 'T12:00:00Z');
     return d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
-  };
-  const mesAntShort = mesAnt ? fmtMesOnly(mesAnt) : '';
-  const compShort = competencia ? fmtMesOnly(competencia) : '';
-  const mesSegShort = mesSeg ? fmtMesOnly(mesSeg) : '';
+  }, [mesSeg]);
+  const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
 
-  // ── Variation (R$) helper ──────────────────────────────────────
-  const calcVariacao = (node: DreNode): number | null => {
-    const conta = node.conta;
-    if (conta.nivel === 2) {
-      const meta = metaMap[conta.id] || null;
-      const real = realizadoMap[conta.id] ?? null;
-      if (!meta || meta.meta_valor === null || real == null) return null;
-      if (meta.meta_tipo === 'pct') return Math.abs(real) * (meta.meta_valor / 100);
-      return meta.meta_valor - real;
-    }
-    // For groups: sum children variations
-    let total = 0;
-    let hasAny = false;
-    for (const child of node.children) {
-      const v = calcVariacao(child);
-      if (v != null) { total += v; hasAny = true; }
-    }
-    return hasAny ? total : null;
-  };
+  // ── Column layout ─────────────────────────────────────────────
+  const valColW = 80;
+  const nameColW = 280;
+  const extraMetaCols = modoMeta ? 3 : 0; // AJUSTE, R$, META
+  const extraAnaliseCols = modoAnaliseMeta ? 1 : 0; // META column
+  const metaColW = 90;
+  const rsColW = 90;
+  const metaProjetadoColW = 110;
+  const statusColW = modoMeta ? 80 : 0;
+
+  // Sticky cell style
+  const stickyTd = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
+    position: 'sticky',
+    left: 0,
+    zIndex: 10,
+    background: bg,
+    borderRight: '1px solid #DDE4F0',
+    minWidth: nameColW,
+    maxWidth: 320,
+    ...extra,
+  });
+
+  const isSelectedMonth = (comp: string) => comp === mesEfetivo;
 
   // ── Render row helpers ────────────────────────────────────────
   const renderRow = (node: DreNode, depth: number) => {
@@ -558,129 +598,187 @@ export function TorreControleTab({ clienteId }: Props) {
     const hasChildren = node.children.length > 0;
     const isCollapsedItem = collapsed.has(conta.id);
 
-    // Values
-    let displayReal: number | null = null;
-    let displayAnt: number | null = null;
-    if (isCat) {
-      displayReal = realizadoMap[conta.id] ?? null;
-      displayAnt = anteriorMap[conta.id] ?? null;
-    } else {
-      displayReal = sumNodeLeafs(node, realizadoMap);
-      displayAnt = sumNodeLeafs(node, anteriorMap);
-    }
-
-    const meta = metaMap[conta.id] || null;
-    const projetado = displayReal != null ? calcProjetado(displayReal, meta) : null;
-    const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
-    const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
-
-    const hasMeta = meta && meta.meta_valor !== null;
     const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
 
-    // Styles — copied from DreAnualTab.tsx
+    // Row styling
     let rowBg = '#FAFCFF';
     let fontWeight = 400;
     let fontSize = 12;
     let textColor = '#4A5E80';
-    let borderLeft = isCat && hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
     let borderTop = 'none';
     let borderBottom = '1px solid #F8F9FB';
     let letterSpacing: string | undefined = undefined;
     let textTransform: 'uppercase' | 'none' = 'none';
 
     if (isTotal) {
-      rowBg = '#0D1B35';
-      fontWeight = 700;
-      fontSize = 12;
-      textColor = '#FFFFFF';
-      borderLeft = 'none';
-      borderTop = 'none';
-      borderBottom = 'none';
+      rowBg = '#0D1B35'; fontWeight = 700; fontSize = 12; textColor = '#FFFFFF'; borderTop = 'none'; borderBottom = 'none';
     } else if (isGrupo) {
-      rowBg = '#F0F4FA';
-      fontWeight = 700;
-      fontSize = 12;
-      textColor = '#0D1B35';
-      borderLeft = 'none';
-      borderTop = '1px solid #C4CFEA';
-      borderBottom = '1px solid #C4CFEA';
-      letterSpacing = '0.04em';
-      textTransform = 'uppercase';
+      rowBg = '#F0F4FA'; fontWeight = 700; fontSize = 12; textColor = '#0D1B35'; borderTop = '1px solid #C4CFEA'; borderBottom = '1px solid #C4CFEA'; letterSpacing = '0.04em'; textTransform = 'uppercase';
     } else if (isSubgrupo) {
-      rowBg = '#FFFFFF';
-      fontWeight = 600;
-      fontSize = 12;
-      textColor = '#0D1B35';
-      borderLeft = 'none';
-      borderBottom = '1px solid #F0F4FA';
+      rowBg = '#FFFFFF'; fontWeight = 600; fontSize = 12; textColor = '#0D1B35'; borderBottom = '1px solid #F0F4FA';
     }
+
+    // Meta info for selected month
+    const meta = metaMap[conta.id] || null;
+    const hasMeta = meta && meta.meta_valor !== null;
+    const realSel = realizadoMapSel[conta.id] ?? (isCat ? null : sumNodeLeafs(node, realizadoMapSel));
+    const projetado = realSel != null ? calcProjetado(realSel, meta) : null;
+    const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
+    const status = realSel != null ? calcStatus(realSel, projetado, isReceita) : 'neutro';
+
+    // Análise meta: compare realized vs meta (saved in torre_metas for this month = mesSeg, but we compare against selected month realizado)
+    // The meta stored is for mesSeg (projetado). For ANÁLISE META we need the meta that was set for the selected month.
+    // Actually let's re-read: ANÁLISE META shows meta column and colors the realized cell.
 
     return (
       <Fragment key={conta.id}>
         <tr
-          style={{
-            background: rowBg,
-            borderTop,
-            borderBottom,
-            borderLeft,
-            transition: 'background 0.1s ease',
-          }}
+          style={{ background: rowBg, borderTop, borderBottom, transition: 'background 0.1s ease' }}
           onMouseEnter={e => { if (!isTotal) e.currentTarget.style.background = '#F6F9FF'; }}
           onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
         >
-          {/* Expand */}
-          <td style={{ width: 24, padding: '0 4px', textAlign: 'center' }}>
-            {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
-              <button onClick={() => toggleCollapse(conta.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 2, lineHeight: 0, color: C.txtMuted }}>
-                {isCollapsedItem ? <ChevronRight style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
-              </button>
-            ) : null}
-          </td>
-          {/* Nome */}
-          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360, letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined, borderRight: '1px solid #DDE4F0' }}>
+          {/* Expand + Name (sticky) */}
+          <td style={{
+            ...stickyTd(rowBg, { padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
+          }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
+                <button onClick={() => toggleCollapse(conta.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 2, lineHeight: 0, color: C.txtMuted, flexShrink: 0 }}>
+                  {isCollapsedItem ? <ChevronRight style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+                </button>
+              ) : <span style={{ width: 18 }} />}
               {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
-              {hasMeta && !isTotal && !isSubgrupo && !isCat && <span style={{ color: C.primary, fontSize: 6 }}>●</span>}
-              {conta.nome}
+              <span style={{ letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined }}>{conta.nome}</span>
             </span>
           </td>
-          {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
-            {fmtTorre(displayAnt)}
-          </td>
-          {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
-            {fmtTorre(displayReal)}
-          </td>
-          {/* Ajuste */}
-          <td style={{ textAlign: 'right', padding: '8px 10px' }}>
-            <EditableMetaCell
-              meta={meta}
-              contaId={conta.id}
-              clienteId={clienteId}
-              competencia={mesSeg}
-              isTotal={isTotal}
-              onSaved={invalidateMetas}
-            />
-          </td>
-          {/* R$ (variação) */}
-          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px' }}>
+
+          {/* Month columns */}
+          {months.map(m => {
+            const monthMap = getMonthMap(m.value);
+            let val: number | null = null;
+            if (isCat) {
+              val = monthMap[conta.id] ?? null;
+            } else {
+              val = sumNodeLeafs(node, monthMap);
+            }
+
+            const isSel = isSelectedMonth(m.value);
+            const selBg = isSel && (modoMeta || modoAnaliseMeta) ? (isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)') : undefined;
+
+            // Análise meta coloring
+            let cellColor = val != null ? (val < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted);
+            let cellBg = selBg;
+            if (modoAnaliseMeta && isSel && isCat && !isTotal && val != null && projetado != null) {
+              // Compare realized (val) vs projetado (meta target)
+              const metaAtingida = isReceita ? val >= projetado : Math.abs(val) <= Math.abs(projetado);
+              if (metaAtingida) {
+                cellColor = '#00A86B';
+                cellBg = 'rgba(0,168,107,0.06)';
+              } else {
+                cellColor = '#DC2626';
+                cellBg = 'rgba(220,38,38,0.04)';
+              }
+            }
+
+            return (
+              <Fragment key={m.value}>
+                <td style={{
+                  textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+                  fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
+                  color: cellColor,
+                  padding: '8px 10px',
+                  background: cellBg,
+                }}>
+                  {fmtTorre(val)}
+                </td>
+
+                {/* ANÁLISE META: META column after selected month */}
+                {modoAnaliseMeta && isSel && (
+                  <td style={{
+                    textAlign: 'right', fontFamily: C.mono, fontSize: 12,
+                    fontWeight: isTotal ? 800 : 400,
+                    color: projetado != null ? (isTotal ? '#FFFFFF' : C.txtSec) : C.txtMuted,
+                    padding: '8px 10px',
+                    background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.03)',
+                  }}>
+                    {fmtTorre(projetado)}
+                  </td>
+                )}
+
+                {/* META mode: AJUSTE + R$ + META columns after selected month */}
+                {modoMeta && isSel && (
+                  <>
+                    {/* AJUSTE */}
+                    <td style={{ textAlign: 'right', padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
+                      <EditableMetaCell
+                        meta={meta}
+                        contaId={conta.id}
+                        clienteId={clienteId}
+                        competencia={mesSeg}
+                        isTotal={isTotal}
+                        onSaved={invalidateMetas}
+                      />
+                    </td>
+                    {/* R$ */}
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
+                      {(() => {
+                        const variacao = calcVariacao(node);
+                        if (variacao == null) return <span style={{ color: C.txtMuted }}>—</span>;
+                        const positive = variacao >= 0;
+                        const abs = Math.abs(variacao);
+                        const formatted = abs >= 1000 ? abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) : abs.toFixed(0);
+                        return <span style={{ color: positive ? '#00A86B' : '#DC2626', fontWeight: isTotal ? 800 : 400 }}>{positive ? '+' : '−'} {formatted}</span>;
+                      })()}
+                    </td>
+                    {/* META (projetado) */}
+                    <td style={{
+                      textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+                      fontWeight: isTotal ? 800 : 400,
+                      color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted),
+                      padding: '8px 10px',
+                      background: isTotal ? '#0D1B35' : undefined,
+                    }}>
+                      {fmtTorre(projetado)}
+                    </td>
+                    {/* STATUS */}
+                    <td style={{ textAlign: 'center', padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>
+                      {isCat && !isTotal ? <StatusBadge status={status} /> : null}
+                    </td>
+                  </>
+                )}
+              </Fragment>
+            );
+          })}
+
+          {/* Year total */}
+          <td style={{
+            textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+            fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
+            padding: '8px 10px',
+            borderLeft: '1px solid #DDE4F0',
+            background: isTotal ? '#0D1B35' : '#F6F9FF',
+            color: (() => {
+              let yearTotal = 0;
+              let has = false;
+              for (const m of months) {
+                const mmap = getMonthMap(m.value);
+                const v = isCat ? (mmap[conta.id] ?? null) : sumNodeLeafs(node, mmap);
+                if (v != null) { yearTotal += v; has = true; }
+              }
+              if (!has) return isTotal ? '#8A9BBC' : C.txtMuted;
+              return yearTotal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35');
+            })(),
+          }}>
             {(() => {
-              const variacao = calcVariacao(node);
-              if (variacao == null) return <span style={{ color: C.txtMuted }}>—</span>;
-              const positive = variacao >= 0;
-              const abs = Math.abs(variacao);
-              const formatted = abs >= 1000 ? abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) : abs.toFixed(0);
-              return <span style={{ color: positive ? '#00A86B' : '#DC2626', fontWeight: isTotal ? 800 : 400 }}>{positive ? '+' : '−'} {formatted}</span>;
+              let yearTotal = 0;
+              let has = false;
+              for (const m of months) {
+                const mmap = getMonthMap(m.value);
+                const v = isCat ? (mmap[conta.id] ?? null) : sumNodeLeafs(node, mmap);
+                if (v != null) { yearTotal += v; has = true; }
+              }
+              return has ? fmtTorre(yearTotal) : '—';
             })()}
-          </td>
-          {/* Meta (projetado) */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
-            {fmtTorre(projetado)}
-          </td>
-          {/* Status */}
-          <td style={{ textAlign: 'center', padding: '8px 6px' }}>
-            {isCat && !isTotal ? <StatusBadge status={status} /> : null}
           </td>
         </tr>
         {!isCollapsedItem && !isTotal && node.children.map(child => renderRow(child, depth + 1))}
@@ -690,31 +788,76 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const renderTotalizador = (key: string) => {
     const config = TOTALIZADOR_CONFIG[key];
-    const realVal = totais[key as keyof typeof totais];
-    const antVal = totaisAnt[key as keyof typeof totaisAnt];
 
     return (
       <tr key={key} style={{ background: '#0D1B35' }}>
-        <td style={{ width: 24 }} />
-        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRight: '1px solid #DDE4F0' }}>
+        <td style={{ ...stickyTd('#0D1B35', { padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF' }) }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 18 }} />
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
             {config.nome}
           </span>
         </td>
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
-          {fmtTorre(antVal)}
+        {months.map(m => {
+          const monthMap = getMonthMap(m.value);
+          const totals = calcTotaisForMap(monthMap);
+          const val = totals[key as keyof typeof totals];
+          const isSel = isSelectedMonth(m.value);
+
+          return (
+            <Fragment key={m.value}>
+              <td style={{
+                textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
+                color: val < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px',
+                background: isSel && (modoMeta || modoAnaliseMeta) ? '#0D1B35' : undefined,
+              }}>
+                {fmtTorre(val)}
+              </td>
+              {modoAnaliseMeta && isSel && (
+                <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
+              )}
+              {modoMeta && isSel && (
+                <>
+                  <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
+                  <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
+                  <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
+                  <td style={{ background: '#0D1B35' }} />
+                </>
+              )}
+            </Fragment>
+          );
+        })}
+        {/* Year total */}
+        <td style={{
+          textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
+          padding: '11px 10px', borderLeft: '1px solid #DDE4F0', background: '#0D1B35',
+          color: (() => {
+            let total = 0;
+            for (const m of months) {
+              const monthMap = getMonthMap(m.value);
+              const t = calcTotaisForMap(monthMap);
+              total += t[key as keyof typeof t];
+            }
+            return total < 0 ? '#FF6B6B' : '#00E68A';
+          })(),
+        }}>
+          {(() => {
+            let total = 0;
+            for (const m of months) {
+              const monthMap = getMonthMap(m.value);
+              const t = calcTotaisForMap(monthMap);
+              total += t[key as keyof typeof t];
+            }
+            return fmtTorre(total);
+          })()}
         </td>
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
-          {fmtTorre(realVal)}
-        </td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td />
       </tr>
     );
   };
+
+  // ── Table min width calculation ───────────────────────────────
+  const extraColsWidth = modoMeta ? (metaColW + rsColW + metaProjetadoColW + statusColW) : (modoAnaliseMeta ? metaColW : 0);
+  const tableMinWidth = nameColW + 12 * valColW + valColW + extraColsWidth;
 
   // ══════════════════════════════════════════════════════════════
   return (
@@ -739,9 +882,7 @@ export function TorreControleTab({ clienteId }: Props) {
           border: `1px solid ${C.borderStr}`, borderRadius: 14, padding: '20px 24px',
           boxShadow: '0 2px 20px rgba(26,60,255,0.06)', position: 'relative', overflow: 'hidden',
         }}>
-          {/* Internal glow */}
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(0,153,230,0.06), transparent 60%)', pointerEvents: 'none' }} />
-          {/* Tower SVG */}
           <div style={{ position: 'absolute', bottom: 8, right: 16, pointerEvents: 'none' }}><TowerSvg /></div>
 
           <div style={{ position: 'relative', zIndex: 1 }}>
@@ -763,33 +904,24 @@ export function TorreControleTab({ clienteId }: Props) {
               {cliente?.cnpj && <p style={{ fontSize: 11, color: C.txtMuted, margin: '2px 0 0' }}>{formatCnpj(cliente.cnpj)}</p>}
             </div>
 
-            {/* Mode switcher + nav */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)', borderRadius: 8, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+            {/* Year selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: C.txtMuted, letterSpacing: '0.06em' }}>ANO:</span>
+              {years.map(y => (
                 <button
-                  onClick={() => { setModo('analise'); }}
-                  style={{ padding: '6px 14px', fontSize: 11, fontWeight: modo === 'analise' ? 700 : 500, color: modo === 'analise' ? C.primary : C.txtSec, background: modo === 'analise' ? C.pLo : 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em' }}
+                  key={y}
+                  onClick={() => { setAno(y); setMesSelecionado(null); }}
+                  style={{
+                    padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: ano === y ? 700 : 500,
+                    color: ano === y ? C.primary : C.txtSec,
+                    background: ano === y ? C.pLo : 'transparent',
+                    border: `1px solid ${ano === y ? C.pMd : 'transparent'}`,
+                    cursor: 'pointer',
+                  }}
                 >
-                  ◀ ANALISAR {compLabel}
+                  {y}
                 </button>
-                <button
-                  onClick={() => { setModo('projecao'); }}
-                  style={{ padding: '6px 14px', fontSize: 11, fontWeight: modo === 'projecao' ? 700 : 500, color: modo === 'projecao' ? C.primary : C.txtSec, background: modo === 'projecao' ? C.pLo : 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.04em' }}
-                >
-                  PROJETAR {mesSegLabel} ▶
-                </button>
-              </div>
-
-              {/* Month nav */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button onClick={() => navMes(1)} disabled={competenciaOptions.indexOf(competencia) >= competenciaOptions.length - 1} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: C.txtSec, opacity: competenciaOptions.indexOf(competencia) >= competenciaOptions.length - 1 ? 0.3 : 1 }}>
-                  <ChevronLeft style={{ width: 14, height: 14 }} />
-                </button>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.txt, minWidth: 90, textAlign: 'center' }}>{compLabel}</span>
-                <button onClick={() => navMes(-1)} disabled={competenciaOptions.indexOf(competencia) <= 0} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: C.txtSec, opacity: competenciaOptions.indexOf(competencia) <= 0 ? 0.3 : 1 }}>
-                  <ChevronRight style={{ width: 14, height: 14 }} />
-                </button>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -801,10 +933,10 @@ export function TorreControleTab({ clienteId }: Props) {
             <p style={{ fontSize: 14, color: C.txtSec }}>Plano de contas não configurado.</p>
           </div>
         )}
-        {hasContas && !hasValores && !isLoading && competencia && (
+        {hasContas && !hasAnyData && !isLoading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 0', textAlign: 'center' }}>
             <FileSpreadsheet style={{ width: 48, height: 48, color: C.txtMuted, opacity: 0.4 }} />
-            <p style={{ fontSize: 14, color: C.txtSec }}>Nenhum valor importado para {compLabel}</p>
+            <p style={{ fontSize: 14, color: C.txtSec }}>Nenhum valor importado para {ano}.</p>
           </div>
         )}
 
@@ -816,13 +948,58 @@ export function TorreControleTab({ clienteId }: Props) {
         )}
 
         {/* Main content */}
-        {hasContas && hasValores && !isLoading && (
+        {hasContas && hasAnyData && !isLoading && (
           <>
-            {/* Summary cards */}
-            <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />
+            {/* Summary cards (only when META mode is on) */}
+            {modoMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
 
-            {/* AI suggest button + Table */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: -8 }}>
+            {/* Control bar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Toggle buttons */}
+                <button
+                  style={toggleBtnStyle(modoMeta)}
+                  onClick={() => { setModoMeta(v => { if (!v) setModoAnaliseMeta(false); return !v; }); }}
+                  onMouseEnter={e => { if (!modoMeta) e.currentTarget.style.background = '#E8EEF8'; }}
+                  onMouseLeave={e => { if (!modoMeta) e.currentTarget.style.background = '#F0F4FA'; }}
+                >
+                  META
+                </button>
+                <button
+                  style={toggleBtnStyle(modoAnaliseMeta)}
+                  onClick={() => { setModoAnaliseMeta(v => { if (!v) setModoMeta(false); return !v; }); }}
+                  onMouseEnter={e => { if (!modoAnaliseMeta) e.currentTarget.style.background = '#E8EEF8'; }}
+                  onMouseLeave={e => { if (!modoAnaliseMeta) e.currentTarget.style.background = '#F0F4FA'; }}
+                >
+                  ANÁLISE META
+                </button>
+
+                {/* Month selector (visible when META or ANÁLISE META active) */}
+                {(modoMeta || modoAnaliseMeta) && monthsWithData.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: C.txtMuted, letterSpacing: '0.06em' }}>Mês de referência:</span>
+                    <button
+                      onClick={() => navMesSel(-1)}
+                      disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0}
+                      style={{ background: 'none', border: 'none', color: C.txtMuted, cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? 0.3 : 1 }}
+                    >
+                      <ChevronLeft style={{ width: 16, height: 16 }} />
+                    </button>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.txt, minWidth: 80, textAlign: 'center' }}>
+                      {mesEfetivo ? fmtCompetencia(mesEfetivo) : '—'}
+                    </span>
+                    <button
+                      onClick={() => navMesSel(1)}
+                      disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1}
+                      style={{ background: 'none', border: 'none', color: C.txtMuted, cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? 0.3 : 1 }}
+                    >
+                      <ChevronRight style={{ width: 16, height: 16 }} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Comandante GPI button */}
               <button
                 onClick={() => handleSugerirMetas()}
                 disabled={loadingSugestao}
@@ -841,39 +1018,85 @@ export function TorreControleTab({ clienteId }: Props) {
               </button>
             </div>
 
+            {/* Table */}
             <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
-                <table style={{ borderCollapse: 'collapse', minWidth: 780 }}>
-                  <colgroup>
-                    <col style={{ width: 24 }} />
-                    <col style={{ width: 280 }} />
-                    <col style={{ width: 85, minWidth: 85 }} />
-                    <col style={{ width: 85, minWidth: 85 }} />
-                    <col style={{ width: 90, minWidth: 90 }} />
-                    <col style={{ width: 90, minWidth: 90 }} />
-                    <col style={{ width: 110, minWidth: 110 }} />
-                    <col style={{ width: 90, minWidth: 90 }} />
-                  </colgroup>
-                  <thead>
-                    <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
-                      <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid #DDE4F0' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntShort}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{compShort}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>AJUSTE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>R$</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>META {mesSegShort}</th>
-                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SEQUENCIA_DRE.map(({ tipo, totalizadorApos }) => (
-                      <Fragment key={tipo}>
-                        {(gruposPorTipo[tipo] || []).map(grupo => renderRow(grupo, 0))}
-                        {totalizadorApos && renderTotalizador(totalizadorApos)}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
+              <table style={{ borderCollapse: 'collapse', minWidth: tableMinWidth }}>
+                <thead>
+                  <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
+                    <th style={{
+                      ...stickyTd('#F0F4FA', {
+                        padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
+                        color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }),
+                      width: nameColW,
+                    }}>
+                      CONTA DRE
+                    </th>
+                    {months.map(m => {
+                      const isSel = isSelectedMonth(m.value);
+                      const selHeaderBg = isSel && (modoMeta || modoAnaliseMeta) ? 'rgba(26,60,255,0.1)' : undefined;
+
+                      return (
+                        <Fragment key={m.value}>
+                          <th style={{
+                            padding: '10px 12px', textAlign: 'right', fontSize: 11,
+                            fontWeight: isSel && (modoMeta || modoAnaliseMeta) ? 700 : 600,
+                            color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                            width: valColW, minWidth: valColW, whiteSpace: 'nowrap',
+                            background: selHeaderBg,
+                            borderBottom: isSel && (modoMeta || modoAnaliseMeta) ? '2px solid #1A3CFF' : undefined,
+                          }}>
+                            {m.shortLabel}
+                          </th>
+                          {modoAnaliseMeta && isSel && (
+                            <th style={{
+                              padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
+                              color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                              width: metaColW, minWidth: metaColW,
+                              background: 'rgba(26,60,255,0.05)',
+                            }}>
+                              META
+                            </th>
+                          )}
+                          {modoMeta && isSel && (
+                            <>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaColW, minWidth: metaColW }}>
+                                AJUSTE
+                              </th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: rsColW, minWidth: rsColW }}>
+                                R$
+                              </th>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap' }}>
+                                META {mesSegShort}
+                              </th>
+                              <th style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: statusColW, minWidth: statusColW }}>
+                                STATUS
+                              </th>
+                            </>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                    {/* Year total header */}
+                    <th style={{
+                      padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700,
+                      color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      width: valColW, minWidth: valColW, borderLeft: '1px solid #DDE4F0',
+                      background: '#F6F9FF',
+                    }}>
+                      {ano}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SEQUENCIA_DRE.map(({ tipo, totalizadorApos }) => (
+                    <Fragment key={tipo}>
+                      {(gruposPorTipo[tipo] || []).map(grupo => renderRow(grupo, 0))}
+                      {totalizadorApos && renderTotalizador(totalizadorApos)}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </>
         )}
@@ -883,7 +1106,7 @@ export function TorreControleTab({ clienteId }: Props) {
         open={drawerSugestaoOpen}
         onClose={() => setDrawerSugestaoOpen(false)}
         cliente={cliente || null}
-        competencia={competencia}
+        competencia={mesEfetivo || ''}
         sugestoes={sugestoes}
         metasExistentes={metaMap}
         onAplicar={handleAplicarSugestoes}
@@ -892,7 +1115,7 @@ export function TorreControleTab({ clienteId }: Props) {
         geradoEm={sugestaoGeradaEm}
         fromCache={sugestaoFromCache}
         contas={contas || []}
-        realizadoMap={realizadoMap}
+        realizadoMap={realizadoMapSel}
         narrativa={narrativa}
       />
     </div>
