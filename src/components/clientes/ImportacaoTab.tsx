@@ -68,6 +68,54 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
     enabled: !!contas?.length,
   });
 
+  // Detect orphan competencias (data exists but no import record)
+  const { data: orphanComps, refetch: refetchOrphans } = useQuery({
+    queryKey: ['orphan-competencias', clienteId],
+    enabled: !!contas?.length,
+    queryFn: async () => {
+      const contaIds = contas!.map((c) => c.id);
+      const { data: valRows } = await supabase
+        .from('valores_mensais')
+        .select('competencia')
+        .in('conta_id', contaIds)
+        .not('valor_realizado', 'is', null);
+      if (!valRows?.length) return [];
+      const compsWithData = [...new Set(valRows.map((r) => r.competencia))];
+      const importedComps = new Set((historico || []).map((h: any) => h.competencia));
+      return compsWithData.filter((c) => !importedComps.has(c)).sort();
+    },
+  });
+
+  const [deletingOrphan, setDeletingOrphan] = useState<string | null>(null);
+
+  const handleDeleteOrphan = async (comp: string) => {
+    setDeletingOrphan(comp);
+    try {
+      const contaIds = contas!.map((c) => c.id);
+      const { error } = await supabase
+        .from('valores_mensais')
+        .delete()
+        .in('conta_id', contaIds)
+        .eq('competencia', comp);
+      if (error) throw error;
+      toast.success(`Dados da competência ${formatComp(comp)} excluídos com sucesso.`);
+      refetchOrphans();
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais-torre'] });
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais-dre'] });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir dados órfãos.');
+    } finally {
+      setDeletingOrphan(null);
+    }
+  };
+
+  const formatComp = (comp: string) => {
+    const [y, m] = comp.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
   const hasContas = contas && contas.length > 0;
   const compLabel = competencias.find((c) => c.value === competencia)?.label || '';
 
@@ -82,6 +130,7 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
     queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
     queryClient.invalidateQueries({ queryKey: ['valores-mensais-torre'] });
     queryClient.invalidateQueries({ queryKey: ['valores-mensais-dre'] });
+    refetchOrphans();
     setActionDialog(null);
   };
 
