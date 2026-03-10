@@ -607,6 +607,26 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
         </div>
       </div>
 
+      {/* Benchmark Legend */}
+      {hasContas && hasAnyData && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5" style={{ borderColor: '#DDE4F0', background: '#F6F9FF' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Benchmarks AV%
+          </span>
+          <span className="flex items-center gap-4">
+            <LegendItem color="#00A86B" label={`CMV < ${benchmarks.cmv_verde}%`} sub="Saudável" />
+            <LegendItem color="#D97706" label={`CMV ${benchmarks.cmv_verde}–${benchmarks.cmv_amarelo}%`} sub="Atenção" />
+            <LegendItem color="#DC2626" label={`CMV > ${benchmarks.cmv_amarelo}%`} sub="Risco" />
+          </span>
+          <span style={{ width: 1, height: 16, background: '#DDE4F0' }} />
+          <span className="flex items-center gap-4">
+            <LegendItem color="#00A86B" label={`CMO < ${benchmarks.cmo_verde}%`} sub="Saudável" />
+            <LegendItem color="#D97706" label={`CMO ${benchmarks.cmo_verde}–${benchmarks.cmo_amarelo}%`} sub="Atenção" />
+            <LegendItem color="#DC2626" label={`CMO > ${benchmarks.cmo_amarelo}%`} sub="Risco" />
+          </span>
+        </div>
+      )}
+
       {/* Empty states */}
       {!hasContas && (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
