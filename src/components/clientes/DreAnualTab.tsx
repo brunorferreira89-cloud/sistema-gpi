@@ -185,20 +185,26 @@ export function DreAnualTab({ clienteId }: Props) {
 
   const benchmarkMap = useMemo(() => {
     const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string }>();
-    const defaults: typeof kpiIndicadores = [];
-    const overrides: typeof kpiIndicadores = [];
+    const defaults: any[] = [];
+    const overrides: any[] = [];
     (kpiIndicadores || []).forEach((k: any) => {
       if (k.cliente_id === clienteId) overrides.push(k);
       else defaults.push(k);
     });
-    // First add defaults
-    (defaults as any[]).forEach((k) => {
-      if (k.conta_id) map.set(k.conta_id, { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao });
-    });
-    // Then override with client-specific
-    (overrides as any[]).forEach((k) => {
-      if (k.conta_id) map.set(k.conta_id, { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao });
-    });
+    // Resolve: override wins by name
+    const overrideNames = new Set(overrides.map((o: any) => o.nome));
+    const merged = [...overrides, ...defaults.filter((d: any) => !overrideNames.has(d.nome))];
+    
+    const config = { limite_verde: 0, limite_ambar: 0, direcao: '' };
+    for (const k of merged) {
+      const contaIds: string[] = k.conta_ids && Array.isArray(k.conta_ids) && k.conta_ids.length > 0
+        ? k.conta_ids
+        : k.conta_id ? [k.conta_id] : [];
+      const cfg = { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao };
+      for (const cid of contaIds) {
+        map.set(cid, cfg);
+      }
+    }
     return map;
   }, [kpiIndicadores, clienteId]);
 

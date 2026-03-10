@@ -7,12 +7,20 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Settings, Plus, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react';
+import { Settings, Plus, RotateCcw, ArrowUp, ArrowDown, X } from 'lucide-react';
 import type { ContaRow } from '@/lib/plano-contas-utils';
 import { fetchAllIndicadores, type KpiIndicador } from '@/lib/kpi-indicadores-utils';
 
 interface Props { clienteId: string; }
+
+const TIPO_LABELS: Record<string, string> = {
+  custo_variavel: 'CUSTOS VARIÁVEIS',
+  despesa_fixa: 'DESPESAS FIXAS',
+  investimento: 'INVESTIMENTOS',
+  financeiro: 'FINANCEIRO',
+};
 
 export function BenchmarkConfigTab({ clienteId }: Props) {
   const queryClient = useQueryClient();
@@ -42,12 +50,12 @@ export function BenchmarkConfigTab({ clienteId }: Props) {
       if (ind.cliente_id === clienteId) {
         await supabase.from('kpi_indicadores' as any).update({ ativo: newAtivo }).eq('id', ind.id);
       } else {
-        // Create override
         await supabase.from('kpi_indicadores' as any).insert({
           cliente_id: clienteId, nome: ind.nome, descricao: ind.descricao,
           tipo_fonte: ind.tipo_fonte, conta_id: ind.conta_id, totalizador_key: ind.totalizador_key,
           limite_verde: ind.limite_verde, limite_ambar: ind.limite_ambar, direcao: ind.direcao,
           ativo: newAtivo, ordem: ind.ordem,
+          conta_ids: (ind as any).conta_ids || [],
         });
       }
     },
@@ -67,7 +75,6 @@ export function BenchmarkConfigTab({ clienteId }: Props) {
       const current = list[idx];
       const swap = list[swapIdx];
 
-      // Update both orders
       const updateOrCreate = async (item: KpiIndicador, newOrdem: number) => {
         if (item.cliente_id === clienteId) {
           await supabase.from('kpi_indicadores' as any).update({ ordem: newOrdem }).eq('id', item.id);
@@ -77,6 +84,7 @@ export function BenchmarkConfigTab({ clienteId }: Props) {
             tipo_fonte: item.tipo_fonte, conta_id: item.conta_id, totalizador_key: item.totalizador_key,
             limite_verde: item.limite_verde, limite_ambar: item.limite_ambar, direcao: item.direcao,
             ativo: item.ativo, ordem: newOrdem,
+            conta_ids: (item as any).conta_ids || [],
           });
         }
       };
@@ -193,6 +201,7 @@ export function BenchmarkConfigTab({ clienteId }: Props) {
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ['kpi-indicadores', clienteId] });
             queryClient.invalidateQueries({ queryKey: ['kpi-indicadores-config', clienteId] });
+            queryClient.invalidateQueries({ queryKey: ['kpi-indicadores-benchmark', clienteId] });
             setEditItem(null);
             setShowNew(false);
           }}
@@ -215,7 +224,12 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
   const [nome, setNome] = useState(indicador?.nome || '');
   const [descricao, setDescricao] = useState(indicador?.descricao || '');
   const [tipoFonte, setTipoFonte] = useState(indicador?.tipo_fonte || 'subgrupo');
-  const [contaId, setContaId] = useState(indicador?.conta_id || '');
+  const [selectedContaIds, setSelectedContaIds] = useState<string[]>(() => {
+    const ids = (indicador as any)?.conta_ids;
+    if (ids && Array.isArray(ids) && ids.length > 0) return ids;
+    if (indicador?.conta_id) return [indicador.conta_id];
+    return [];
+  });
   const [totalizadorKey, setTotalizadorKey] = useState(indicador?.totalizador_key || 'MC');
   const [direcao, setDirecao] = useState(indicador?.direcao || 'menor_melhor');
   const [limiteVerde, setLimiteVerde] = useState(indicador ? String(indicador.limite_verde) : '');
@@ -223,10 +237,24 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
   const [ativo, setAtivo] = useState(indicador?.ativo ?? true);
 
   const subgrupos = contas.filter(c => c.nivel === 1 && ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(c.tipo));
+  const groupedSubgrupos = useMemo(() => {
+    const groups: Record<string, ContaRow[]> = {};
+    for (const s of subgrupos) {
+      if (!groups[s.tipo]) groups[s.tipo] = [];
+      groups[s.tipo].push(s);
+    }
+    return groups;
+  }, [subgrupos]);
 
   const verde = Number(limiteVerde);
   const ambar = Number(limiteAmbar);
   const hasValid = !isNaN(verde) && !isNaN(ambar) && limiteVerde !== '' && limiteAmbar !== '';
+
+  const toggleContaId = (id: string) => {
+    setSelectedContaIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -238,7 +266,8 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
         nome: nome.trim(),
         descricao: descricao || null,
         tipo_fonte: tipoFonte,
-        conta_id: tipoFonte === 'subgrupo' && contaId ? contaId : null,
+        conta_id: tipoFonte === 'subgrupo' && selectedContaIds.length > 0 ? selectedContaIds[0] : null,
+        conta_ids: tipoFonte === 'subgrupo' ? selectedContaIds : [],
         totalizador_key: tipoFonte === 'totalizador' ? totalizadorKey : null,
         limite_verde: verde,
         limite_ambar: ambar,
@@ -254,7 +283,6 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
         const { error } = await supabase.from('kpi_indicadores' as any).update(payload).eq('id', indicador!.id);
         if (error) throw error;
       } else {
-        // Create override from default
         const { error } = await supabase.from('kpi_indicadores' as any).insert(payload);
         if (error) throw error;
       }
@@ -274,7 +302,7 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
 
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent style={{ minWidth: 520, maxWidth: 580 }} className="w-[95vw] sm:w-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? 'Novo Indicador' : `Configurar ${indicador?.nome}`}</DialogTitle>
           {!isNew && (
@@ -309,15 +337,59 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
 
           {tipoFonte === 'subgrupo' && (
             <div>
-              <Label className="text-xs">Subgrupo</Label>
-              <Select value={contaId} onValueChange={setContaId}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {subgrupos.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.nome.replace(/^\([+-]\)\s*/, '')} ({s.tipo})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs">Subgrupos que compõem este indicador</Label>
+              <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 2 }}>
+                Selecione todos os subgrupos cujos valores são somados para calcular este indicador
+              </p>
+
+              {/* Selected pills */}
+              {selectedContaIds.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedContaIds.map(id => {
+                    const conta = contas.find(c => c.id === id);
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 rounded" style={{ background: '#1A3CFF0F', color: '#1A3CFF', padding: '2px 8px', fontSize: 12 }}>
+                        {conta?.nome.replace(/^\([+-]\)\s*/, '') || id}
+                        <button onClick={() => toggleContaId(id)} className="hover:opacity-70"><X className="h-3 w-3" /></button>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: '#8A9BBC', marginTop: 8 }}>Nenhum subgrupo selecionado</p>
+              )}
+
+              {/* Checkbox list */}
+              <div className="mt-2 rounded-lg border overflow-y-auto" style={{ borderColor: '#DDE4F0', maxHeight: 200 }}>
+                {Object.entries(groupedSubgrupos).map(([tipo, subs]) => (
+                  <div key={tipo}>
+                    <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.06em', background: '#F0F4FA', borderBottom: '1px solid #DDE4F0' }}>
+                      {TIPO_LABELS[tipo] || tipo}
+                    </div>
+                    {subs.map(s => {
+                      const isSelected = selectedContaIds.includes(s.id);
+                      return (
+                        <label
+                          key={s.id}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
+                          style={{
+                            borderBottom: '1px solid #F8F9FB',
+                            background: isSelected ? '#1A3CFF0F' : undefined,
+                            border: isSelected ? '1px solid #1A3CFF33' : undefined,
+                          }}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleContaId(s.id)}
+                            style={{ borderColor: isSelected ? '#1A3CFF' : undefined }}
+                          />
+                          <span style={{ fontSize: 13, color: '#0D1B35' }}>{s.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -350,25 +422,25 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Limite Verde</Label>
-              <div className="flex items-center gap-1 mt-1">
-                <Input type="number" value={limiteVerde} onChange={e => setLimiteVerde(e.target.value)} placeholder="ex: 38" />
-                <span className="text-xs" style={{ color: '#8A9BBC' }}>%</span>
+              <div className="relative mt-1">
+                <Input type="number" value={limiteVerde} onChange={e => setLimiteVerde(e.target.value)} placeholder="ex: 38" className="pr-8" />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#8A9BBC' }}>%</span>
               </div>
             </div>
             <div>
               <Label className="text-xs">Limite Âmbar</Label>
-              <div className="flex items-center gap-1 mt-1">
-                <Input type="number" value={limiteAmbar} onChange={e => setLimiteAmbar(e.target.value)} placeholder="ex: 50" />
-                <span className="text-xs" style={{ color: '#8A9BBC' }}>%</span>
+              <div className="relative mt-1">
+                <Input type="number" value={limiteAmbar} onChange={e => setLimiteAmbar(e.target.value)} placeholder="ex: 50" className="pr-8" />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#8A9BBC' }}>%</span>
               </div>
             </div>
           </div>
 
           {hasValid && (
-            <div className="flex items-center gap-3" style={{ fontSize: 11 }}>
+            <div className="flex flex-wrap items-center gap-3" style={{ fontSize: 11 }}>
               <span className="inline-flex items-center gap-1">
                 <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#00A86B" /></svg>
                 {direcao === 'menor_melhor' ? `< ${verde}%` : `> ${verde}%`}
@@ -390,17 +462,23 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          {isOverride && (
-            <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1" />
-              Restaurar padrão GPI
-            </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            {isNew ? 'Criar indicador' : 'Salvar para este cliente'}
-          </Button>
+        <DialogFooter>
+          <div className="flex w-full items-center justify-between">
+            <div>
+              {isOverride && (
+                <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                  Restaurar padrão GPI
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
+              <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {isNew ? 'Criar indicador' : 'Salvar para este cliente'}
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
