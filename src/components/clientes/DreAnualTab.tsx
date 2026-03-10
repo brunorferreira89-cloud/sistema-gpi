@@ -168,6 +168,40 @@ export function DreAnualTab({ clienteId }: Props) {
   const [newContaNome, setNewContaNome] = useState('');
   const [hoveredConta, setHoveredConta] = useState<string | null>(null);
 
+  // --- Benchmark from kpi_indicadores ---
+  const { data: kpiIndicadores } = useQuery({
+    queryKey: ['kpi-indicadores-benchmark', clienteId],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('kpi_indicadores')
+        .select('*')
+        .eq('tipo_fonte', 'subgrupo')
+        .eq('ativo', true)
+        .or(`cliente_id.eq.${clienteId},cliente_id.is.null`);
+      return data || [];
+    },
+  });
+
+  const benchmarkMap = useMemo(() => {
+    const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string }>();
+    const defaults: typeof kpiIndicadores = [];
+    const overrides: typeof kpiIndicadores = [];
+    (kpiIndicadores || []).forEach((k: any) => {
+      if (k.cliente_id === clienteId) overrides.push(k);
+      else defaults.push(k);
+    });
+    // First add defaults
+    (defaults as any[]).forEach((k) => {
+      if (k.conta_id) map.set(k.conta_id, { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao });
+    });
+    // Then override with client-specific
+    (overrides as any[]).forEach((k) => {
+      if (k.conta_id) map.set(k.conta_id, { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao });
+    });
+    return map;
+  }, [kpiIndicadores, clienteId]);
+
   const { data: saldosData } = useQuery({
     queryKey: ['saldos-contas', clienteId, ano],
     enabled: !!clienteId,
@@ -411,6 +445,23 @@ export function DreAnualTab({ clienteId }: Props) {
 
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
+
+    if (isSubgrupo && contaId) {
+      const config = benchmarkMap.get(contaId);
+      if (config) {
+        let dotColor = '#DC2626'; // vermelho default
+        if (config.direcao === 'menor_melhor') {
+          if (avPct < config.limite_verde) dotColor = '#00A86B';
+          else if (avPct < config.limite_ambar) dotColor = '#D97706';
+        } else {
+          if (avPct > config.limite_verde) dotColor = '#00A86B';
+          else if (avPct > config.limite_ambar) dotColor = '#D97706';
+        }
+        const sign = config.direcao === 'maior_melhor' ? '>' : '<';
+        tooltipText = `Benchmark: verde ${sign}${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho ${config.direcao === 'menor_melhor' ? '>' : '<'}${config.limite_ambar}%`;
+        dot = <span style={{ fontSize: 8, color: dotColor, lineHeight: 1 }}>●</span>;
+      }
+    }
 
     return (
       <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }} title={tooltipText || undefined}>
