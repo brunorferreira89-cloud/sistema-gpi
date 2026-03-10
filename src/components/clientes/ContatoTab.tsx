@@ -254,30 +254,27 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
 }) {
   const [form, setForm] = useState<Record<string, string>>({});
 
-  // Initialize form data whenever dialog opens or cliente changes
-  const initForm = () => {
-    setForm({
-      razao_social: cliente.razao_social || '',
-      cnpj: cliente.cnpj || '',
-      nome_empresa: cliente.nome_empresa || '',
-      segmento: cliente.segmento || '',
-      faturamento_faixa: cliente.faturamento_faixa || '',
-      endereco_completo: cliente.endereco_completo || '',
-      cep: cliente.cep || '',
-      status: cliente.status || 'ativo',
-      responsavel_nome: cliente.responsavel_nome || '',
-      responsavel_email: cliente.responsavel_email || '',
-      responsavel_whatsapp: cliente.responsavel_whatsapp || '',
-      administrador_nome: cliente.administrador_nome || '',
-      administrador_cpf: cliente.administrador_cpf || '',
-      observacoes: cliente.observacoes || '',
-    });
-  };
-
-  const handleOpen = (v: boolean) => {
-    if (v) initForm();
-    onOpenChange(v);
-  };
+  // Always sync form with cliente data when dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm({
+        razao_social: cliente.razao_social || '',
+        cnpj: cliente.cnpj || '',
+        nome_empresa: cliente.nome_empresa || '',
+        segmento: cliente.segmento || '',
+        faturamento_faixa: cliente.faturamento_faixa || '',
+        endereco_completo: cliente.endereco_completo || '',
+        cep: cliente.cep || '',
+        status: cliente.status || 'ativo',
+        responsavel_nome: cliente.responsavel_nome || '',
+        responsavel_email: cliente.responsavel_email || '',
+        responsavel_whatsapp: cliente.responsavel_whatsapp || '',
+        administrador_nome: cliente.administrador_nome || '',
+        administrador_cpf: cliente.administrador_cpf || '',
+        observacoes: cliente.observacoes || '',
+      });
+    }
+  }, [open, cliente]);
 
   const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
