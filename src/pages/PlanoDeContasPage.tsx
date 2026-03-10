@@ -286,17 +286,20 @@ export function PlanoDeContasDetail({ clienteId, contas, onRefresh }: {
     if (node.nivel === 0) {
       return (
         <div key={node.id}>
-          <div className="flex items-center justify-between" style={{ background: '#E5E7EB', padding: '10px 16px', borderBottom: '1px solid #F3F4F6' }}>
+          <div className="group flex items-center justify-between" style={{ background: '#E5E7EB', padding: '10px 16px', borderBottom: '1px solid #F3F4F6' }}>
             <div className="flex items-center gap-2 min-w-0">
-              {renderEditOrName(node.id, node.nome, 'text-[13px] font-semibold uppercase tracking-wide')}
+              {renderEditOrName(node.id, node.nome, 'text-[13px] font-semibold uppercase tracking-wide' + ' text-[#374151]')}
             </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => startEdit(node.id, node.nome)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Editar nome">
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => startAdd(node.id, 1)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Adicionar subgrupo">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] italic text-[#8A9BBC]">subtotal</span>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                <button onClick={() => startEdit(node.id, node.nome)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Editar nome">
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => startAdd(node.id, 1)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Adicionar subgrupo">
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
           {renderInlineAdd(node.id, 1, 'px-4')}
@@ -308,14 +311,14 @@ export function PlanoDeContasDetail({ clienteId, contas, onRefresh }: {
     if (node.nivel === 1) {
       return (
         <div key={node.id}>
-          <div className="flex items-center justify-between" style={{ background: '#FFFFFF', padding: '10px 16px', borderBottom: '1px solid #F3F4F6' }}>
+          <div className="group flex items-center justify-between" style={{ background: '#FFFFFF', padding: '10px 16px', borderBottom: '1px solid #F3F4F6' }}>
             <div className="flex items-center gap-2 min-w-0">
-              <GripVertical className="h-4 w-4 text-[#D1D5DB] shrink-0" />
+              <GripVertical className="h-4 w-4 text-[#D1D5DB] shrink-0 opacity-0 group-hover:opacity-100" />
               {renderEditOrName(node.id, node.nome, 'text-[13px] font-semibold text-[#0D1B35]')}
             </div>
             <div className="flex items-center gap-3">
               <span className="text-[11px] italic text-[#8A9BBC]">subtotal</span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                 <button onClick={() => startEdit(node.id, node.nome)} className="p-1 text-[#9CA3AF] hover:text-[#374151] rounded hover:bg-[#F3F4F6]" title="Editar nome">
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -335,15 +338,18 @@ export function PlanoDeContasDetail({ clienteId, contas, onRefresh }: {
     }
 
     if (node.nivel === 2) {
-      const isEntrada = node.tipo === 'receita';
+      const hasEntradaPrefix = node.nome.startsWith('(+)');
+      const hasSaidaPrefix = node.nome.startsWith('(-)');
+      const isEntrada = hasEntradaPrefix || (!hasSaidaPrefix && node.tipo === 'receita');
+      const displayName = node.nome.replace(/^\([+-]\)\s*/, '');
+
       return (
         <div key={node.id} className="group flex items-center justify-between" style={{ background: '#FFFFFF', padding: '8px 16px 8px 40px', borderBottom: '1px solid #F3F4F6' }}>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[#9CA3AF]">└─</span>
+          <div className="flex items-center min-w-0" style={{ gap: 8 }}>
             <span style={{ color: isEntrada ? '#16A34A' : '#DC2626', fontWeight: 700, fontSize: 13 }}>
               {isEntrada ? '↑' : '↓'}
             </span>
-            {renderEditOrName(node.id, node.nome, 'text-[13px] text-[#0D1B35]')}
+            {renderEditOrName(node.id, displayName, 'text-[13px] font-normal text-[#0D1B35]')}
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
             <button onClick={() => startEdit(node.id, node.nome)} className="p-1 text-[#9CA3AF] hover:text-[#374151] rounded hover:bg-[#F3F4F6]" title="Editar nome">
