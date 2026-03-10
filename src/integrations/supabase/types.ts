@@ -506,6 +506,47 @@ export type Database = {
           },
         ]
       }
+      saldos_contas: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          created_at: string | null
+          id: string
+          nome_conta: string
+          ordem: number | null
+          saldo_final: number | null
+          saldo_inicial: number | null
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          created_at?: string | null
+          id?: string
+          nome_conta: string
+          ordem?: number | null
+          saldo_final?: number | null
+          saldo_inicial?: number | null
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          created_at?: string | null
+          id?: string
+          nome_conta?: string
+          ordem?: number | null
+          saldo_final?: number | null
+          saldo_inicial?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saldos_contas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas_operacionais: {
         Row: {
           cliente_id: string

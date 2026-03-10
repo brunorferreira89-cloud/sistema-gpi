@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo, useRef, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
-import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2, Loader2, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 
 // --- helpers ---
@@ -198,6 +199,96 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     },
   });
 
+  // --- Saldos de contas bancárias ---
+  const queryClient = useQueryClient();
+  const [editingSaldo, setEditingSaldo] = useState<{ key: string; field: 'saldo_inicial' | 'saldo_final' } | null>(null);
+  const [editingSaldoValue, setEditingSaldoValue] = useState('');
+  const [savingSaldo, setSavingSaldo] = useState(false);
+  const [addingConta, setAddingConta] = useState(false);
+  const [newContaNome, setNewContaNome] = useState('');
+  const [hoveredConta, setHoveredConta] = useState<string | null>(null);
+
+  const { data: saldosData } = useQuery({
+    queryKey: ['saldos-contas', clienteId, ano],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('saldos_contas')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .gte('competencia', `${ano}-01-01`)
+        .lte('competencia', `${ano}-12-01`)
+        .order('ordem')
+        .order('nome_conta');
+      return data || [];
+    },
+  });
+
+  const contasBancarias = useMemo(() => {
+    const names = new Set<string>();
+    saldosData?.forEach((s) => names.add(s.nome_conta));
+    return Array.from(names);
+  }, [saldosData]);
+
+  const saldosMap = useMemo(() => {
+    const map: Record<string, Record<string, { saldo_inicial: number | null; saldo_final: number | null }>> = {};
+    saldosData?.forEach((s) => {
+      if (!map[s.nome_conta]) map[s.nome_conta] = {};
+      map[s.nome_conta][s.competencia] = { saldo_inicial: s.saldo_inicial != null ? Number(s.saldo_inicial) : null, saldo_final: s.saldo_final != null ? Number(s.saldo_final) : null };
+    });
+    return map;
+  }, [saldosData]);
+
+  const saveSaldo = useCallback(async (nomeConta: string, comp: string, field: 'saldo_inicial' | 'saldo_final', value: number | null) => {
+    setSavingSaldo(true);
+    try {
+      const existing = saldosData?.find((s) => s.nome_conta === nomeConta && s.competencia === comp);
+      if (existing) {
+        await supabase.from('saldos_contas').update({ [field]: value }).eq('id', existing.id);
+      } else {
+        await supabase.from('saldos_contas').insert({ cliente_id: clienteId, nome_conta: nomeConta, competencia: comp, [field]: value });
+      }
+      queryClient.invalidateQueries({ queryKey: ['saldos-contas', clienteId, ano] });
+    } catch {
+      toast.error('Erro ao salvar saldo');
+    } finally {
+      setSavingSaldo(false);
+      setEditingSaldo(null);
+    }
+  }, [saldosData, clienteId, ano, queryClient]);
+
+  const addContaBancaria = useCallback(async () => {
+    if (!newContaNome.trim()) return;
+    try {
+      await supabase.from('saldos_contas').insert({
+        cliente_id: clienteId,
+        nome_conta: newContaNome.trim(),
+        competencia: `${ano}-01-01`,
+        saldo_inicial: null,
+        saldo_final: null,
+        ordem: contasBancarias.length,
+      });
+      queryClient.invalidateQueries({ queryKey: ['saldos-contas', clienteId, ano] });
+      setNewContaNome('');
+      setAddingConta(false);
+      toast.success('Conta adicionada');
+    } catch {
+      toast.error('Erro ao adicionar conta');
+    }
+  }, [newContaNome, clienteId, ano, contasBancarias.length, queryClient]);
+
+  const deleteContaBancaria = useCallback(async (nomeConta: string) => {
+    const hasValues = saldosData?.some((s) => s.nome_conta === nomeConta && (s.saldo_inicial != null || s.saldo_final != null));
+    if (hasValues && !window.confirm(`A conta "${nomeConta}" possui valores cadastrados. Deseja realmente excluir?`)) return;
+    try {
+      await supabase.from('saldos_contas').delete().eq('cliente_id', clienteId).eq('nome_conta', nomeConta);
+      queryClient.invalidateQueries({ queryKey: ['saldos-contas', clienteId, ano] });
+      toast.success('Conta removida');
+    } catch {
+      toast.error('Erro ao remover conta');
+    }
+  }, [saldosData, clienteId, ano, queryClient]);
+
   const valoresMap = useMemo(() => {
     const map: Record<string, Record<string, number | null>> = {};
     valoresAnuais?.forEach((v) => {
@@ -210,6 +301,23 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
   const hasAnyData = useMemo(() => {
     return valoresAnuais?.some((v) => v.valor_realizado != null) ?? false;
   }, [valoresAnuais]);
+
+  // --- Filter: which leaf contas have at least one value in the year ---
+  const contasComValor = useMemo(() => {
+    const set = new Set<string>();
+    valoresAnuais?.forEach((v) => {
+      if (v.valor_realizado != null) set.add(v.conta_id);
+    });
+    return set;
+  }, [valoresAnuais]);
+
+  const temValorNoAno = (contaId: string) => contasComValor.has(contaId);
+
+  /** Check if a DreNode (or any of its descendants) has values */
+  function nodeHasValues(node: DreNode): boolean {
+    if (node.conta.nivel === 2) return temValorNoAno(node.conta.id);
+    return node.children.some(nodeHasValues);
+  }
 
   const tree = useMemo(() => (contas ? buildDreTree(contas) : []), [contas]);
 
@@ -566,6 +674,9 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     let lastTipo: string | null = null;
 
     for (const root of sortedRoots) {
+      // Skip group if no children have values
+      if (!nodeHasValues(root)) continue;
+
       if (lastTipo && lastTipo !== root.conta.tipo) {
         const ind = INDICADOR_AFTER_TIPO[lastTipo];
         if (ind) output.push(...renderIndicadorRows(ind));
@@ -576,15 +687,17 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
       if (grupoExpanded) {
         for (const child of root.children) {
           if (child.conta.nivel === 1) {
+            // Skip subgroup if no children have values
+            if (!nodeHasValues(child)) continue;
             output.push(renderSubgrupoRow(child));
             const subExpanded = !collapsed.has(child.conta.id);
             if (subExpanded) {
               for (const cat of child.children) {
-                if (cat.conta.nivel === 2) output.push(renderCategoriaRow(cat));
+                if (cat.conta.nivel === 2 && temValorNoAno(cat.conta.id)) output.push(renderCategoriaRow(cat));
               }
             }
           } else if (child.conta.nivel === 2) {
-            output.push(renderCategoriaRow(child));
+            if (temValorNoAno(child.conta.id)) output.push(renderCategoriaRow(child));
           }
         }
       }
@@ -704,8 +817,161 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             </thead>
             <tbody>
               {buildTableBody()}
+              {/* --- SALDOS DE CONTAS --- */}
+              {contasBancarias.length > 0 && (
+                <>
+                  <tr>
+                    <td colSpan={months.length * 2 + 3} style={{ padding: '16px 12px 8px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.08em', background: '#FAFCFF' }}>
+                      SALDOS DE CONTAS
+                    </td>
+                  </tr>
+                  {contasBancarias.map((nomeConta) => {
+                    const saldos = saldosMap[nomeConta] || {};
+                    return (['saldo_inicial', 'saldo_final'] as const).map((field) => {
+                      const fieldLabel = field === 'saldo_inicial' ? 'Saldo Inicial' : 'Saldo Final';
+                      let yearTotal = 0;
+                      let hasYearVal = false;
+                      return (
+                        <tr key={`${nomeConta}_${field}`}
+                          className="hover:bg-[#F6F9FF]"
+                          style={{ borderBottom: '1px solid #F8F9FB' }}
+                          onMouseEnter={() => setHoveredConta(nomeConta)}
+                          onMouseLeave={() => setHoveredConta(null)}
+                        >
+                          <td style={stickyTd('#FFFFFF', { padding: '7px 12px 7px 16px', fontWeight: 400, fontSize: 12, color: '#4A5E80' })}>
+                            <span className="flex items-center gap-2">
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {nomeConta} — {fieldLabel}
+                              </span>
+                              {field === 'saldo_inicial' && hoveredConta === nomeConta && (
+                                <button
+                                  onClick={() => deleteContaBancaria(nomeConta)}
+                                  className="p-0.5 rounded hover:bg-red-100"
+                                  style={{ lineHeight: 0, flexShrink: 0 }}
+                                >
+                                  <Trash2 className="h-3 w-3" style={{ color: '#DC2626' }} />
+                                </button>
+                              )}
+                            </span>
+                          </td>
+                          {months.map((m) => {
+                            const val = saldos[m.value]?.[field] ?? null;
+                            if (val != null) { yearTotal += val; hasYearVal = true; }
+                            const editKey = `${nomeConta}_${m.value}`;
+                            const isEditing = editingSaldo?.key === editKey && editingSaldo?.field === field;
+
+                            return [
+                              <td key={`${m.value}_val`} style={{
+                                textAlign: val == null ? 'center' : 'right',
+                                fontFamily: 'monospace', fontSize: 12, color: val == null ? '#C4CFEA' : '#0D1B35',
+                                padding: '7px 4px', width: 80, minWidth: 80, cursor: 'pointer',
+                                background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined,
+                              }}
+                                onClick={() => {
+                                  setEditingSaldo({ key: editKey, field });
+                                  setEditingSaldoValue(val != null ? String(val) : '');
+                                }}
+                              >
+                                {isEditing ? (
+                                  <span className="flex items-center gap-1">
+                                    <input
+                                      autoFocus
+                                      type="number"
+                                      value={editingSaldoValue}
+                                      onChange={(e) => setEditingSaldoValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const num = editingSaldoValue.trim() === '' ? null : Number(editingSaldoValue);
+                                          saveSaldo(nomeConta, m.value, field, num);
+                                        }
+                                        if (e.key === 'Escape') setEditingSaldo(null);
+                                      }}
+                                      onBlur={() => {
+                                        const num = editingSaldoValue.trim() === '' ? null : Number(editingSaldoValue);
+                                        saveSaldo(nomeConta, m.value, field, num);
+                                      }}
+                                      style={{
+                                        width: '100%', textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+                                        border: '1px solid #1A3CFF', borderRadius: 4, padding: '2px 4px',
+                                        outline: 'none', background: '#FFFFFF',
+                                      }}
+                                    />
+                                    {savingSaldo && <Loader2 className="h-3 w-3 animate-spin" style={{ color: '#8A9BBC', flexShrink: 0 }} />}
+                                  </span>
+                                ) : (
+                                  val != null ? formatCurrency(val).replace('R$\u00a0', '').replace('R$ ', '') : '—'
+                                )}
+                              </td>,
+                              <td key={`${m.value}_av_saldo`} style={{ width: 52, minWidth: 52 }} />,
+                            ];
+                          })}
+                          <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? '#0D1B35' : '#C4CFEA' }}>
+                            {field === 'saldo_final' && hasYearVal ? formatCurrency(yearTotal).replace('R$\u00a0', '').replace('R$ ', '') : '—'}
+                          </td>
+                          <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
+                        </tr>
+                      );
+                    });
+                  })}
+                  {/* Saldo Final Consolidado */}
+                  <tr style={{ background: '#0D1B35' }}>
+                    <td style={{ ...stickyTd('#0D1B35', { padding: '11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRightColor: '#2A3A5C' }) }}>
+                      <span className="flex items-center gap-2">
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
+                        Saldo Final Consolidado
+                      </span>
+                    </td>
+                    {months.map((m) => {
+                      let total = 0;
+                      let has = false;
+                      contasBancarias.forEach((nome) => {
+                        const v = saldosMap[nome]?.[m.value]?.saldo_final;
+                        if (v != null) { total += v; has = true; }
+                      });
+                      const f = has ? fmtIndicadorVal(total) : { text: '—', color: '#8A9BBC' };
+                      return [
+                        <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px', width: 80, minWidth: 80 }}>
+                          {f.text}
+                        </td>,
+                        <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52 }} />,
+                      ];
+                    })}
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, padding: '11px 12px', background: '#0F1F3D', borderLeft: '1px solid #2A3A5C', color: '#8A9BBC', width: 80 }}>
+                      —
+                    </td>
+                    <td style={{ width: 52, minWidth: 52 }} />
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
+          {/* Add conta button */}
+          <div style={{ padding: '8px 12px' }}>
+            {addingConta ? (
+              <span className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  placeholder="Nome da conta (ex: Bradesco CC)"
+                  value={newContaNome}
+                  onChange={(e) => setNewContaNome(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addContaBancaria();
+                    if (e.key === 'Escape') { setAddingConta(false); setNewContaNome(''); }
+                  }}
+                  onBlur={() => { if (!newContaNome.trim()) { setAddingConta(false); } }}
+                  style={{ fontSize: 12, border: '1px solid #1A3CFF', borderRadius: 4, padding: '4px 8px', outline: 'none', width: 220 }}
+                />
+              </span>
+            ) : (
+              <button
+                onClick={() => setAddingConta(true)}
+                style={{ fontSize: 11, color: '#1A3CFF', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <Plus style={{ width: 12, height: 12 }} />
+                Adicionar conta
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -129,12 +129,31 @@ export function TorreControleTab({ clienteId }: Props) {
     });
   };
 
+  // --- Filter: contas with value in the selected competência ---
+  const contasComValor = useMemo(() => {
+    const set = new Set<string>();
+    valores?.forEach((v) => {
+      if (v.valor_realizado != null) set.add(v.conta_id);
+    });
+    return set;
+  }, [valores]);
+
+  /** Check if a conta (or any descendant) has values */
+  const contaHasValues = useCallback((contaId: string, nivel: number): boolean => {
+    if (nivel === 2) return contasComValor.has(contaId);
+    // Check children
+    return contas?.some((c) => c.conta_pai_id === contaId && contaHasValues(c.id, c.nivel)) ?? false;
+  }, [contas, contasComValor]);
+
   const visibleRows = useMemo((): DreRowExt[] => {
     if (!contas) return [];
     const rows: DreRowExt[] = [];
     let lastTipo = '';
 
     for (const conta of contas) {
+      // Filter: skip contas without values
+      if (!contaHasValues(conta.id, conta.nivel)) continue;
+
       // Check visibility (collapsed parents)
       if (conta.nivel === 2 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) continue;
       if (conta.nivel === 1 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) continue;
@@ -156,7 +175,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (indicator) rows.push({ type: 'indicador', indicador: indicator });
     }
     return rows;
-  }, [contas, collapsed]);
+  }, [contas, collapsed, contaHasValues]);
 
   return (
     <div className="space-y-4">
