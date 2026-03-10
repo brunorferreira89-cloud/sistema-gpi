@@ -549,7 +549,7 @@ export function TorreControleTab({ clienteId }: Props) {
               meta={meta}
               contaId={conta.id}
               clienteId={clienteId}
-              competencia={competencia}
+              competencia={mesSeg}
               isTotal={isTotal}
               onSaved={invalidateMetas}
             />
