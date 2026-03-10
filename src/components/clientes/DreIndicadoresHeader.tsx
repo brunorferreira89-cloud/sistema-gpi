@@ -60,7 +60,7 @@ function getSubgroups(
   valMap: Record<string, number | null>,
   fat: number,
   prevMap?: Record<string, number | null>,
-): { nome: string; grupo: string; nivel: string; valor: number; pct_faturamento: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number }[] {
+): any[] {
   const subs = contas.filter(c => c.tipo === tipo && c.nivel === 1);
   const result = subs.map(s => {
     const parent = contas.find(c => c.id === s.conta_pai_id && c.nivel === 0);
@@ -75,12 +75,24 @@ function getSubgroups(
         if (vp != null) valPrev += Math.abs(vp);
       }
     }
+    // Top 5 filhas by abs value
+    const filhas = children
+      .map(ch => {
+        const v = valMap[ch.id];
+        const valor = v != null ? v : 0;
+        return { nome: ch.nome, valor, pct_faturamento: fat ? (Math.abs(valor) / fat) * 100 : 0 };
+      })
+      .filter(f => f.valor !== 0)
+      .sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor))
+      .slice(0, 5);
+
     const entry: any = {
       nome: s.nome,
       grupo: parent?.nome || tipo,
       nivel: 'subgrupo',
       valor: val,
       pct_faturamento: fat ? (val / fat) * 100 : 0,
+      filhas,
     };
     if (prevMap) {
       entry.valor_anterior = valPrev;
