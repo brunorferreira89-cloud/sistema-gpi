@@ -67,7 +67,7 @@ const confiancaBadge = (c: 'alta' | 'media' | 'baixa') => {
 };
 
 // ── Component ───────────────────────────────────────────────────
-export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, sugestoes, metasExistentes, onAplicar, loading, onRegenerar }: SugestaoMetasDrawerProps) {
+export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, sugestoes, metasExistentes, onAplicar, loading, onRegenerar, geradoEm, fromCache }: SugestaoMetasDrawerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editedValues, setEditedValues] = useState<Record<string, { tipo: 'pct' | 'valor'; valor: number }>>({});
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
