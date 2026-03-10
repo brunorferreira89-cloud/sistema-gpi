@@ -693,11 +693,11 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             const subExpanded = !collapsed.has(child.conta.id);
             if (subExpanded) {
               for (const cat of child.children) {
-                if (cat.conta.nivel === 2 && temValorNoAno(cat.conta.id)) output.push(renderCategoriaRow(cat));
+                if (cat.conta.nivel === 2 && contasComValor.has(cat.conta.id)) output.push(renderCategoriaRow(cat));
               }
             }
           } else if (child.conta.nivel === 2) {
-            if (temValorNoAno(child.conta.id)) output.push(renderCategoriaRow(child));
+            if (contasComValor.has(child.conta.id)) output.push(renderCategoriaRow(child));
           }
         }
       }
