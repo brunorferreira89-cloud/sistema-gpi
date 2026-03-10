@@ -428,19 +428,18 @@ export function TorreControleTab({ clienteId }: Props) {
 
   // ── GC projetado ──────────────────────────────────────────────
   const gcProjetado = useMemo(() => {
-    // Sum projetado for all leaf contas
     if (!contas) return null;
     let total = 0;
     let hasAny = false;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
-      const ant = anteriorMap[c.id];
-      const proj = (ant != null && meta) ? calcProjetado(ant, meta) : null;
+      const base = realizadoMap[c.id];
+      const proj = (base != null && meta) ? calcProjetado(base, meta) : null;
       if (proj != null) { total += (c.tipo === 'receita' ? proj : -proj); hasAny = true; }
     }
     return hasAny ? total : null;
-  }, [contas, metaMap, anteriorMap]);
+  }, [contas, metaMap, realizadoMap]);
 
   const toggleCollapse = (id: string) => {
     setCollapsed(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
