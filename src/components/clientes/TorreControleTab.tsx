@@ -277,6 +277,9 @@ export function TorreControleTab({ clienteId }: Props) {
   const [competencia, setCompetencia] = useState('');
   const [modo, setModo] = useState<'analise' | 'projecao'>('analise');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [drawerSugestaoOpen, setDrawerSugestaoOpen] = useState(false);
+  const [sugestoes, setSugestoes] = useState<SugestaoMeta[]>([]);
+  const [loadingSugestao, setLoadingSugestao] = useState(false);
 
   const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
   const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
