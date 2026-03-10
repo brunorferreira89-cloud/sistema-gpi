@@ -55,7 +55,7 @@ function buildTree(contas: ContaRow[]): ContaNode[] {
 }
 
 // ─── Sortable row wrapper ───────────────────────────
-function SortableRow({ id, children, nivel }: { id: string; children: React.ReactNode; nivel: number }) {
+function SortableRow({ id, renderContent }: { id: string; renderContent: (listeners: any) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -67,7 +67,7 @@ function SortableRow({ id, children, nivel }: { id: string; children: React.Reac
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      {typeof children === 'function' ? (children as any)(listeners) : children}
+      {renderContent(listeners)}
     </div>
   );
 }
