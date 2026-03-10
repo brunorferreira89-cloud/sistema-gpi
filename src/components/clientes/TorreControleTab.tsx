@@ -550,32 +550,41 @@ export function TorreControleTab({ clienteId }: Props) {
     const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
 
     // Styles
-    let rowBg = C.surface;
-    let fontWeight = 400;
-    let fontSize = 12;
-    let textColor = C.txtSec;
-    let borderLeft = 'none';
+    let rowBg = hasMeta ? '#FFFFFF' : '#FAFCFF';
+    let fontWeight = hasMeta ? 500 : 400;
+    let fontSize = 11;
+    let textColor = hasMeta ? '#0D1B35' : '#4A5E80';
+    let borderLeft = hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
+    let borderTop = 'none';
+    let borderBottom = '1px solid rgba(221,228,240,0.4)';
+    let letterSpacing: string | undefined = undefined;
+    let textTransform: 'uppercase' | 'none' = 'none';
 
     if (isTotal) {
-      rowBg = `linear-gradient(90deg, ${C.pLo}, ${C.cyanLo})`;
+      rowBg = 'rgba(26,60,255,0.05)';
       fontWeight = 800;
-      fontSize = 13;
-      textColor = C.primary;
-      borderLeft = `3px solid transparent`;
-      // Use gradient border via box-shadow trick
-    } else if (isGrupo) {
-      rowBg = hasMeta ? C.pLo : C.surface;
-      fontWeight = 700;
       fontSize = 12;
-      textColor = C.txt;
-      borderLeft = hasMeta ? `3px solid ${C.primary}` : 'none';
+      textColor = '#1A3CFF';
+      borderLeft = 'none';
+      borderTop = '2px solid rgba(26,60,255,0.12)';
+      borderBottom = '2px solid rgba(26,60,255,0.12)';
+    } else if (isGrupo) {
+      rowBg = 'rgba(26,60,255,0.03)';
+      fontWeight = 700;
+      fontSize = 11;
+      textColor = '#0D1B35';
+      borderLeft = 'none';
+      borderTop = '1px solid #DDE4F0';
+      borderBottom = '1px solid #DDE4F0';
+      letterSpacing = '0.03em';
+      textTransform = 'uppercase';
     } else if (isSubgrupo) {
-      rowBg = C.surfaceHi;
+      rowBg = '#FFFFFF';
       fontWeight = 600;
-      textColor = C.txt;
-      borderLeft = hasMeta ? `3px solid rgba(0,153,230,0.33)` : 'none';
-    } else {
-      borderLeft = hasMeta ? `3px solid rgba(0,153,230,0.33)` : 'none';
+      fontSize = 12;
+      textColor = '#0D1B35';
+      borderLeft = 'none';
+      borderBottom = '1px solid rgba(221,228,240,0.6)';
     }
 
     return (
