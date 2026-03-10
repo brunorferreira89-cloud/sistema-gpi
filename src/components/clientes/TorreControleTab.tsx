@@ -663,15 +663,15 @@ export function TorreControleTab({ clienteId }: Props) {
             {config.nome}
           </span>
         </td>
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 110 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
           {fmtTorre(antVal)}
         </td>
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 120 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
           {fmtTorre(realVal)}
         </td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', width: 130, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '11px 10px', width: 120, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
-        <td style={{ width: 96 }} />
+        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td />
       </tr>
     );
   };
