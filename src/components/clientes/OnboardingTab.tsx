@@ -50,7 +50,7 @@ export function OnboardingTab({ clienteId }: Props) {
       queryClient.invalidateQueries({ queryKey: ['onboarding-items', clienteId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding', clienteId] });
       // Check if it's the critical item (semana 4, ordem 2)
-      if (vars.concluido && vars.semana === 4 && vars.ordem === 2) {
+      if (vars.concluido && vars.semana === 4 && vars.ordem === 3) {
         toast({ title: '🎉 Onboarding concluído! Cliente pronto para operação regular.' });
       }
     },
