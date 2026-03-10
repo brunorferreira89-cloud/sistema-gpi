@@ -4,10 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Upload, Copy, ArrowLeft } from 'lucide-react';
-import { ContasTree } from '@/components/plano-contas/ContasTree';
+import { PlanoDeContasDetail } from '@/pages/PlanoDeContasPage';
 import { ImportXlsxDialog } from '@/components/plano-contas/ImportXlsxDialog';
 import { CopyFromClienteDialog } from '@/components/plano-contas/CopyFromClienteDialog';
-import { getCompetenciaAtual, type ContaRow } from '@/lib/plano-contas-utils';
+import { type ContaRow } from '@/lib/plano-contas-utils';
 
 export default function PlanoDeContasClientePage() {
   const { clienteId } = useParams<{ clienteId: string }>();
