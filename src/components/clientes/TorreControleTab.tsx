@@ -445,14 +445,14 @@ export function TorreControleTab({ clienteId }: Props) {
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMap]);
 
-  const handleSugerirMetas = async () => {
+  const handleSugerirMetas = async (force = false) => {
     if (!cliente) return;
     setLoadingSugestao(true);
     setDrawerSugestaoOpen(true);
     setSugestoes([]);
     try {
       const { data, error } = await supabase.functions.invoke('sugerir-metas', {
-        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt },
+        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt, force },
       });
       if (error) throw error;
       setSugestoes(data?.sugestoes || []);
