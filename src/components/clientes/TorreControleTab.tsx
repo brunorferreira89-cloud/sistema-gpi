@@ -812,6 +812,8 @@ export function TorreControleTab({ clienteId }: Props) {
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
         onRegenerar={() => handleSugerirMetas(true)}
+        geradoEm={sugestaoGeradaEm}
+        fromCache={sugestaoFromCache}
       />
     </div>
   );
