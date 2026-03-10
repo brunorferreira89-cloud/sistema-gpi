@@ -128,7 +128,7 @@ export default function AlertasPage() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           clienteId={clienteId}
-          clienteNome={clientes?.find((c) => c.id === clienteId)?.nome_empresa || ''}
+          clienteNome={clientes?.find((c) => c.id === clienteId)?.razao_social || clientes?.find((c) => c.id === clienteId)?.nome_empresa || ''}
         />
       )}
     </div>

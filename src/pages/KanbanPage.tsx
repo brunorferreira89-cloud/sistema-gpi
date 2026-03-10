@@ -379,7 +379,7 @@ function TarefaCardContent({ tarefa, cliente, analista }: { tarefa: any; cliente
         <div className="flex items-center gap-1.5 flex-wrap">
           {seg && (
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${seg.bg} ${seg.text}`}>
-              {cliente.nome_empresa}
+              {cliente.razao_social || cliente.nome_empresa}
             </span>
           )}
           <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${tipo.cls}`}>{tipo.label}</span>

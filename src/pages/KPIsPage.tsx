@@ -100,7 +100,7 @@ export default function KPIsPage() {
           <Select value={clienteId} onValueChange={setClienteId}>
             <SelectTrigger className="w-52"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
             <SelectContent>
-              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={competencia} onValueChange={setCompetencia}>

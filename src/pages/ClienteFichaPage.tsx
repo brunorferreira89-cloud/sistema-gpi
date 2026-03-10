@@ -276,7 +276,7 @@ export default function ClienteFichaPage() {
         <TabsContent value="financeiro">
           <FinanceiroTab
             clienteId={clienteId!}
-            clienteNome={cliente.nome_empresa}
+            clienteNome={nomeExibido(cliente)}
             clienteSegmento={cliente.segmento}
             clienteFaixa={cliente.faturamento_faixa}
           />

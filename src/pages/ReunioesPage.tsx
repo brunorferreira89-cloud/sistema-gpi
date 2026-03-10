@@ -180,7 +180,7 @@ export default function ReunioesPage() {
               <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os clientes</SelectItem>
-                {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+                {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filtroStatus} onValueChange={setFiltroStatus}>

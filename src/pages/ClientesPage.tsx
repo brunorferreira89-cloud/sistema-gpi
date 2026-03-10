@@ -173,6 +173,9 @@ export default function ClientesPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-semibold text-txt">{cliente.razao_social || cliente.nome_empresa}</h3>
+                    {cliente.cnpj && (
+                      <p className="text-[11px] text-txt-muted font-normal" style={{ letterSpacing: '0.03em' }}>{formatCnpj(cliente.cnpj)}</p>
+                    )}
                     <div className="mt-1 flex items-center gap-2">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${seg.bg} ${seg.text}`}>
                         {segmentLabels[cliente.segmento] || cliente.segmento}

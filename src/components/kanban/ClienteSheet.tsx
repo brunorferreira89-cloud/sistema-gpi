@@ -74,7 +74,7 @@ export function ClienteSheet({ clienteId, open, onOpenChange }: Props) {
       <SheetContent className="w-96 overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            {cliente.nome_empresa}
+            {cliente.razao_social || cliente.nome_empresa}
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${seg.bg} ${seg.text}`}>
               {segmentLabels[cliente.segmento] || cliente.segmento}
             </span>

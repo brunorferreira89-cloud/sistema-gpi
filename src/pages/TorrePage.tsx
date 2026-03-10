@@ -346,7 +346,7 @@ export default function TorrePage() {
           open={importOpen}
           onOpenChange={setImportOpen}
           clienteId={clienteId}
-          clienteNome={clienteSel?.nome_empresa || ''}
+          clienteNome={clienteSel?.razao_social || clienteSel?.nome_empresa || ''}
           competencia={competencia}
           competenciaLabel={compLabel}
           contas={contas?.filter((c) => c.nivel === 2).map((c) => ({ id: c.id, nome: c.nome })) || []}
