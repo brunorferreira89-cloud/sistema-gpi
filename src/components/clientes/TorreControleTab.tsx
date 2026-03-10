@@ -589,12 +589,17 @@ export function TorreControleTab({ clienteId }: Props) {
 
     return (
       <Fragment key={conta.id}>
-        <tr style={{
-          background: isTotal ? undefined : rowBg,
-          backgroundImage: isTotal ? `linear-gradient(90deg, ${C.pLo}, ${C.cyanLo})` : undefined,
-          borderBottom: `1px solid ${isGrupo ? C.borderStr : C.border}`,
-          borderLeft,
-        }}>
+        <tr
+          style={{
+            background: rowBg,
+            borderTop,
+            borderBottom,
+            borderLeft,
+            transition: 'background 0.1s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,60,255,0.02)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
+        >
           {/* Expand */}
           <td style={{ width: 24, padding: '0 4px', textAlign: 'center' }}>
             {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
