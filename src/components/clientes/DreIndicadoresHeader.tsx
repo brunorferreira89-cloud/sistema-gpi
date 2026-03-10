@@ -55,17 +55,41 @@ function sumByTipo(leafs: ContaRow[], valMap: Record<string, number | null>, tip
   return total;
 }
 
-function getSubgroups(contas: ContaRow[], tipo: string, valMap: Record<string, number | null>): { nome: string; valor: number }[] {
+function getSubgroups(
+  contas: ContaRow[], tipo: string,
+  valMap: Record<string, number | null>,
+  fat: number,
+  prevMap?: Record<string, number | null>,
+): { nome: string; grupo: string; nivel: string; valor: number; pct_faturamento: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number }[] {
   const subs = contas.filter(c => c.tipo === tipo && c.nivel === 1);
-  return subs.map(s => {
+  const result = subs.map(s => {
+    const parent = contas.find(c => c.id === s.conta_pai_id && c.nivel === 0);
     const children = contas.filter(c => c.conta_pai_id === s.id && c.nivel === 2);
     let val = 0;
+    let valPrev = 0;
     for (const ch of children) {
       const v = valMap[ch.id];
       if (v != null) val += Math.abs(v);
+      if (prevMap) {
+        const vp = prevMap[ch.id];
+        if (vp != null) valPrev += Math.abs(vp);
+      }
     }
-    return { nome: s.nome, valor: val };
+    const entry: any = {
+      nome: s.nome,
+      grupo: parent?.nome || tipo,
+      nivel: 'subgrupo',
+      valor: val,
+      pct_faturamento: fat ? (val / fat) * 100 : 0,
+    };
+    if (prevMap) {
+      entry.valor_anterior = valPrev;
+      entry.variacao_abs = val - valPrev;
+      entry.variacao_pct = valPrev ? ((val - valPrev) / valPrev) * 100 : 0;
+    }
+    return entry;
   }).filter(s => s.valor !== 0);
+  return result.sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
 }
 
 function fmtCurrency(v: number): string {
@@ -285,86 +309,119 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
 
   const handleFatClick = () => {
     if (!hasData) return;
+    const subs = getSubgroups(contas, 'receita', currentMap, fat, prevMap);
+    const subsText = subs.map(s => `[${s.nome}: ${fmtCurrency(s.valor)}]`).join(' + ');
     openDrawer('Faturamento', {
       indicador: 'Faturamento', valor_atual: 100, valor_absoluto: fat, faturamento: fat,
       mes_referencia: monthLabelFull, status: 'verde', limite_verde: 0, limite_ambar: 0,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i] })),
-      formula: 'Faturamento = Soma de todas as Receitas Operacionais',
-      composicao: getSubgroups(contas, 'receita', currentMap),
+      formula: `Faturamento = Soma de todas as Receitas Operacionais\n= ${subsText}\n= ${fmtCurrency(fat)}`,
+      composicao: subs,
+      instrucao_especifica: 'Identifique qual canal de receita mais contribui, qual está crescendo e qual está caindo vs mês anterior. Aponte oportunidade ou risco específico.',
     });
   };
 
   const handleMcClick = () => {
     if (!hasData) return;
+    const recSubs = getSubgroups(contas, 'receita', currentMap, fat);
+    const custoSubs = getSubgroups(contas, 'custo_variavel', currentMap, fat);
+    const custosText = custoSubs.map(s => `${s.nome}: ${fmtCurrency(s.valor)} (${fmtPct(s.pct_faturamento)} fat)`).join('\n');
     openDrawer('Margem de Contribuição', {
       indicador: 'Margem de Contribuição', valor_atual: mcPct, valor_absoluto: mc, faturamento: fat,
       mes_referencia: monthLabelFull, status: statusLabel(mcColor), limite_verde: 40, limite_ambar: 30,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histMC[i] })),
-      formula: 'MC = Faturamento - Custos Variáveis',
-      composicao: getSubgroups(contas, 'custo_variavel', currentMap),
+      formula: `MC = Faturamento - Custos Variáveis\nFaturamento: ${fmtCurrency(fat)}\n${custosText}\n= MC ${fmtCurrency(mc)} (${fmtPct(mcPct)})`,
+      composicao: [
+        ...recSubs.map(s => ({ ...s, grupo: 'Receitas' })),
+        ...custoSubs.map(s => ({ ...s, grupo: 'Custos Variáveis' })),
+        { nome: 'Margem de Contribuição', grupo: 'Resultado', nivel: 'totalizador', valor: mc, pct_faturamento: mcPct },
+      ],
+      instrucao_especifica: 'Identifique qual custo variável mais pressiona a margem. Verifique se algum subgrupo está acima do benchmark saudável para o segmento. Sugira ação específica.',
     });
   };
 
   const handleRoClick = () => {
     if (!hasData) return;
+    const despSubs = getSubgroups(contas, 'despesa_fixa', currentMap, fat);
+    const despText = despSubs.map(s => `${s.nome}: ${fmtCurrency(s.valor)} (${fmtPct(s.pct_faturamento)} fat)`).join('\n');
     openDrawer('Resultado Operacional', {
       indicador: 'Resultado Operacional', valor_atual: roPct, valor_absoluto: ro, faturamento: fat,
       mes_referencia: monthLabelFull, status: statusLabel(roColor), limite_verde: 10, limite_ambar: 5,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histRO[i] })),
-      formula: 'RO = MC - Despesas Fixas',
-      composicao: getSubgroups(contas, 'despesa_fixa', currentMap),
+      formula: `RO = MC - Despesas Fixas\nMC: ${fmtCurrency(mc)} (${fmtPct(mcPct)})\n${despText}\n= RO ${fmtCurrency(ro)} (${fmtPct(roPct)})`,
+      composicao: [
+        { nome: 'Margem de Contribuição', grupo: 'MC', nivel: 'totalizador', valor: mc, pct_faturamento: mcPct },
+        ...despSubs.map(s => ({ ...s, grupo: 'Despesas Fixas' })),
+        { nome: 'Resultado Operacional', grupo: 'Resultado', nivel: 'totalizador', valor: ro, pct_faturamento: roPct },
+      ],
+      instrucao_especifica: 'Identifique a despesa fixa mais pesada em % do faturamento. Avalie se o RO está comprometido por despesas estruturais ou pontuais. Sugira onde cortar ou otimizar.',
     });
   };
 
   const handleGcClick = () => {
     if (!hasData) return;
+    const recSubs = getSubgroups(contas, 'receita', currentMap, fat);
+    const custoSubs = getSubgroups(contas, 'custo_variavel', currentMap, fat);
+    const despSubs = getSubgroups(contas, 'despesa_fixa', currentMap, fat);
+    const invSubs = getSubgroups(contas, 'investimento', currentMap, fat);
+    const finSubs = getSubgroups(contas, 'financeiro', currentMap, fat);
     openDrawer('Geração de Caixa', {
       indicador: 'Geração de Caixa', valor_atual: gcPct, valor_absoluto: gc, faturamento: fat,
       mes_referencia: monthLabelFull, status: statusLabel(gcColor), limite_verde: 10, limite_ambar: 3,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histGC[i] })),
-      formula: 'GC = RO - Investimentos +/- Financiamentos',
+      formula: `GC = Faturamento - Custos Variáveis - Despesas Fixas - Investimentos ± Financeiro\n= ${fmtCurrency(fat)} - ${fmtCurrency(sumByTipo(leafs, currentMap, 'custo_variavel'))} - ${fmtCurrency(despesasFixas)} - ${fmtCurrency(investimentos)} ± ${fmtCurrency(financeiro)}\n= ${fmtCurrency(gc)} (${fmtPct(gcPct)})`,
       composicao: [
-        ...getSubgroups(contas, 'investimento', currentMap),
-        ...getSubgroups(contas, 'financeiro', currentMap),
+        ...recSubs.map(s => ({ ...s, grupo: 'Receitas' })),
+        ...custoSubs.map(s => ({ ...s, grupo: 'Custos Variáveis' })),
+        ...despSubs.map(s => ({ ...s, grupo: 'Despesas Fixas' })),
+        ...invSubs.map(s => ({ ...s, grupo: 'Investimentos' })),
+        ...finSubs.map(s => ({ ...s, grupo: 'Financeiro' })),
       ],
+      instrucao_especifica: 'Analise a geração de caixa considerando todos os 5 grupos (receitas, custos variáveis, despesas fixas, investimentos, financeiro). Identifique qual grupo mais impacta negativamente e sugira ação.',
     });
   };
 
   const handleTendClick = () => {
     if (!hasData || !prevMonth) return;
+    const subs = getSubgroups(contas, 'receita', currentMap, fat, prevMap);
+    const subsText = subs.map(s => `${s.nome}: ${fmtCurrency(s.valor_anterior || 0)} → ${fmtCurrency(s.valor)} (${s.variacao_pct?.toFixed(1) || '0'}%)`).join('\n');
     openDrawer('Tendência Faturamento', {
       indicador: 'Tendência Faturamento', valor_atual: tendPct, valor_absoluto: fat - fatPrev, faturamento: fat,
       mes_referencia: monthLabelFull, status: tendPct >= 0 ? 'verde' : 'vermelho', limite_verde: 5, limite_ambar: 0,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i] })),
-      formula: 'Tendência = (Mês Atual - Mês Anterior) / Mês Anterior × 100',
-      composicao: [
-        { nome: prevMonthLabelFull, valor: fatPrev },
-        { nome: monthLabelFull, valor: fat },
-      ],
+      formula: `Tendência = (Faturamento Atual - Faturamento Anterior) / Faturamento Anterior × 100\nAtual (${monthLabelFull}): ${fmtCurrency(fat)}\nAnterior (${prevMonthLabelFull}): ${fmtCurrency(fatPrev)}\nVariação: ${fmtPct(tendPct)}\nPor canal:\n${subsText}`,
+      composicao: subs.sort((a, b) => Math.abs(b.variacao_abs || 0) - Math.abs(a.variacao_abs || 0)),
+      instrucao_especifica: 'Identifique qual canal de receita causou a maior variação (positiva ou negativa). Se tendência negativa, aponte qual canal reverteu e o que fazer. Se positiva, aponte qual canal alavancou e como sustentar.',
     });
   };
 
   const handlePeClick = () => {
     if (!hasData) return;
     const mcPctVal = mcDecimal * 100;
+    const despSubs = getSubgroups(contas, 'despesa_fixa', currentMap, fat);
     openDrawer('Ponto de Equilíbrio', {
       indicador: 'Ponto de Equilíbrio', valor_atual: peMinimo ? (fat / peMinimo) * 100 : 0, valor_absoluto: peMinimo, faturamento: fat,
       mes_referencia: monthLabelFull, status: gapMinimo >= 0 ? 'verde' : 'vermelho', limite_verde: 100, limite_ambar: 90,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histPE[i] })),
-      formula: `PE Mínimo = Despesas Fixas ÷ MC%\n= ${fmtCurrency(despesasFixas)} ÷ ${mcPctVal.toFixed(1)}% = ${fmtCurrency(peMinimo)}\n\nPE Ideal = (Desp. Fixas + Invest. + Financ.) ÷ MC%\n= (${fmtCurrency(despesasFixas)} + ${fmtCurrency(investimentos)} + ${fmtCurrency(financeiro)}) ÷ ${mcPctVal.toFixed(1)}% = ${fmtCurrency(peIdeal)}`,
+      formula: `PE Mínimo = Despesas Fixas ÷ MC%\n= ${fmtCurrency(despesasFixas)} ÷ ${fmtPct(mcPctVal)} = ${fmtCurrency(peMinimo)}\n\nPE Ideal = (Desp. Fixas + Invest. + Financ.) ÷ MC%\n= (${fmtCurrency(despesasFixas)} + ${fmtCurrency(investimentos)} + ${fmtCurrency(financeiro)}) ÷ ${fmtPct(mcPctVal)} = ${fmtCurrency(peIdeal)}\n\nGap Mínimo: ${fmtCurrency(fat)} - ${fmtCurrency(peMinimo)} = ${fmtCurrency(gapMinimo)}\nGap Ideal: ${fmtCurrency(fat)} - ${fmtCurrency(peIdeal)} = ${fmtCurrency(gapIdeal)}`,
       composicao: [
-        { nome: 'Despesas Fixas', valor: despesasFixas },
-        { nome: 'Investimentos', valor: investimentos },
-        { nome: 'Financiamentos', valor: financeiro },
-        { nome: 'MC%', valor: mcPctVal },
-        { nome: 'Faturamento Atual', valor: fat },
+        { nome: 'Faturamento Atual', grupo: 'Referência', nivel: 'totalizador', valor: fat, pct_faturamento: 100 },
+        { nome: 'MC%', grupo: 'Referência', nivel: 'totalizador', valor: mcPctVal, pct_faturamento: 0, pct: null },
+        ...despSubs.map(s => ({ ...s, grupo: 'Despesas Fixas' })),
+        { nome: 'Investimentos (total)', grupo: 'Saídas', nivel: 'totalizador', valor: investimentos, pct_faturamento: fat ? (investimentos / fat) * 100 : 0 },
+        { nome: 'Financiamentos (total)', grupo: 'Saídas', nivel: 'totalizador', valor: financeiro, pct_faturamento: fat ? (financeiro / fat) * 100 : 0 },
+        { nome: 'PE Mínimo', grupo: 'Ponto de Equilíbrio', nivel: 'totalizador', valor: peMinimo, pct_faturamento: fat ? (peMinimo / fat) * 100 : 0 },
+        { nome: 'PE Ideal', grupo: 'Ponto de Equilíbrio', nivel: 'totalizador', valor: peIdeal, pct_faturamento: fat ? (peIdeal / fat) * 100 : 0 },
+        { nome: 'Gap PE Mínimo', grupo: 'Gaps', nivel: 'totalizador', valor: gapMinimo, pct_faturamento: 0, pct: null },
+        { nome: 'Gap PE Ideal', grupo: 'Gaps', nivel: 'totalizador', valor: gapIdeal, pct_faturamento: 0, pct: null },
       ],
+      instrucao_especifica: 'Avalie a distância do faturamento atual em relação ao PE mínimo e ideal. Identifique qual despesa fixa mais eleva o ponto de equilíbrio. Se abaixo do PE ideal, calcule quanto de faturamento adicional seria necessário e sugira alavanca específica (reduzir despesa X ou aumentar canal Y).',
     });
   };
 

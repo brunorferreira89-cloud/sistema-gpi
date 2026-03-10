@@ -14,13 +14,20 @@ serve(async (req) => {
       indicador, valor_atual, valor_absoluto, faturamento,
       mes_referencia, status, limite_verde, limite_ambar,
       direcao, historico, formula, composicao,
+      instrucao_especifica,
     } = await req.json();
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const historicoText = (historico || []).map((h: any) => `${h.mes}: ${h.valor.toFixed(1)}%`).join(", ");
-    const composicaoText = (composicao || []).map((c: any) => `${c.nome}: R$ ${Math.abs(c.valor).toLocaleString("pt-BR")}`).join("; ");
+    const composicaoText = (composicao || []).map((c: any) => {
+      let line = `${c.grupo ? `[${c.grupo}] ` : ''}${c.nome}: R$ ${Math.abs(c.valor).toLocaleString("pt-BR")}`;
+      if (c.pct_faturamento) line += ` (${c.pct_faturamento.toFixed(1)}% fat)`;
+      if (c.valor_anterior != null) line += ` | anterior: R$ ${Math.abs(c.valor_anterior).toLocaleString("pt-BR")}`;
+      if (c.variacao_pct != null) line += ` (${c.variacao_pct >= 0 ? '+' : ''}${c.variacao_pct.toFixed(1)}%)`;
+      return line;
+    }).join("\n");
 
     const userPrompt = `Indicador: ${indicador} — ${mes_referencia}
 Valor atual: ${valor_atual.toFixed(1)}% (${valor_absoluto.toLocaleString("pt-BR")} sobre faturamento ${faturamento.toLocaleString("pt-BR")})
@@ -43,6 +50,7 @@ Composição: ${composicaoText || "não disponível"}`;
         system: `Você é um consultor financeiro da GPI Inteligência Financeira.
 Analise os indicadores financeiros do cliente de forma técnica,
 objetiva e acionável. Sempre em português brasileiro.
+${instrucao_especifica ? `\nContexto adicional para este indicador: ${instrucao_especifica}\n` : ''}
 Responda APENAS com JSON válido no formato:
 {
   "titulo": "string curta de status (máx 8 palavras)",
