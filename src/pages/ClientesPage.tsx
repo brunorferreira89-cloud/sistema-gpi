@@ -56,7 +56,7 @@ export default function ClientesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('kpi_indicadores')
-        .select('id, cliente_id, nome, conta_id, tipo_fonte, ativo')
+        .select('id, cliente_id, nome, conta_id, conta_ids, tipo_fonte, ativo')
         .eq('tipo_fonte', 'subgrupo')
         .eq('ativo', true);
       if (error) throw error;
