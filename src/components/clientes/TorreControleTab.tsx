@@ -597,7 +597,7 @@ export function TorreControleTab({ clienteId }: Props) {
             borderLeft,
             transition: 'background 0.1s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,60,255,0.02)'; }}
+          onMouseEnter={e => { if (!isTotal) e.currentTarget.style.background = '#F6F9FF'; }}
           onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
         >
           {/* Expand */}
