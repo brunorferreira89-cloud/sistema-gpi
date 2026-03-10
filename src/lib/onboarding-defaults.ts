@@ -25,13 +25,14 @@ export const ONBOARDING_ITEMS = [
   { semana: 3, ordem: 6, item: 'Enviar feedback consolidado ao operador ao final da semana' },
   { semana: 3, ordem: 7, item: 'Registrar principais erros identificados e orientações dadas' },
   // Semana 4 — Conclusão do Onboarding
-  { semana: 4, ordem: 1, item: 'Realizar auditoria completa dos 5 dias úteis da semana 4' },
-  { semana: 4, ordem: 2, item: 'Operador sem erro crítico por 5 dias consecutivos ✓' },
-  { semana: 4, ordem: 3, item: 'Primeiro relatório parcial gerado e revisado' },
-  { semana: 4, ordem: 4, item: 'Gerar primeira DRE parcial do período' },
-  { semana: 4, ordem: 5, item: 'Reunião de alinhamento com o dono da empresa realizada' },
-  { semana: 4, ordem: 6, item: 'Confirmar que cliente conhece o ciclo mensal (prazos e entregas)' },
-  { semana: 4, ordem: 7, item: 'Marcar status do cliente como "Ativo" no sistema' },
+  { semana: 4, ordem: 1, item: 'Configurar indicadores de saúde financeira' },
+  { semana: 4, ordem: 2, item: 'Realizar auditoria completa dos 5 dias úteis da semana 4' },
+  { semana: 4, ordem: 3, item: 'Operador sem erro crítico por 5 dias consecutivos ✓' },
+  { semana: 4, ordem: 4, item: 'Primeiro relatório parcial gerado e revisado' },
+  { semana: 4, ordem: 5, item: 'Gerar primeira DRE parcial do período' },
+  { semana: 4, ordem: 6, item: 'Reunião de alinhamento com o dono da empresa realizada' },
+  { semana: 4, ordem: 7, item: 'Confirmar que cliente conhece o ciclo mensal (prazos e entregas)' },
+  { semana: 4, ordem: 8, item: 'Marcar status do cliente como "Ativo" no sistema' },
 ];
 
 export const TREINAMENTO_MODULOS = [

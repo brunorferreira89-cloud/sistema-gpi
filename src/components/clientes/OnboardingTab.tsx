@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Award } from 'lucide-react';
+import { ChevronDown, ChevronRight, Award, ExternalLink } from 'lucide-react';
 import { SEMANA_TITULOS } from '@/lib/onboarding-defaults';
 import { toast } from '@/hooks/use-toast';
 
@@ -15,6 +16,7 @@ interface Props {
 
 export function OnboardingTab({ clienteId }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [openSemanas, setOpenSemanas] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true, 4: true });
 
@@ -48,7 +50,7 @@ export function OnboardingTab({ clienteId }: Props) {
       queryClient.invalidateQueries({ queryKey: ['onboarding-items', clienteId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding', clienteId] });
       // Check if it's the critical item (semana 4, ordem 2)
-      if (vars.concluido && vars.semana === 4 && vars.ordem === 2) {
+      if (vars.concluido && vars.semana === 4 && vars.ordem === 3) {
         toast({ title: '🎉 Onboarding concluído! Cliente pronto para operação regular.' });
       }
     },
@@ -87,7 +89,8 @@ export function OnboardingTab({ clienteId }: Props) {
               <CollapsibleContent>
                 <div className="border-t border-border px-4 pb-4">
                   {semanaItems.map((item: any) => {
-                    const isCritical = semana === 4 && item.ordem === 2;
+                    const isCritical = semana === 4 && item.ordem === 3;
+                    const isKpiConfig = item.item === 'Configurar indicadores de saúde financeira';
                     return (
                       <label
                         key={item.id}
@@ -101,6 +104,14 @@ export function OnboardingTab({ clienteId }: Props) {
                         />
                         <span className={`flex-1 text-sm ${item.concluido ? 'text-txt-muted line-through' : 'text-txt'}`}>
                           {item.item}
+                          {isKpiConfig && !item.concluido && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/clientes/${clienteId}?tab=configuracao`); }}
+                              className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Ir para Configuração
+                            </button>
+                          )}
                         </span>
                         {isCritical && (
                           <span className="flex items-center gap-1 rounded-full bg-primary-lo px-2 py-0.5 text-[10px] font-semibold text-primary">

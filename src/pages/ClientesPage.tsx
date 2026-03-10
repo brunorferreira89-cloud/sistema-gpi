@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -49,6 +49,45 @@ export default function ClientesPage() {
       return counts;
     },
   });
+
+  // Check which clients have subgrupo indicators missing conta_id
+  const { data: kpiPendentes } = useQuery({
+    queryKey: ['kpi-pendentes-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('kpi_indicadores')
+        .select('id, cliente_id, nome, conta_id, tipo_fonte, ativo')
+        .eq('tipo_fonte', 'subgrupo')
+        .eq('ativo', true);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const clientesComKpiPendente = useMemo(() => {
+    const set = new Set<string>();
+    if (!kpiPendentes || !clientes.length) return set;
+    
+    // Get defaults (cliente_id is null)
+    const defaults = kpiPendentes.filter((k: any) => k.cliente_id === null);
+    
+    for (const cliente of clientes) {
+      const overrides = kpiPendentes.filter((k: any) => k.cliente_id === cliente.id);
+      const overrideNames = new Set(overrides.map((o: any) => o.nome));
+      
+      // Merge: use override if exists, else default
+      const merged = [
+        ...overrides,
+        ...defaults.filter((d: any) => !overrideNames.has(d.nome)),
+      ];
+      
+      // If any active subgrupo indicator has no conta_id, it's pending
+      if (merged.some((ind: any) => ind.conta_id === null)) {
+        set.add(cliente.id);
+      }
+    }
+    return set;
+  }, [kpiPendentes, clientes]);
 
   const filtered = clientes.filter((c) => {
     if (filtroSegmento !== 'todos' && c.segmento !== filtroSegmento) return false;
@@ -137,6 +176,15 @@ export default function ClientesPage() {
                       <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${st.bg} ${st.text}`}>
                         {statusLabels[cliente.status] || cliente.status}
                       </span>
+                      {clientesComKpiPendente.has(cliente.id) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/clientes/${cliente.id}?tab=configuracao`); }}
+                          className="inline-block rounded px-1.5 py-0.5 text-[11px] font-medium hover:opacity-80 transition-opacity"
+                          style={{ background: '#D977061A', color: '#D97706' }}
+                        >
+                          ⚠ KPIs pendentes
+                        </button>
+                      )}
                     </div>
                   </div>
                   <BookOpen className={`h-4 w-4 ${hasContas ? 'text-green' : 'text-amber'}`} />
