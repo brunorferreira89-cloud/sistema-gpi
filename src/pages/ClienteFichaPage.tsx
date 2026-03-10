@@ -14,6 +14,7 @@ import { OnboardingTab } from '@/components/clientes/OnboardingTab';
 import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
 import { ImportacaoTab } from '@/components/clientes/ImportacaoTab';
+import { ContatoTab } from '@/components/clientes/ContatoTab';
 import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
