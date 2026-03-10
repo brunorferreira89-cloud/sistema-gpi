@@ -191,7 +191,7 @@ export default function TorrePage() {
           <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setCollapsed(new Set()); }}>
             <SelectTrigger className="w-64"><SelectValue placeholder="Selecionar cliente..." /></SelectTrigger>
             <SelectContent>
-              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
