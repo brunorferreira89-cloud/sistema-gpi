@@ -68,6 +68,17 @@ export default function DebugTributosPage() {
     <div style={{ padding: 32, fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap' }}>
       <h2>DEBUG — valores_mensais com JOIN plano_de_contas</h2>
       <p>Cliente: {CLIENTE_ID}</p>
+
+      <div style={{ margin: '16px 0' }}>
+        <button
+          onClick={handleDeleteAll}
+          disabled={deleting}
+          style={{ background: '#DC2626', color: 'white', padding: '8px 16px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: 14 }}
+        >
+          {deleting ? 'Apagando...' : '⚠️ Apagar TODOS os valores_mensais do cliente Regalo'}
+        </button>
+        {deleteResult && <div style={{ marginTop: 8, fontWeight: 'bold' }}>{deleteResult}</div>}
+      </div>
       <hr />
 
       <h3>1. Contagem por nivel (total: {rows.length} registros não-null)</h3>
