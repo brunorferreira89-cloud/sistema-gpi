@@ -111,11 +111,10 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
   const [editingConta, setEditingConta] = useState<ContaRow | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
-  const tree = buildTree(contas);
+  const tree = useMemo(() => buildTree(contas), [contas]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor)
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
 
   const openEditDialog = (conta: ContaRow) => {
