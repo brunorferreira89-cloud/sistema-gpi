@@ -644,7 +644,7 @@ export function TorreControleTab({ clienteId }: Props) {
           <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(displayReal)}
           </td>
-          {/* Meta */}
+          {/* Ajuste */}
           <td style={{ textAlign: 'right', padding: '8px 10px' }}>
             <EditableMetaCell
               meta={meta}
@@ -655,7 +655,18 @@ export function TorreControleTab({ clienteId }: Props) {
               onSaved={invalidateMetas}
             />
           </td>
-          {/* Projetado */}
+          {/* R$ (variação) */}
+          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px' }}>
+            {(() => {
+              const variacao = calcVariacao(node);
+              if (variacao == null) return <span style={{ color: C.txtMuted }}>—</span>;
+              const positive = variacao >= 0;
+              const abs = Math.abs(variacao);
+              const formatted = abs >= 1000 ? abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) : abs.toFixed(0);
+              return <span style={{ color: positive ? '#00A86B' : '#DC2626', fontWeight: isTotal ? 800 : 400 }}>{positive ? '+' : '−'} {formatted}</span>;
+            })()}
+          </td>
+          {/* Meta (projetado) */}
           <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(projetado)}
           </td>
