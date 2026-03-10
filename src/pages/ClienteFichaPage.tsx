@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { BookOpen, ArrowLeft, Calendar } from 'lucide-react';
 import { OnboardingTab } from '@/components/clientes/OnboardingTab';
 import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
+import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
+import { KPIsTab } from '@/components/clientes/KPIsTab';
+import { AlertasTab } from '@/components/clientes/AlertasTab';
 import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
@@ -110,7 +113,6 @@ export default function ClienteFichaPage() {
     cmo_pct: kpiData.cmo_pct, gc_pct: kpiData.gc_pct, hasData: kpiData.hasData,
   }) : 0;
 
-
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { error } = await supabase.from('clientes').update(updates as any).eq('id', clienteId!);
@@ -133,10 +135,8 @@ export default function ClienteFichaPage() {
   const seg = segmentColors[cliente.segmento] || segmentColors.outro;
   const st = statusColors[cliente.status] || statusColors.ativo;
   const diasCliente = Math.floor((Date.now() - new Date(cliente.created_at).getTime()) / 86400000);
-
   const obPct = onboardingStats ? (onboardingStats.total ? Math.round((onboardingStats.done / onboardingStats.total) * 100) : 0) : 0;
   const trPct = treinamentoStats ? (treinamentoStats.total ? Math.round((treinamentoStats.done / treinamentoStats.total) * 100) : 0) : 0;
-
   const progressColor = (pct: number) => (pct >= 100 ? 'text-green' : pct >= 50 ? 'text-amber' : 'text-red');
 
   return (
@@ -194,8 +194,11 @@ export default function ClienteFichaPage() {
       </div>
 
       <Tabs defaultValue="visao-geral">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="kpis">KPIs</TabsTrigger>
+          <TabsTrigger value="alertas">Alertas</TabsTrigger>
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
@@ -204,7 +207,6 @@ export default function ClienteFichaPage() {
         {/* Visão Geral */}
         <TabsContent value="visao-geral" className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            {/* Onboarding card */}
             <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
               <p className="text-sm font-semibold text-txt">Onboarding</p>
               <p className={`text-lg font-bold ${progressColor(obPct)}`}>
@@ -212,7 +214,6 @@ export default function ClienteFichaPage() {
               </p>
               <Progress value={obPct} className="h-2" />
             </div>
-            {/* Treinamento card */}
             <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
               <p className="text-sm font-semibold text-txt">Treinamento</p>
               <p className={`text-lg font-bold ${progressColor(trPct)}`}>
@@ -220,20 +221,12 @@ export default function ClienteFichaPage() {
               </p>
               <Progress value={trPct} className="h-2" />
             </div>
-            {/* Plano de Contas card */}
             <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
               <p className="text-sm font-semibold text-txt">Plano de Contas</p>
               <p className="text-lg font-bold text-txt">
                 {planoStats?.contas || 0} contas · {planoStats?.metasPendentes || 0} metas pendentes
               </p>
-              <button
-                onClick={() => navigate(`/plano-de-contas/${clienteId}`)}
-                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-              >
-                <BookOpen className="h-3.5 w-3.5" /> Abrir plano →
-              </button>
             </div>
-            {/* Próxima Reunião card */}
             <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
               <p className="text-sm font-semibold text-txt">Próxima Reunião</p>
               {proximaReuniao ? (
@@ -253,38 +246,38 @@ export default function ClienteFichaPage() {
                 </>
               )}
             </div>
-            {/* Saúde Financeira card */}
             <div className="rounded-xl border border-border bg-surface p-5 flex flex-col items-center justify-center gap-2 sm:col-span-2">
               <p className="text-sm font-semibold text-txt">Saúde Financeira</p>
               <ScoreRing score={healthScore} size={80} />
-              <button
-                onClick={() => navigate(`/kpis`)}
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                Ver KPIs detalhados →
-              </button>
             </div>
           </div>
 
-          {/* Informações do responsável */}
           <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
             <p className="text-sm font-semibold text-txt">Informações do responsável</p>
-            <InlineField
-              label="Nome"
-              value={cliente.responsavel_nome || ''}
-              onSave={(v) => updateMutation.mutate({ responsavel_nome: v })}
-            />
-            <InlineField
-              label="E-mail"
-              value={cliente.responsavel_email || ''}
-              onSave={(v) => updateMutation.mutate({ responsavel_email: v })}
-            />
-            <InlineField
-              label="WhatsApp"
-              value={cliente.responsavel_whatsapp || ''}
-              onSave={(v) => updateMutation.mutate({ responsavel_whatsapp: v })}
-            />
+            <InlineField label="Nome" value={cliente.responsavel_nome || ''} onSave={(v) => updateMutation.mutate({ responsavel_nome: v })} />
+            <InlineField label="E-mail" value={cliente.responsavel_email || ''} onSave={(v) => updateMutation.mutate({ responsavel_email: v })} />
+            <InlineField label="WhatsApp" value={cliente.responsavel_whatsapp || ''} onSave={(v) => updateMutation.mutate({ responsavel_whatsapp: v })} />
           </div>
+        </TabsContent>
+
+        {/* Financeiro */}
+        <TabsContent value="financeiro">
+          <FinanceiroTab
+            clienteId={clienteId!}
+            clienteNome={cliente.nome_empresa}
+            clienteSegmento={cliente.segmento}
+            clienteFaixa={cliente.faturamento_faixa}
+          />
+        </TabsContent>
+
+        {/* KPIs */}
+        <TabsContent value="kpis">
+          <KPIsTab clienteId={clienteId!} />
+        </TabsContent>
+
+        {/* Alertas */}
+        <TabsContent value="alertas">
+          <AlertasTab clienteId={clienteId!} clienteNome={cliente.nome_empresa} />
         </TabsContent>
 
         {/* Onboarding */}
@@ -333,7 +326,6 @@ export default function ClienteFichaPage() {
   );
 }
 
-// Inline editable field component
 function InlineField({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);

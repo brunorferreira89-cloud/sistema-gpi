@@ -50,17 +50,11 @@ const App = () => (
                 <Route path="/clientes" element={<ClientesPage />} />
                 <Route path="/clientes/:clienteId" element={<ClienteFichaPage />} />
                 <Route path="/kanban" element={<KanbanPage />} />
-                <Route path="/torre-de-controle" element={<TorrePage />} />
-                <Route path="/importacao-nibo" element={<ImportacaoNiboPage />} />
-                <Route path="/kpis" element={<KPIsPage />} />
-                <Route path="/alertas" element={<AlertasPage />} />
                 <Route path="/reunioes" element={<ReunioesPage />} />
                 <Route path="/reuniao-coletiva" element={<ReuniaoColetivaPrincipalPage />} />
                 <Route path="/reuniao-coletiva/:id" element={<ReuniaoColetivDetalhe />} />
                 <Route path="/diagnostico" element={<DiagnosticoLeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
-                <Route path="/plano-de-contas" element={<PlanoDeContasPage />} />
-                <Route path="/plano-de-contas/:clienteId" element={<PlanoDeContasClientePage />} />
               </Route>
             </Route>
 
