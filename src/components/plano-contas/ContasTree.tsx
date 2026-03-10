@@ -317,14 +317,11 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis]}
       >
         <div style={{ boxShadow: 'none' }}>
           <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
             {tree.map(grupo => (
-              <SortableRow key={grupo.id} id={grupo.id} nivel={0}>
-                {(dragListeners: any) => renderGrupo(grupo, dragListeners)}
-              </SortableRow>
+              <SortableRow key={grupo.id} id={grupo.id} renderContent={(dragListeners) => renderGrupo(grupo, dragListeners)} />
             ))}
           </SortableContext>
         </div>
