@@ -393,6 +393,14 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
           </div>
         )}
       </div>
+      </div>
+
+      <style>{`
+        @keyframes modalEnter {
+          from { opacity: 0; transform: scale(0.96) translateY(8px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </>
   );
 }
