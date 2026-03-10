@@ -792,6 +792,17 @@ export function TorreControleTab({ clienteId }: Props) {
           </>
         )}
       </div>
+
+      <SugestaoMetasDrawer
+        open={drawerSugestaoOpen}
+        onClose={() => setDrawerSugestaoOpen(false)}
+        cliente={cliente || null}
+        competencia={competencia}
+        sugestoes={sugestoes}
+        metasExistentes={metaMap}
+        onAplicar={handleAplicarSugestoes}
+        loading={loadingSugestao}
+      />
     </div>
   );
 }
