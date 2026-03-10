@@ -133,7 +133,7 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
         .eq('id', importId);
       if (error) throw error;
 
-      toast.success('Importação excluída com sucesso. Valores realizados foram limpos.');
+      toast.success('Importação excluída permanentemente. Dados da competência foram removidos.');
       onComplete();
     } catch (err) {
       console.error('Erro ao excluir importação:', err);
