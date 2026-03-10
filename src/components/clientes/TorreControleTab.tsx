@@ -617,11 +617,11 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
           {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayAnt != null ? (displayAnt < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 110 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 110 }}>
             {fmtTorre(displayAnt)}
           </td>
           {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayReal != null ? (displayReal < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
             {fmtTorre(displayReal)}
           </td>
           {/* Meta */}
