@@ -176,6 +176,15 @@ export default function ClientesPage() {
                       <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${st.bg} ${st.text}`}>
                         {statusLabels[cliente.status] || cliente.status}
                       </span>
+                      {clientesComKpiPendente.has(cliente.id) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/clientes/${cliente.id}?tab=configuracao`); }}
+                          className="inline-block rounded px-1.5 py-0.5 text-[11px] font-medium hover:opacity-80 transition-opacity"
+                          style={{ background: '#D977061A', color: '#D97706' }}
+                        >
+                          ⚠ KPIs pendentes
+                        </button>
+                      )}
                     </div>
                   </div>
                   <BookOpen className={`h-4 w-4 ${hasContas ? 'text-green' : 'text-amber'}`} />
