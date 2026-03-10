@@ -11,7 +11,6 @@ import {
   closestCenter,
   PointerSensor,
   useSensor,
-  useSensor,
   useSensors,
   type DragEndEvent,
   DragOverlay,
