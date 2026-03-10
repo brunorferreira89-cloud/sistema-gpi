@@ -216,6 +216,36 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
         )}
       </div>
 
+      {/* Dados órfãos */}
+      {orphanComps && orphanComps.length > 0 && (
+        <Alert variant="destructive" className="border-amber/30 bg-amber/5 text-foreground">
+          <AlertTriangle className="h-4 w-4 !text-amber" />
+          <AlertTitle className="text-amber">Dados sem registro de importação</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p className="text-sm text-txt-sec">
+              Foram encontrados dados financeiros para as competências abaixo, porém sem registro correspondente no histórico de importações. Você pode excluí-los permanentemente.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {orphanComps.map((comp) => (
+                <div key={comp} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5">
+                  <span className="text-sm font-medium text-txt capitalize">{formatComp(comp)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={deletingOrphan === comp}
+                    onClick={() => handleDeleteOrphan(comp)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    {deletingOrphan === comp ? 'Excluindo...' : 'Excluir'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Plano de Contas */}
       <Collapsible open={planoOpen} onOpenChange={setPlanoOpen}>
         <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 text-left hover:bg-surface-hi">
