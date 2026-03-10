@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen } from 'lucide-react';
+import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen, AlertTriangle } from 'lucide-react';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { getCompetenciaAtual } from '@/lib/plano-contas-utils';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 const competencias = getCompetenciaOptions();
 
@@ -66,6 +68,54 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
     enabled: !!contas?.length,
   });
 
+  // Detect orphan competencias (data exists but no import record)
+  const { data: orphanComps, refetch: refetchOrphans } = useQuery({
+    queryKey: ['orphan-competencias', clienteId],
+    enabled: !!contas?.length,
+    queryFn: async () => {
+      const contaIds = contas!.map((c) => c.id);
+      const { data: valRows } = await supabase
+        .from('valores_mensais')
+        .select('competencia')
+        .in('conta_id', contaIds)
+        .not('valor_realizado', 'is', null);
+      if (!valRows?.length) return [];
+      const compsWithData = [...new Set(valRows.map((r) => r.competencia))];
+      const importedComps = new Set((historico || []).map((h: any) => h.competencia));
+      return compsWithData.filter((c) => !importedComps.has(c)).sort();
+    },
+  });
+
+  const [deletingOrphan, setDeletingOrphan] = useState<string | null>(null);
+
+  const handleDeleteOrphan = async (comp: string) => {
+    setDeletingOrphan(comp);
+    try {
+      const contaIds = contas!.map((c) => c.id);
+      const { error } = await supabase
+        .from('valores_mensais')
+        .delete()
+        .in('conta_id', contaIds)
+        .eq('competencia', comp);
+      if (error) throw error;
+      toast.success(`Dados da competência ${formatComp(comp)} excluídos com sucesso.`);
+      refetchOrphans();
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais-torre'] });
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais-dre'] });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir dados órfãos.');
+    } finally {
+      setDeletingOrphan(null);
+    }
+  };
+
+  const formatComp = (comp: string) => {
+    const [y, m] = comp.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
   const hasContas = contas && contas.length > 0;
   const compLabel = competencias.find((c) => c.value === competencia)?.label || '';
 
@@ -80,6 +130,7 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
     queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
     queryClient.invalidateQueries({ queryKey: ['valores-mensais-torre'] });
     queryClient.invalidateQueries({ queryKey: ['valores-mensais-dre'] });
+    refetchOrphans();
     setActionDialog(null);
   };
 
@@ -164,6 +215,36 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
           </div>
         )}
       </div>
+
+      {/* Dados órfãos */}
+      {orphanComps && orphanComps.length > 0 && (
+        <Alert variant="destructive" className="border-amber/30 bg-amber/5 text-foreground">
+          <AlertTriangle className="h-4 w-4 !text-amber" />
+          <AlertTitle className="text-amber">Dados sem registro de importação</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p className="text-sm text-txt-sec">
+              Foram encontrados dados financeiros para as competências abaixo, porém sem registro correspondente no histórico de importações. Você pode excluí-los permanentemente.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {orphanComps.map((comp) => (
+                <div key={comp} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5">
+                  <span className="text-sm font-medium text-txt capitalize">{formatComp(comp)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={deletingOrphan === comp}
+                    onClick={() => handleDeleteOrphan(comp)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    {deletingOrphan === comp ? 'Excluindo...' : 'Excluir'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Plano de Contas */}
       <Collapsible open={planoOpen} onOpenChange={setPlanoOpen}>
