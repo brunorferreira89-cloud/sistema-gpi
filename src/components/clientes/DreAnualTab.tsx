@@ -776,37 +776,8 @@ export function DreAnualTab({ clienteId }: Props) {
         </div>
       </div>
 
-      {/* Benchmark Legend — dynamic from benchmark_configuracoes */}
-      {hasContas && hasAnyData && showAV && benchmarkConfigsData && benchmarkConfigsData.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5" style={{ borderColor: '#DDE4F0', background: '#F6F9FF' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Benchmarks AV%
-          </span>
-          {benchmarkConfigsData.map(cfg => {
-            const conta = contas?.find(c => c.id === cfg.conta_id);
-            if (!conta) return null;
-            const name = conta.nome.replace(/^\([+-]\)\s*/, '');
-            const isMenor = cfg.direcao === 'menor_melhor';
-            return (
-              <span key={cfg.id} className="flex items-center gap-3" style={{ fontSize: 11 }}>
-                <span className="inline-flex items-center gap-1">
-                  <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#00A86B" /></svg>
-                  <span style={{ fontWeight: 500, color: '#4A5E80' }}>{name} {isMenor ? '<' : '>'} {cfg.limite_verde}%</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#D97706" /></svg>
-                  <span style={{ color: '#8A9BBC' }}>{isMenor ? `${cfg.limite_verde}–${cfg.limite_ambar}%` : `${cfg.limite_ambar}–${cfg.limite_verde}%`}</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#DC2626" /></svg>
-                  <span style={{ color: '#8A9BBC' }}>{isMenor ? '>' : '<'} {cfg.limite_ambar}%</span>
-                </span>
-                <span style={{ width: 1, height: 14, background: '#DDE4F0' }} />
-              </span>
-            );
-          })}
-        </div>
-      )}
+
+
 
       {/* Empty states */}
       {!hasContas && (
