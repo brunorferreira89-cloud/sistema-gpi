@@ -34,21 +34,34 @@ function deveIgnorar(nome: string): boolean {
   return LINHAS_IGNORADAS.some((ig) => lower === ig || lower.startsWith(ig));
 }
 
+/** Normalise a name for comparison: remove prefix, trim, lowercase, strip accents */
+function normalizar(nome: string): string {
+  return nome
+    .replace(/^\s*\([+-]\)\s*/, '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 /**
- * A real category has mixed case after removing prefix.
- * Totalizers (groups/subgroups) are ALL UPPERCASE.
+ * Check if a line is a real category.
+ * When contasDoPlano is provided, match against the plan (preferred).
+ * Otherwise fall back to case-based heuristic.
  */
-function isCategoriaReal(nome: string | null | undefined): boolean {
+function isCategoriaReal(nome: string | null | undefined, nomesNormalizados?: Set<string>): boolean {
   if (!nome || nome.trim() === '') return false;
-  // Remove prefix (+) or (-)
+
+  // If we have the plan, use direct matching
+  if (nomesNormalizados) {
+    return nomesNormalizados.has(normalizar(nome));
+  }
+
+  // Fallback: heuristic (mixed case = real category)
   const semPrefixo = nome.replace(/^\s*\([+-]\)\s*/, '').trim();
-  // Extract only letters (ignore numbers, spaces, hyphens, symbols)
   const apenasLetras = semPrefixo.replace(/[^a-zA-ZÀ-ú]/g, '');
-  // No letters → skip
   if (apenasLetras.length === 0) return false;
-  // All uppercase → totalizer → skip
   if (apenasLetras === apenasLetras.toUpperCase()) return false;
-  // Has at least one lowercase letter → real category → import
   return true;
 }
 
@@ -71,7 +84,17 @@ export function mesAbrevParaNomeCompleto(abrev: string, ano: number): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-export function parseValoresNibo(file: File): Promise<ResultadoParseValores> {
+/**
+ * @param file The XLSX file to parse
+ * @param contasDoPlano Optional list of account names (nivel=2) from plano_de_contas.
+ *   When provided, only lines matching a plan account are imported (replaces heuristic).
+ */
+export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<ResultadoParseValores> {
+  // Pre-build normalised set for fast lookup
+  const nomesNormalizados = contasDoPlano
+    ? new Set(contasDoPlano.map(n => normalizar(n)))
+    : undefined;
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -135,7 +158,7 @@ export function parseValoresNibo(file: File): Promise<ResultadoParseValores> {
           if (!nomeOriginal) continue;
           if (deveIgnorar(nomeOriginal)) continue;
           if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix (+) or (-)
-          if (!isCategoriaReal(nomeOriginal)) continue; // Skip totalizers (all uppercase)
+          if (!isCategoriaReal(nomeOriginal, nomesNormalizados)) continue;
 
           const valoresRow: Record<string, number> = {};
           for (let mi = 0; mi < mesesDisponiveis.length; mi++) {

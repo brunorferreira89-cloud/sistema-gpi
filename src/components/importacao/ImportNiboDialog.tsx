@@ -70,7 +70,7 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
   const handleFile = useCallback(async (file: File) => {
     setIsUploading(true);
     try {
-      const result = await parseValoresNibo(file);
+      const result = await parseValoresNibo(file, contas.map(c => c.nome));
       if (!result.valido) {
         toast.error(result.erro || 'Erro ao processar arquivo');
         return;
