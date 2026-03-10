@@ -199,7 +199,8 @@ export function DreAnualTab({ clienteId }: Props) {
         if (c.tipo === 'receita') {
           const v = valoresMap[c.id]?.[m.value];
           if (v != null) {
-            total += hasPrefixMinus(c.nome) ? -Math.abs(v) : Math.abs(v);
+            // Value already signed correctly from DB
+            total += v;
           }
         }
       }
