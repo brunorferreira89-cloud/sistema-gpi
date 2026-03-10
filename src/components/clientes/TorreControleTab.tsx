@@ -416,17 +416,15 @@ export function TorreControleTab({ clienteId }: Props) {
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
-      const ant = anteriorMap[c.id];
-      if (!meta || meta.meta_valor === null || ant == null) continue;
-      const realizado = realizadoMap[c.id];
-      if (realizado == null) continue;
-      const projetado = calcProjetado(ant, meta);
+      const base = realizadoMap[c.id];
+      if (!meta || meta.meta_valor === null || base == null) continue;
+      const projetado = calcProjetado(base, meta);
       const isReceita = c.tipo === 'receita';
-      const s = calcStatus(realizado, projetado, isReceita);
+      const s = calcStatus(base, projetado, isReceita);
       if (s === 'ok' || s === 'atencao' || s === 'critico') counts[s]++;
     }
     return counts;
-  }, [contas, metaMap, anteriorMap, realizadoMap]);
+  }, [contas, metaMap, realizadoMap]);
 
   // ── GC projetado ──────────────────────────────────────────────
   const gcProjetado = useMemo(() => {
