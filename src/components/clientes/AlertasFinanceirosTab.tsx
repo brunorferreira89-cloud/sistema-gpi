@@ -90,12 +90,12 @@ function gerarAlertas(kpi: KpiData): Alerta[] {
   }
 
   // Margem de segurança (ponto de equilíbrio)
-  if (kpi.ms_pct != null && kpi.ms_pct < 0) {
+  if (kpi.safety_margin_pct != null && kpi.safety_margin_pct < 0) {
     alertas.push({
       tipo: 'critico',
       titulo: 'Faturamento abaixo do ponto de equilíbrio',
       descricao: `A empresa está operando abaixo do ponto de equilíbrio. É necessário aumentar o faturamento ou reduzir custos fixos.`,
-      valor: `${kpi.ms_pct.toFixed(1)}%`,
+      valor: `${kpi.safety_margin_pct.toFixed(1)}%`,
     });
   }
 
