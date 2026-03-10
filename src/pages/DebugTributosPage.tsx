@@ -1,155 +1,96 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const CLIENTE_REGALO_ID = '9911afed-7508-42db-92ab-86397f4a95ad';
-const ANO = '2026';
-const NOMES_ALVO = ['Simples Nacional', 'ICMS', 'Parcelamento de Tributos'];
+const CLIENTE_ID = '9911afed-7508-42db-92ab-86397f4a95ad';
+
+interface Row {
+  conta_id: string;
+  competencia: string;
+  valor_realizado: number | null;
+  nome: string;
+  nivel: number;
+}
 
 export default function DebugTributosPage() {
-  const [contasTributos, setContasTributos] = useState<any[]>([]);
-  const [valoresPorConta, setValoresPorConta] = useState<Record<string, any[]>>({});
-  const [valoresSemFiltro, setValoresSemFiltro] = useState<Record<string, any[]>>({});
-  const [totalValores, setTotalValores] = useState<number | null>(null);
-  const [ultimaImportacao, setUltimaImportacao] = useState<any>(null);
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function run() {
       setLoading(true);
 
-      // 1. Buscar todas as contas do cliente
-      const { data: todasContas } = await supabase
+      // Get all contas for this client
+      const { data: contas } = await supabase
         .from('plano_de_contas')
-        .select('id, nome, nivel, conta_pai_id, ordem, tipo')
-        .eq('cliente_id', CLIENTE_REGALO_ID)
-        .order('ordem');
+        .select('id, nome, nivel')
+        .eq('cliente_id', CLIENTE_ID);
 
-      // Filtrar tributos
-      const tributos = (todasContas || []).filter(c =>
-        c.nome.toUpperCase().includes('TRIBUT') ||
-        c.nome.toUpperCase().includes('SIMPLES') ||
-        c.nome.toUpperCase().includes('ICMS')
-      );
-      setContasTributos(tributos);
+      if (!contas?.length) { setLoading(false); return; }
 
-      // 2. Buscar valores (com filtro not null) para cada conta encontrada
-      const map: Record<string, any[]> = {};
-      for (const c of tributos) {
-        const { data } = await supabase
-          .from('valores_mensais')
-          .select('conta_id, competencia, valor_realizado')
-          .eq('conta_id', c.id)
-          .gte('competencia', `${ANO}-01-01`)
-          .lte('competencia', `${ANO}-12-31`)
-          .order('competencia');
-        map[c.id] = data || [];
-      }
-      setValoresPorConta(map);
+      const contaMap = new Map(contas.map(c => [c.id, c]));
+      const contaIds = contas.map(c => c.id);
 
-      // 2b. Buscar valores SEM filtro de null para as 3 contas-alvo
-      const contasAlvo = tributos.filter(c =>
-        NOMES_ALVO.some(n => c.nome.toLowerCase().includes(n.toLowerCase()))
-      );
-      const mapSemFiltro: Record<string, any[]> = {};
-      for (const c of contasAlvo) {
-        const { data } = await supabase
-          .from('valores_mensais')
-          .select('conta_id, competencia, valor_realizado')
-          .eq('conta_id', c.id)
-          .gte('competencia', `${ANO}-01-01`)
-          .lte('competencia', `${ANO}-12-31`)
-          .order('competencia');
-        mapSemFiltro[c.id] = data || [];
-      }
-      setValoresSemFiltro(mapSemFiltro);
+      // Get all valores_mensais with non-null valor
+      const { data: valores } = await supabase
+        .from('valores_mensais')
+        .select('conta_id, competencia, valor_realizado')
+        .in('conta_id', contaIds)
+        .not('valor_realizado', 'is', null)
+        .order('competencia');
 
-      // 3. Total de registros em valores_mensais para o cliente em 2026
-      const contaIds = (todasContas || []).map(c => c.id);
-      if (contaIds.length > 0) {
-        const { data: allVals } = await supabase
-          .from('valores_mensais')
-          .select('id')
-          .in('conta_id', contaIds)
-          .gte('competencia', `${ANO}-01-01`)
-          .lte('competencia', `${ANO}-12-31`);
-        setTotalValores(allVals?.length ?? 0);
-      }
+      const joined: Row[] = (valores || []).map(v => {
+        const c = contaMap.get(v.conta_id);
+        return {
+          conta_id: v.conta_id,
+          competencia: v.competencia,
+          valor_realizado: v.valor_realizado,
+          nome: c?.nome ?? '???',
+          nivel: c?.nivel ?? -1,
+        };
+      }).sort((a, b) => a.nivel - b.nivel || a.nome.localeCompare(b.nome) || a.competencia.localeCompare(b.competencia));
 
-      // 4. Última importação do cliente
-      const { data: impData } = await supabase
-        .from('importacoes_nibo')
-        .select('*')
-        .eq('cliente_id', CLIENTE_REGALO_ID)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      setUltimaImportacao(impData?.[0] ?? null);
-
+      setRows(joined);
       setLoading(false);
     }
     run();
   }, []);
 
-  if (loading) return <div style={{ padding: 32 }}>Carregando diagnóstico...</div>;
+  if (loading) return <div style={{ padding: 32 }}>Carregando...</div>;
 
-  const contasAlvo = contasTributos.filter(c =>
-    NOMES_ALVO.some(n => c.nome.toLowerCase().includes(n.toLowerCase()))
-  );
+  // Contagem por nivel
+  const countByNivel: Record<number, number> = {};
+  rows.forEach(r => { countByNivel[r.nivel] = (countByNivel[r.nivel] || 0) + 1; });
+
+  // Insumos
+  const insumos = rows.filter(r => r.nome.toLowerCase().includes('insumo'));
 
   return (
-    <div style={{ padding: 32, fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap' }}>
-      <h2>DEBUG TRIBUTOS — Cliente Regalo ({CLIENTE_REGALO_ID})</h2>
+    <div style={{ padding: 32, fontFamily: 'monospace', fontSize: 12, whiteSpace: 'pre-wrap' }}>
+      <h2>DEBUG — valores_mensais com JOIN plano_de_contas</h2>
+      <p>Cliente: {CLIENTE_ID}</p>
       <hr />
 
-      <h3>1. Contas com nome TRIBUT/SIMPLES/ICMS ({contasTributos.length} encontradas)</h3>
-      {contasTributos.map(c => (
-        <div key={c.id}>
-          id: {c.id} | nome: {c.nome} | nivel: {c.nivel} | conta_pai_id: {c.conta_pai_id} | tipo: {c.tipo} | ordem: {c.ordem}
+      <h3>1. Contagem por nivel (total: {rows.length} registros não-null)</h3>
+      {Object.entries(countByNivel).sort(([a],[b]) => Number(a)-Number(b)).map(([n, count]) => (
+        <div key={n}>nivel={n}: {count} registros</div>
+      ))}
+
+      <hr />
+      <h3>2. Contas INSUMOS ({insumos.length} registros)</h3>
+      {insumos.length === 0 && <div>Nenhum registro encontrado</div>}
+      {insumos.map((r, i) => (
+        <div key={i}>
+          nivel={r.nivel} | {r.nome} | {r.competencia} | valor={r.valor_realizado}
         </div>
       ))}
 
       <hr />
-      <h3>2. Valores mensais para cada conta acima (ano {ANO}) — filtro padrão</h3>
-      {contasTributos.map(c => (
-        <div key={c.id} style={{ marginBottom: 16 }}>
-          <strong>{c.nome} ({c.id}):</strong>
-          {valoresPorConta[c.id]?.length === 0 && ' NENHUM VALOR ENCONTRADO'}
-          {valoresPorConta[c.id]?.map((v, i) => (
-            <div key={i}>  competencia: {v.competencia} | valor_realizado: {v.valor_realizado}</div>
-          ))}
+      <h3>3. Todos os registros ({rows.length})</h3>
+      {rows.map((r, i) => (
+        <div key={i}>
+          nivel={r.nivel} | {r.nome} | {r.competencia} | valor={r.valor_realizado}
         </div>
       ))}
-
-      <hr />
-      <h3>2b. Valores SEM filtro de null — contas-alvo ({contasAlvo.length} contas)</h3>
-      {contasAlvo.map(c => (
-        <div key={c.id} style={{ marginBottom: 16 }}>
-          <strong>{c.nome} ({c.id}):</strong>
-          {(valoresSemFiltro[c.id]?.length ?? 0) === 0 && ' NENHUM REGISTRO'}
-          {valoresSemFiltro[c.id]?.map((v, i) => (
-            <div key={i}>  competencia: {v.competencia} | valor_realizado: {v.valor_realizado === null ? 'NULL' : v.valor_realizado}</div>
-          ))}
-        </div>
-      ))}
-
-      <hr />
-      <h3>3. Total de registros em valores_mensais do cliente em {ANO}: {totalValores}</h3>
-
-      <hr />
-      <h3>4. Última importação Nibo do cliente</h3>
-      {ultimaImportacao ? (
-        <div>
-          id: {ultimaImportacao.id}{'\n'}
-          created_at: {ultimaImportacao.created_at}{'\n'}
-          competencia: {ultimaImportacao.competencia}{'\n'}
-          arquivo_nome: {ultimaImportacao.arquivo_nome}{'\n'}
-          status: {ultimaImportacao.status}{'\n'}
-          total_contas_importadas: {ultimaImportacao.total_contas_importadas}{'\n'}
-          total_contas_nao_mapeadas: {ultimaImportacao.total_contas_nao_mapeadas}{'\n'}
-          observacao: {ultimaImportacao.observacao}
-        </div>
-      ) : (
-        <div>NENHUMA IMPORTAÇÃO ENCONTRADA</div>
-      )}
     </div>
   );
 }
