@@ -636,7 +636,7 @@ export function TorreControleTab({ clienteId }: Props) {
             />
           </td>
           {/* Projetado */}
-          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? C.txtSec : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
             {fmtTorre(projetado)}
           </td>
           {/* Status */}
