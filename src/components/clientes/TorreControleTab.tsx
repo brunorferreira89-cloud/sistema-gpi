@@ -547,45 +547,59 @@ export function TorreControleTab({ clienteId }: Props) {
     const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
 
     const hasMeta = meta && meta.meta_valor !== null;
-    const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
+    const paddingLeft = isGrupo ? 16 : isSubgrupo ? 28 : (hasMeta ? 38 : 40);
 
     // Styles
-    let rowBg = C.surface;
-    let fontWeight = 400;
-    let fontSize = 12;
-    let textColor = C.txtSec;
-    let borderLeft = 'none';
+    let rowBg = hasMeta ? '#FFFFFF' : '#FAFCFF';
+    let fontWeight = hasMeta ? 500 : 400;
+    let fontSize = 11;
+    let textColor = hasMeta ? '#0D1B35' : '#4A5E80';
+    let borderLeft = hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
+    let borderTop = 'none';
+    let borderBottom = '1px solid rgba(221,228,240,0.4)';
+    let letterSpacing: string | undefined = undefined;
+    let textTransform: 'uppercase' | 'none' = 'none';
 
     if (isTotal) {
-      rowBg = `linear-gradient(90deg, ${C.pLo}, ${C.cyanLo})`;
+      rowBg = 'rgba(26,60,255,0.05)';
       fontWeight = 800;
-      fontSize = 13;
-      textColor = C.primary;
-      borderLeft = `3px solid transparent`;
-      // Use gradient border via box-shadow trick
-    } else if (isGrupo) {
-      rowBg = hasMeta ? C.pLo : C.surface;
-      fontWeight = 700;
       fontSize = 12;
-      textColor = C.txt;
-      borderLeft = hasMeta ? `3px solid ${C.primary}` : 'none';
+      textColor = '#1A3CFF';
+      borderLeft = 'none';
+      borderTop = '2px solid rgba(26,60,255,0.12)';
+      borderBottom = '2px solid rgba(26,60,255,0.12)';
+    } else if (isGrupo) {
+      rowBg = 'rgba(26,60,255,0.03)';
+      fontWeight = 700;
+      fontSize = 11;
+      textColor = '#0D1B35';
+      borderLeft = 'none';
+      borderTop = '1px solid #DDE4F0';
+      borderBottom = '1px solid #DDE4F0';
+      letterSpacing = '0.03em';
+      textTransform = 'uppercase';
     } else if (isSubgrupo) {
-      rowBg = C.surfaceHi;
+      rowBg = '#FFFFFF';
       fontWeight = 600;
-      textColor = C.txt;
-      borderLeft = hasMeta ? `3px solid rgba(0,153,230,0.33)` : 'none';
-    } else {
-      borderLeft = hasMeta ? `3px solid rgba(0,153,230,0.33)` : 'none';
+      fontSize = 12;
+      textColor = '#0D1B35';
+      borderLeft = 'none';
+      borderBottom = '1px solid rgba(221,228,240,0.6)';
     }
 
     return (
       <Fragment key={conta.id}>
-        <tr style={{
-          background: isTotal ? undefined : rowBg,
-          backgroundImage: isTotal ? `linear-gradient(90deg, ${C.pLo}, ${C.cyanLo})` : undefined,
-          borderBottom: `1px solid ${isGrupo ? C.borderStr : C.border}`,
-          borderLeft,
-        }}>
+        <tr
+          style={{
+            background: rowBg,
+            borderTop,
+            borderBottom,
+            borderLeft,
+            transition: 'background 0.1s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,60,255,0.02)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
+        >
           {/* Expand */}
           <td style={{ width: 24, padding: '0 4px', textAlign: 'center' }}>
             {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
@@ -595,19 +609,19 @@ export function TorreControleTab({ clienteId }: Props) {
             ) : null}
           </td>
           {/* Nome */}
-          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360 }}>
+          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360, letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
               {hasMeta && !isTotal && !isSubgrupo && !isCat && <span style={{ color: C.primary, fontSize: 6 }}>●</span>}
-              {isGrupo && !isTotal ? conta.nome.toUpperCase() : conta.nome}
+              {conta.nome}
             </span>
           </td>
           {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: isTotal ? 13 : 12, fontWeight: isTotal ? 800 : 400, color: displayAnt != null ? (displayAnt < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 110, borderLeft: isSubgrupo || isCat ? `1px solid ${C.borderStr}` : 'none' }}>
+          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayAnt != null ? (displayAnt < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 110 }}>
             {fmtTorre(displayAnt)}
           </td>
           {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: isTotal ? 13 : 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayReal != null ? (displayReal < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayReal != null ? (displayReal < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 120 }}>
             {fmtTorre(displayReal)}
           </td>
           {/* Meta */}
@@ -622,7 +636,7 @@ export function TorreControleTab({ clienteId }: Props) {
             />
           </td>
           {/* Projetado */}
-          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: isTotal ? 13 : 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? C.txtSec : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? C.txtSec : C.txtMuted, padding: '8px 10px', width: 120 }}>
             {fmtTorre(projetado)}
           </td>
           {/* Status */}
@@ -641,22 +655,22 @@ export function TorreControleTab({ clienteId }: Props) {
     const antVal = totaisAnt[key as keyof typeof totaisAnt];
 
     return (
-      <tr key={key} style={{ backgroundImage: `linear-gradient(90deg, ${C.pLo}, ${C.cyanLo})`, borderBottom: `2px solid ${C.borderStr}`, borderLeft: `3px solid ${C.primary}` }}>
+      <tr key={key} style={{ background: 'rgba(26,60,255,0.05)', borderTop: '2px solid rgba(26,60,255,0.12)', borderBottom: '2px solid rgba(26,60,255,0.12)' }}>
         <td style={{ width: 24 }} />
-        <td style={{ padding: '10px 8px 10px 12px', fontWeight: 800, fontSize: 13, color: C.primary }}>
+        <td style={{ padding: '10px 8px 10px 16px', fontWeight: 800, fontSize: 12, color: '#1A3CFF' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>
+            <span style={{ color: '#0099E6', fontSize: 13 }}>◈</span>
             {config.nome}
           </span>
         </td>
-        <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 13, fontWeight: 800, color: antVal < 0 ? C.red : C.green, padding: '10px 10px', width: 110 }}>
+        <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 800, color: antVal < 0 ? C.red : C.green, padding: '10px 10px', width: 110 }}>
           {fmtTorre(antVal)}
         </td>
-        <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 13, fontWeight: 800, color: realVal < 0 ? C.red : C.green, padding: '10px 10px', width: 120 }}>
+        <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 800, color: realVal < 0 ? C.red : C.green, padding: '10px 10px', width: 120 }}>
           {fmtTorre(realVal)}
         </td>
-        <td style={{ textAlign: 'right', padding: '10px 10px', width: 130, color: C.txtMuted, fontFamily: C.mono, fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '10px 10px', width: 120, color: C.txtMuted, fontFamily: C.mono, fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '10px 10px', width: 130, color: C.txtMuted, fontFamily: "'Courier New', monospace", fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '10px 10px', width: 120, color: C.txtMuted, fontFamily: "'Courier New', monospace", fontSize: 12 }}>—</td>
         <td style={{ width: 96 }} />
       </tr>
     );
@@ -791,14 +805,14 @@ export function TorreControleTab({ clienteId }: Props) {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
                   <thead>
-                    <tr style={{ backgroundImage: `linear-gradient(90deg, ${C.pLo}, ${C.cyanLo})` }}>
+                    <tr style={{ background: 'rgba(26,60,255,0.04)', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 8px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 130 }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
-                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 8, fontWeight: 700, color: C.primary, letterSpacing: '0.14em', width: 96 }}>STATUS</th>
+                      <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
+                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 130 }}>META</th>
+                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
+                      <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 96 }}>STATUS</th>
                     </tr>
                   </thead>
                   <tbody>
