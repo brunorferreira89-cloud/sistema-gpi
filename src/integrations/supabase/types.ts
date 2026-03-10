@@ -761,6 +761,54 @@ export type Database = {
           },
         ]
       }
+      torre_metas: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          conta_id: string
+          created_at: string | null
+          id: string
+          meta_tipo: string
+          meta_valor: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          conta_id: string
+          created_at?: string | null
+          id?: string
+          meta_tipo?: string
+          meta_valor?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          conta_id?: string
+          created_at?: string | null
+          id?: string
+          meta_tipo?: string
+          meta_valor?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "torre_metas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torre_metas_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_de_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treinamento_progresso: {
         Row: {
           cliente_id: string
