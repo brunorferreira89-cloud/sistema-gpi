@@ -45,6 +45,7 @@ interface SugestaoMetasDrawerProps {
   fromCache?: boolean;
   contas?: ContaRow[];
   realizadoMap?: Record<string, number | null>;
+  narrativa?: string | null;
 }
 
 // ── Colors ───────────────────────────────────────────────────────
