@@ -544,7 +544,7 @@ export function DreAnualTab({ clienteId }: Props) {
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
-        {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isReceita, bg: '#F6F9FF' })}
+        {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isReceita, isCategoria: true, contaId: node.conta.id, bg: '#F6F9FF' })}
         {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );

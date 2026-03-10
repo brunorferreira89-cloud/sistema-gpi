@@ -371,9 +371,9 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
 
           {tipoFonte === 'subgrupo' && (
             <div>
-              <Label className="text-xs">Subgrupos que compõem este indicador</Label>
+              <Label className="text-xs">Subgrupos e categorias que compõem este indicador</Label>
               <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 2 }}>
-                Selecione todos os subgrupos cujos valores são somados para calcular este indicador
+                Selecione subgrupos inteiros ou categorias individuais
               </p>
 
               {/* Selected pills */}
@@ -381,10 +381,19 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {selectedContaIds.map(id => {
                     const conta = contas.find(c => c.id === id);
+                    const isN1 = conta?.nivel === 1;
+                    const parentName = !isN1 && conta?.conta_pai_id ? contas.find(c => c.id === conta.conta_pai_id)?.nome.replace(/^\([+-]\)\s*/, '') : null;
+                    const label = isN1
+                      ? conta?.nome.replace(/^\([+-]\)\s*/, '') || id
+                      : `${parentName || ''} / ${conta?.nome.replace(/^\([+-]\)\s*/, '') || id}`;
                     return (
-                      <span key={id} className="inline-flex items-center gap-1 rounded" style={{ background: '#1A3CFF0F', color: '#1A3CFF', padding: '2px 8px', fontSize: 12 }}>
-                        {conta?.nome.replace(/^\([+-]\)\s*/, '') || id}
-                        <button onClick={() => toggleContaId(id)} className="hover:opacity-70"><X className="h-3 w-3" /></button>
+                      <span key={id} className="inline-flex items-center gap-1 rounded" style={{
+                        background: isN1 ? '#1A3CFF0F' : '#0099E60F',
+                        color: isN1 ? '#1A3CFF' : '#0099E6',
+                        padding: '2px 8px', fontSize: 12
+                      }}>
+                        {label}
+                        <button onClick={() => setSelectedContaIds(prev => prev.filter(x => x !== id))} className="hover:opacity-70"><X className="h-3 w-3" /></button>
                       </span>
                     );
                   })}
@@ -393,32 +402,61 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
                 <p style={{ fontSize: 12, color: '#8A9BBC', marginTop: 8 }}>Nenhum subgrupo selecionado</p>
               )}
 
-              {/* Checkbox list */}
+              {/* Hierarchical checkbox list */}
               <div className="mt-2 rounded-lg border overflow-y-auto" style={{ borderColor: '#DDE4F0', maxHeight: 200 }}>
-                {Object.entries(groupedSubgrupos).map(([tipo, subs]) => (
+                {Object.entries(contasTree).map(([tipo, items]) => (
                   <div key={tipo}>
                     <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.06em', background: '#F0F4FA', borderBottom: '1px solid #DDE4F0' }}>
                       {TIPO_LABELS[tipo] || tipo}
                     </div>
-                    {subs.map(s => {
-                      const isSelected = selectedContaIds.includes(s.id);
+                    {items.map(({ sub, children }) => {
+                      const subSelected = selectedContaIds.includes(sub.id);
                       return (
-                        <label
-                          key={s.id}
-                          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
-                          style={{
-                            borderBottom: '1px solid #F8F9FB',
-                            background: isSelected ? '#1A3CFF0F' : undefined,
-                            border: isSelected ? '1px solid #1A3CFF33' : undefined,
-                          }}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleContaId(s.id)}
-                            style={{ borderColor: isSelected ? '#1A3CFF' : undefined }}
-                          />
-                          <span style={{ fontSize: 13, color: '#0D1B35' }}>{s.nome.replace(/^\([+-]\)\s*/, '')}</span>
-                        </label>
+                        <div key={sub.id}>
+                          {/* N1 row */}
+                          <label
+                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
+                            style={{
+                              borderBottom: '1px solid #F8F9FB',
+                              background: subSelected ? '#1A3CFF0F' : undefined,
+                            }}
+                          >
+                            <Checkbox
+                              checked={subSelected}
+                              onCheckedChange={() => toggleContaId(sub.id)}
+                              style={{ borderColor: subSelected ? '#1A3CFF' : undefined }}
+                            />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#0D1B35' }}>{sub.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                          </label>
+                          {/* N2 children */}
+                          {children.map(cat => {
+                            const catSelected = selectedContaIds.includes(cat.id);
+                            const disabled = subSelected;
+                            return (
+                              <label
+                                key={cat.id}
+                                className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[#F6F9FF] transition-colors"
+                                style={{
+                                  paddingLeft: 36,
+                                  paddingRight: 12,
+                                  borderBottom: '1px solid #FAFBFD',
+                                  background: catSelected ? '#0099E60F' : undefined,
+                                  opacity: disabled ? 0.45 : 1,
+                                  cursor: disabled ? 'not-allowed' : 'pointer',
+                                }}
+                                title={disabled ? 'Já incluída via subgrupo pai' : undefined}
+                              >
+                                <Checkbox
+                                  checked={catSelected || disabled}
+                                  onCheckedChange={() => !disabled && toggleContaId(cat.id)}
+                                  disabled={disabled}
+                                  style={{ borderColor: catSelected ? '#0099E6' : undefined }}
+                                />
+                                <span style={{ fontSize: 12, color: '#4A5E80' }}>{cat.nome.replace(/^\([+-]\)\s*/, '')}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       );
                     })}
                   </div>
