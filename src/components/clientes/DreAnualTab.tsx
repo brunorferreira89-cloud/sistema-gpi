@@ -317,7 +317,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     }
 
     const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
-    const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId)) : null;
+    const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId), benchmarks) : null;
 
     return (
       <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right', background: baseBg }}>
