@@ -356,8 +356,8 @@ export function TorreControleTab({ clienteId }: Props) {
   });
 
   const invalidateMetas = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, competencia] });
-  }, [qc, clienteId, competencia]);
+    qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] });
+  }, [qc, clienteId, mesSeg]);
 
   // ── Maps ──────────────────────────────────────────────────────
   const realizadoMap = useMemo(() => {
