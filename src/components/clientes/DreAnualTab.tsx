@@ -88,10 +88,8 @@ function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | n
 
 function sumLeafsOfNode(node: DreNode, valMap: Record<string, number | null>): number | null {
   if (node.conta.nivel === 2) {
-    const raw = valMap[node.conta.id] ?? null;
-    if (raw == null) return null;
-    // Apply sign based on category prefix: (-) subtracts, (+) or no prefix adds
-    return hasPrefixMinus(node.conta.nome) ? -Math.abs(raw) : Math.abs(raw);
+    // Value is already signed correctly from DB (negative for deductions like Troco)
+    return valMap[node.conta.id] ?? null;
   }
   let total = 0;
   let hasAny = false;
