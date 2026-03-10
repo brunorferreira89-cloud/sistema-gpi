@@ -695,6 +695,7 @@ export function DreAnualTab({ clienteId }: Props) {
     const isExpense = ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(node.conta.tipo);
     let yearTotal = 0;
     let hasYearVal = false;
+    let yearFat = 0;
 
     return (
       <tr key={node.conta.id} style={{ background: '#F0F4FA', borderTop: '1px solid #C4CFEA', borderBottom: '1px solid #C4CFEA' }}>
