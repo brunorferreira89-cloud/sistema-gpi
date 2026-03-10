@@ -963,7 +963,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   onMouseEnter={e => { if (!modoMeta) e.currentTarget.style.background = '#E8EEF8'; }}
                   onMouseLeave={e => { if (!modoMeta) e.currentTarget.style.background = '#F0F4FA'; }}
                 >
-                  META
+                  CRIAÇÃO DE METAS
                 </button>
                 <button
                   style={toggleBtnStyle(modoAnaliseMeta)}
