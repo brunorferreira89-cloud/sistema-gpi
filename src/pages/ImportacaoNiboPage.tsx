@@ -165,6 +165,7 @@ export default function ImportacaoNiboPage() {
         <ImportActionDialog
           type={actionDialog.type}
           importId={actionDialog.importId}
+          clienteId={actionDialog.clienteId}
           currentCompetencia={actionDialog.currentCompetencia}
           competenciaOptions={competencias}
           onComplete={handleActionComplete}
