@@ -23,14 +23,14 @@ serve(async (req) => {
     if (!force) {
       const { data: cached } = await supabase
         .from("sugestoes_metas_ia")
-        .select("sugestoes, gerado_em")
+        .select("sugestoes, narrativa, gerado_em")
         .eq("cliente_id", cliente_id)
         .eq("competencia", competencia)
         .maybeSingle();
 
       if (cached) {
         const sugestoes = cached.sugestoes as any[];
-        return new Response(JSON.stringify({ sugestoes, competencia, total: sugestoes.length, cached: true, gerado_em: cached.gerado_em }), {
+        return new Response(JSON.stringify({ sugestoes, narrativa: cached.narrativa, competencia, total: sugestoes.length, cached: true, gerado_em: cached.gerado_em }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -161,7 +161,7 @@ GC: R$ ${fmt(gcReal)} (${pct(gcReal, fatReal)}%) | Mês ant: R$ ${fmt(gcAnt)} ($
 
 Sugira metas para TODOS os níveis (grupos, subgrupos e categorias) que tiverem valor realizado ≠ 0.`;
 
-    // Call Anthropic
+    // Call Anthropic for suggestions
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicKey) return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -194,7 +194,6 @@ Sugira metas para TODOS os níveis (grupos, subgrupos e categorias) que tiverem 
     try {
       parsed = JSON.parse(cleanedText);
     } catch {
-      // Attempt to repair truncated JSON array
       const lastBrace = cleanedText.lastIndexOf("}");
       if (lastBrace > 0) {
         const repairedJson = cleanedText.substring(0, lastBrace + 1) + "]";
@@ -209,13 +208,109 @@ Sugira metas para TODOS os níveis (grupos, subgrupos e categorias) que tiverem 
       }
     }
 
+    // ── Generate narrativa (Comandante GPI) ──────────────────────
+    const nomeEmpresa = nomeCliente;
+    const competenciaFormatada = fmtComp(competencia);
+    const sugestoesPadraoTexto = parsed.map((s: any) => {
+      const contaInfo = contas.find((c: any) => c.id === s.conta_id);
+      const nome = contaInfo?.nome || s.conta_nome || s.conta_id;
+      const metaLabel = s.meta_tipo === 'pct' ? `${s.meta_valor}%` : `R$ ${fmt(s.meta_valor)}`;
+      return `- ${nome}: meta ${metaLabel} (confiança: ${s.confianca})`;
+    }).join("\n");
+
+    const narrativaPrompt = `
+Você é o Comandante GPI — um comandante de aviação experiente que também
+é consultor financeiro de elite. Você fala com o dono do negócio como se
+ele fosse o DONO DO AVIÃO: a empresa é a aeronave, as finanças são os
+instrumentos de voo, e você é o comandante responsável por manter o voo
+seguro, estável e no rumo certo.
+
+Sua linguagem mistura terminologia real de aviação com consultoria financeira,
+de forma natural, criativa e muito fácil de entender. O dono do avião não
+precisa ser piloto — você explica tudo com clareza e confiança.
+
+EMPRESA (Aeronave): ${nomeEmpresa}
+MÊS ANALISADO (Última rota): ${competenciaFormatada}
+
+LEITURAS DOS INSTRUMENTOS (sugestões geradas):
+${sugestoesPadraoTexto}
+
+Escreva o RELATÓRIO DE VOO com estas seções OBRIGATÓRIAS,
+usando exatamente estes títulos em negrito:
+
+**Leitura dos Instrumentos**
+Descreva o diagnóstico do mês como se fosse a leitura dos painéis da cabine.
+O que os instrumentos estão indicando? Há alertas acesos? A aeronave está
+voando dentro da faixa segura? Seja direto, como um comandante passando
+o briefing antes da decolagem.
+
+**Destino e Altitude Alvo**
+Descreva o que queremos alcançar com as metas como se fosse o plano de voo:
+altitude ideal, rota mais eficiente, destino final. Conecte os resultados
+esperados à saúde financeira da empresa (geração de caixa, lucro, equilíbrio).
+
+**Por que estes ajustes nos controles**
+Explique a lógica dos percentuais sugeridos como ajustes nos controles da
+aeronave. Por que reduzir empuxo aqui? Por que aumentar altitude ali?
+Use benchmarks do setor como referência de altitude segura para aviões
+deste modelo (segmento).
+
+**Turbulências no caminho**
+Aponte os principais desafios como turbulências previstas na rota.
+Seja honesto, como um bom comandante que não esconde condições climáticas
+adversas, mas também não entra em pânico — turbulência faz parte do voo.
+
+**Checklist antes da decolagem**
+2 a 3 ações concretas e práticas que o dono do avião deve executar
+esta semana, no estilo checklist de cabine: direto, numerado, sem enrolação.
+
+REGRAS DE ESCRITA:
+- Use termos de aviação de forma natural e criativa (instrumentos, altitude,
+  rota, cabine, checklist, decolagem, pouso, turbulência, radar, vento
+  contrário, combustível, carga, centro de gravidade, velocidade de cruzeiro,
+  ponto de estol, etc.)
+- Linguagem acessível — o dono do avião entende mesmo sem saber pilotar
+- Parágrafos curtos (máximo 4 linhas)
+- Tom: comandante experiente, confiante, direto, com leveza e bom humor sutil
+- NÃO use bullet points dentro das seções — apenas parágrafos corridos
+- NÃO mencione nomes de sistemas, planilhas ou ferramentas
+- NÃO quebre o personagem em nenhum momento
+- Máximo 480 palavras no total
+`;
+
+    let narrativa: string | null = null;
+    try {
+      const narrativaResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: narrativaPrompt }],
+        }),
+      });
+
+      if (narrativaResponse.ok) {
+        const narrativaData = await narrativaResponse.json();
+        narrativa = narrativaData.content?.[0]?.text || null;
+      } else {
+        console.error("Narrativa generation failed:", narrativaResponse.status);
+      }
+    } catch (e) {
+      console.error("Narrativa generation error:", e);
+    }
+
     // Save to cache
     await supabase.from("sugestoes_metas_ia").upsert(
-      { cliente_id, competencia, sugestoes: parsed, gerado_em: new Date().toISOString() },
+      { cliente_id, competencia, sugestoes: parsed, narrativa, gerado_em: new Date().toISOString() },
       { onConflict: "cliente_id,competencia" }
     );
 
-    return new Response(JSON.stringify({ sugestoes: parsed, competencia, total: parsed.length, cached: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ sugestoes: parsed, narrativa, competencia, total: parsed.length, cached: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("sugerir-metas error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
