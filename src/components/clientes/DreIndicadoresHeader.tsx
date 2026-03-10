@@ -415,7 +415,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
                   activeDot={{ r: 6 }}
                   animationDuration={600}
                 />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           )}
         </div>
