@@ -19,7 +19,7 @@ export function OnboardingTab({ clienteId }: Props) {
   const [openSemanas, setOpenSemanas] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true, 4: true });
 
   const { data: items = [] } = useQuery({
-    queryKey: ['onboarding', clienteId],
+    queryKey: ['onboarding-items', clienteId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('onboarding_checklist' as any)
