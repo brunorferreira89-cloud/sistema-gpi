@@ -702,6 +702,7 @@ export function TorreControleTab({ clienteId }: Props) {
         </td>
         <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td />
       </tr>
     );
