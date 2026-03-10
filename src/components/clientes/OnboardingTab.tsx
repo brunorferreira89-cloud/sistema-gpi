@@ -19,7 +19,7 @@ export function OnboardingTab({ clienteId }: Props) {
   const [openSemanas, setOpenSemanas] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true, 4: true });
 
   const { data: items = [] } = useQuery({
-    queryKey: ['onboarding', clienteId],
+    queryKey: ['onboarding-items', clienteId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('onboarding_checklist' as any)
@@ -45,6 +45,7 @@ export function OnboardingTab({ clienteId }: Props) {
       if (error) throw error;
     },
     onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['onboarding-items', clienteId] });
       queryClient.invalidateQueries({ queryKey: ['onboarding', clienteId] });
       // Check if it's the critical item (semana 4, ordem 2)
       if (vars.concluido && vars.semana === 4 && vars.ordem === 2) {
