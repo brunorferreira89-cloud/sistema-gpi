@@ -349,6 +349,42 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
           onCancel={() => setActionDialog(null)}
         />
       )}
+
+      {/* Delete plano dialog */}
+      <AlertDialog open={deletePlanoOpen} onOpenChange={setDeletePlanoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <ShieldAlert className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Apagar plano de contas</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-2">
+              <p>Você está prestes a excluir <strong>todo o plano de contas</strong> deste cliente, incluindo:</p>
+              <ul className="list-disc pl-5 text-sm space-y-1">
+                <li>Todas as contas ({contas?.length || 0} registros)</li>
+                <li>Todos os valores financeiros importados</li>
+                <li>Todo o histórico de importações</li>
+              </ul>
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span><strong>Atenção:</strong> Esta ação é irreversível. Após a exclusão, será necessário reimportar o plano a partir do arquivo do Nibo.</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingPlano}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePlano}
+              disabled={deletingPlano}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingPlano ? 'Excluindo...' : 'Sim, apagar tudo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
