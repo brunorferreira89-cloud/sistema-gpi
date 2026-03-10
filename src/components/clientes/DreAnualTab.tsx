@@ -302,7 +302,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return valoresAnuais?.some((v) => v.valor_realizado != null) ?? false;
   }, [valoresAnuais]);
 
-  // --- Filter: which leaf contas have at least one value in the year ---
+  // --- Filter: which contas have at least one non-null value in the year ---
   const contasComValor = useMemo(() => {
     const set = new Set<string>();
     valoresAnuais?.forEach((v) => {
@@ -311,27 +311,11 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return set;
   }, [valoresAnuais]);
 
-  // --- DIAGNOSTIC LOGS (temporary) ---
-  useMemo(() => {
-    console.log('TOTAL valores no ano:', valoresAnuais?.length);
-    console.log('Amostra:', valoresAnuais?.slice(0, 5));
-    const tributos = contas?.filter(c =>
-      c.nome.toUpperCase().includes('TRIBUTO') ||
-      c.nome.toUpperCase().includes('SIMPLES') ||
-      c.nome.toUpperCase().includes('ICMS')
-    );
-    console.log('Contas TRIBUTOS encontradas:', tributos);
-    tributos?.forEach(c => {
-      const valores = valoresAnuais?.filter(v => v.conta_id === c.id);
-      console.log(`Conta ${c.nome} (${c.id}) → valores encontrados:`, valores);
-    });
-  }, [valoresAnuais, contas]);
-
-  const temValorNoAno = (contaId: string) => contasComValor.has(contaId);
-
   /** Check if a DreNode (or any of its descendants) has values */
   function nodeHasValues(node: DreNode): boolean {
-    if (node.conta.nivel === 2) return temValorNoAno(node.conta.id);
+    // Leaf node (any nivel): check directly
+    if (node.children.length === 0) return contasComValor.has(node.conta.id);
+    // Branch node: visible if any child has values
     return node.children.some(nodeHasValues);
   }
 
