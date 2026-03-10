@@ -113,7 +113,7 @@ export default function KanbanPage() {
           toInsert.push({
             cliente_id: c.id,
             tipo: 'alerta_semanal',
-            titulo: `Alerta Semanal — ${c.nome_empresa}`,
+            titulo: `Alerta Semanal — ${c.razao_social || c.nome_empresa}`,
             status: 'pendente',
             prioridade: 'alta',
             data_tarefa: dateStr,
