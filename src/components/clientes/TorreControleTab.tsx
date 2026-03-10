@@ -617,15 +617,15 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
           {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 110 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(displayAnt)}
           </td>
           {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(displayReal)}
           </td>
           {/* Meta */}
-          <td style={{ textAlign: 'right', padding: '8px 10px', width: 130 }}>
+          <td style={{ textAlign: 'right', padding: '8px 10px' }}>
             <EditableMetaCell
               meta={meta}
               contaId={conta.id}
@@ -636,11 +636,11 @@ export function TorreControleTab({ clienteId }: Props) {
             />
           </td>
           {/* Projetado */}
-          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(projetado)}
           </td>
           {/* Status */}
-          <td style={{ textAlign: 'center', padding: '8px 6px', width: 96 }}>
+          <td style={{ textAlign: 'center', padding: '8px 6px' }}>
             {isCat && !isTotal ? <StatusBadge status={status} /> : null}
           </td>
         </tr>
