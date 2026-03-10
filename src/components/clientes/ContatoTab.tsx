@@ -279,7 +279,7 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
   const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[560px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar dados do cliente</DialogTitle>
