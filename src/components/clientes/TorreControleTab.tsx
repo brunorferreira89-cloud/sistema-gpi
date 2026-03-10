@@ -88,6 +88,23 @@ export function TorreControleTab({ clienteId }: Props) {
     },
   });
 
+  // --- Full year query for visibility filter ---
+  const { data: valoresAnoCompleto } = useQuery({
+    queryKey: ['valores-ano-completo-torre', clienteId, anoSelecionado, contas?.length ?? 0],
+    enabled: !!clienteId && !!contas?.length,
+    queryFn: async () => {
+      const contaIds = contas!.map((c) => c.id);
+      const { data } = await supabase
+        .from('valores_mensais')
+        .select('conta_id, valor_realizado')
+        .in('conta_id', contaIds)
+        .gte('competencia', `${anoSelecionado}-01-01`)
+        .lte('competencia', `${anoSelecionado}-12-31`)
+        .not('valor_realizado', 'is', null);
+      return data || [];
+    },
+  });
+
   const realizadoMap = useMemo(() => {
     const map: Record<string, number | null> = {};
     valores?.forEach((v) => { map[v.conta_id] = v.valor_realizado; });
@@ -131,19 +148,18 @@ export function TorreControleTab({ clienteId }: Props) {
     });
   };
 
-  // --- Filter: contas with value in the selected competência ---
+  // --- Filter: contas with value in ANY month of the year ---
   const contasComValor = useMemo(() => {
     const set = new Set<string>();
-    valores?.forEach((v) => {
-      if (v.valor_realizado != null) set.add(v.conta_id);
+    valoresAnoCompleto?.forEach((v) => {
+      set.add(v.conta_id);
     });
     return set;
-  }, [valores]);
+  }, [valoresAnoCompleto]);
 
-  /** Check if a conta (or any descendant) has values */
+  /** Check if a conta (or any descendant) has values in the year */
   const contaHasValues = useCallback((contaId: string, nivel: number): boolean => {
     if (nivel === 2) return contasComValor.has(contaId);
-    // Check children
     return contas?.some((c) => c.conta_pai_id === contaId && contaHasValues(c.id, c.nivel)) ?? false;
   }, [contas, contasComValor]);
 
