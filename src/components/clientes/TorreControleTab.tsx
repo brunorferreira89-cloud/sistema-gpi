@@ -6,6 +6,7 @@ import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } fro
 import { toast } from 'sonner';
 import { nomeExibido, formatCnpj } from '@/lib/clientes-utils';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesAnterior as getMesAnterior, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
+import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
 
 // ── Types ───────────────────────────────────────────────────────
 interface DreNode { conta: ContaRow; children: DreNode[] }
@@ -276,6 +277,9 @@ export function TorreControleTab({ clienteId }: Props) {
   const [competencia, setCompetencia] = useState('');
   const [modo, setModo] = useState<'analise' | 'projecao'>('analise');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [drawerSugestaoOpen, setDrawerSugestaoOpen] = useState(false);
+  const [sugestoes, setSugestoes] = useState<SugestaoMeta[]>([]);
+  const [loadingSugestao, setLoadingSugestao] = useState(false);
 
   const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
   const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
@@ -440,6 +444,46 @@ export function TorreControleTab({ clienteId }: Props) {
     }
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMap]);
+
+  const handleSugerirMetas = async () => {
+    if (!cliente) return;
+    setLoadingSugestao(true);
+    setDrawerSugestaoOpen(true);
+    setSugestoes([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('sugerir-metas', {
+        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt },
+      });
+      if (error) throw error;
+      setSugestoes(data?.sugestoes || []);
+    } catch (err) {
+      console.error('Erro ao sugerir metas:', err);
+      toast.error('Erro ao obter sugestões de metas');
+      setSugestoes([]);
+    } finally {
+      setLoadingSugestao(false);
+    }
+  };
+
+  const handleAplicarSugestoes = async (selecionadas: SugestaoMeta[]) => {
+    if (!cliente) return;
+    const upserts = selecionadas.map(s => ({
+      cliente_id: cliente.id,
+      conta_id: s.conta_id,
+      competencia: mesSeg,
+      meta_tipo: s.meta_tipo,
+      meta_valor: s.meta_valor,
+      updated_at: new Date().toISOString(),
+    }));
+    const { error } = await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+    if (error) {
+      toast.error('Erro ao salvar metas');
+      return;
+    }
+    toast.success(`${selecionadas.length} metas aplicadas com sucesso`);
+    setDrawerSugestaoOpen(false);
+    invalidateMetas();
+  };
 
   const toggleCollapse = (id: string) => {
     setCollapsed(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
@@ -700,7 +744,26 @@ export function TorreControleTab({ clienteId }: Props) {
             {/* Summary cards */}
             <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />
 
-            {/* Table */}
+            {/* AI suggest button + Table */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: -8 }}>
+              <button
+                onClick={handleSugerirMetas}
+                disabled={loadingSugestao}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 6, cursor: loadingSugestao ? 'wait' : 'pointer',
+                  background: 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))',
+                  border: '1px solid rgba(26,60,255,0.18)',
+                  color: '#1A3CFF', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  fontFamily: "'DM Sans', system-ui", transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!loadingSugestao) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.14), rgba(0,153,230,0.10))'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))'; }}
+              >
+                ✨ Sugerir Metas com IA
+              </button>
+            </div>
+
             <div style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.surface }}>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
@@ -729,6 +792,17 @@ export function TorreControleTab({ clienteId }: Props) {
           </>
         )}
       </div>
+
+      <SugestaoMetasDrawer
+        open={drawerSugestaoOpen}
+        onClose={() => setDrawerSugestaoOpen(false)}
+        cliente={cliente || null}
+        competencia={competencia}
+        sugestoes={sugestoes}
+        metasExistentes={metaMap}
+        onAplicar={handleAplicarSugestoes}
+        loading={loadingSugestao}
+      />
     </div>
   );
 }
