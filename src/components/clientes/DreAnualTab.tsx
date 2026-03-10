@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet } from 'lucide-react';
-import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
+import { buildDreRows, calcIndicador, getLeafContas } from '@/lib/dre-indicadores';
 import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const tipoBorderColors: Record<string, string> = {

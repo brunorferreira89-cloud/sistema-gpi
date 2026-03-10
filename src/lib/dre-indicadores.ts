@@ -45,8 +45,29 @@ export const indicadoresDRE: IndicadorDRE[] = [
 ];
 
 /**
+ * Determines if a conta at a given index is a "leaf" (has no children).
+ * A conta is a leaf if:
+ * - It's not marked as is_total
+ * - The next conta in order has nivel <= current (meaning it's a sibling or higher), or there is no next conta
+ */
+export function isLeafConta(contas: ContaRow[], index: number): boolean {
+  const conta = contas[index];
+  if (conta.is_total) return false;
+  const next = contas[index + 1];
+  return !next || next.nivel <= conta.nivel;
+}
+
+/**
+ * Returns only leaf contas (those without children) to avoid double-counting.
+ */
+export function getLeafContas(contas: ContaRow[]): ContaRow[] {
+  return contas.filter((_, i) => isLeafConta(contas, i));
+}
+
+/**
  * Given accounts and a values map, calculate the value of an indicator
- * by summing all accounts whose tipo is in acumula list.
+ * by summing only LEAF accounts whose tipo is in acumula list.
+ * This prevents double-counting parent/sub-group accounts.
  */
 export function calcIndicador(
   contas: ContaRow[],
@@ -54,8 +75,9 @@ export function calcIndicador(
   acumula: string[]
 ): number {
   let total = 0;
-  for (const c of contas) {
-    if (c.is_total) continue; // skip group headers to avoid double-counting
+  for (let i = 0; i < contas.length; i++) {
+    if (!isLeafConta(contas, i)) continue;
+    const c = contas[i];
     if (acumula.includes(c.tipo)) {
       const val = valoresMap[c.id];
       if (val != null) total += val;
@@ -65,19 +87,28 @@ export function calcIndicador(
 }
 
 /**
+ * Sum only leaf contas of a given type. Useful for faturamento, custos, etc.
+ */
+export function sumLeafByTipo(
+  contas: ContaRow[],
+  valoresMap: Record<string, number | null>,
+  tipo: string
+): number {
+  return calcIndicador(contas, valoresMap, [tipo]);
+}
+
+/**
  * Determines after which account type each indicator should be inserted.
- * Returns a map: accountType -> indicator to insert after the last account of that type.
  */
 export const indicadorAfterType: Record<string, IndicadorDRE> = {
-  custo_variavel: indicadoresDRE[0], // Margem de Contribuição after custos variáveis
-  despesa_fixa: indicadoresDRE[1],   // Resultado Operacional after despesas fixas
-  investimento: indicadoresDRE[2],   // Resultado após Investimentos after investimentos
-  financeiro: indicadoresDRE[3],     // Resultado de Caixa after financeiro
+  custo_variavel: indicadoresDRE[0],
+  despesa_fixa: indicadoresDRE[1],
+  investimento: indicadoresDRE[2],
+  financeiro: indicadoresDRE[3],
 };
 
 /**
  * Build ordered rows (contas + indicators) for rendering.
- * Inserts an indicator row after the last account of each type group.
  */
 export type DreRow =
   | { type: 'conta'; conta: ContaRow }
@@ -90,7 +121,6 @@ export function buildDreRows(contas: ContaRow[]): DreRow[] {
     const conta = contas[i];
     rows.push({ type: 'conta', conta });
     
-    // Check if this is the last account of its type group
     const nextConta = contas[i + 1];
     if (!nextConta || nextConta.tipo !== conta.tipo) {
       const indicator = indicadorAfterType[conta.tipo];
