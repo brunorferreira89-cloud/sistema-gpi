@@ -404,12 +404,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return `${pct.toFixed(1)}%`;
   };
 
-  const getSubgrupoNome = (contaId: string): string | undefined => {
-    const conta = contas?.find(c => c.id === contaId);
-    if (!conta?.conta_pai_id) return undefined;
-    const parent = contas?.find(c => c.id === conta.conta_pai_id);
-    return parent?.nome;
-  };
+
 
   // --- AH% helper ---
   const renderAhCell = (
