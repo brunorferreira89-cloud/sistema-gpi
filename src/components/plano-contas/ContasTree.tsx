@@ -264,7 +264,7 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     const catIds = node.filhos.map(f => f.id);
     return (
       <div>
-        <div className="group flex items-center justify-between" style={{ background: '#FFFFFF', padding: '10px 16px', borderBottom: '1px solid #F3F4F6' }}>
+        <div className="group flex items-center justify-between" style={{ background: '#F6F9FF', padding: '10px 16px', borderBottom: '1px solid #DDE4F0' }}>
           <div className="flex items-center gap-2 min-w-0">
             <GripVertical
               className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
@@ -272,20 +272,17 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
               {...(listeners || {})}
             />
             <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{node.nome}</span>
+            <button onClick={() => startAdd(node.id, 2)} className="flex items-center gap-0.5 cursor-pointer" style={{ color: '#1A3CFF', fontSize: 11, fontWeight: 500, background: 'none', border: 'none', padding: 0 }}>
+              <Plus className="h-3 w-3" /> Categoria
+            </button>
           </div>
-          <div className="flex items-center gap-3">
-            <span style={{ color: '#8A9BBC', fontStyle: 'italic', fontSize: 11 }}>subtotal</span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => openEditDialog(node)} className="p-1 text-[#9CA3AF] hover:text-[#374151] rounded hover:bg-[#F3F4F6]" title="Editar">
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => startAdd(node.id, 2)} className="p-1 text-[#9CA3AF] hover:text-[#374151] rounded hover:bg-[#F3F4F6]" title="Adicionar categoria">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => handleDelete(node.id)} className="p-1 text-[#9CA3AF] hover:text-[#DC2626] rounded hover:bg-red-50" title="Excluir">
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => openEditDialog(node)} className="p-1 text-[#9CA3AF] hover:text-[#374151] rounded hover:bg-[#F3F4F6]" title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => handleDelete(node.id)} className="p-1 text-[#9CA3AF] hover:text-[#DC2626] rounded hover:bg-red-50" title="Excluir">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
         {renderInlineAdd(node.id, 2, 'pl-[56px]')}
