@@ -112,10 +112,11 @@ export function DreAnualTab({ clienteId }: Props) {
   const faturamentoPorMes = useMemo(() => {
     const map: Record<string, number> = {};
     if (!contas) return map;
-    const receitaContas = contas.filter((c) => c.tipo === 'receita');
+    const leafContas = getLeafContas(contas);
+    const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
     for (const m of displayMonths) {
       let total = 0;
-      receitaContas.forEach((c) => {
+      receitaLeafs.forEach((c) => {
         const val = valoresMap[c.id]?.[m.value];
         if (val != null) total += val;
       });

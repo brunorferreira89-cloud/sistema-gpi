@@ -111,9 +111,10 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const faturamento = useMemo(() => {
     if (!contas) return { real: 0, meta: 0 };
-    const receitaContas = contas.filter((c) => c.tipo === 'receita');
+    const leafContas = getLeafContas(contas);
+    const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
     let real = 0, meta = 0;
-    receitaContas.forEach((c) => {
+    receitaLeafs.forEach((c) => {
       const v = valoresMap[c.id];
       if (v?.valor_realizado) real += v.valor_realizado;
       if (v?.valor_meta) meta += v.valor_meta;
