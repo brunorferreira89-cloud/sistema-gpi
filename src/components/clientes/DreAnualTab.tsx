@@ -125,7 +125,7 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
 }
 
 // --- Benchmark helpers ---
-function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): React.ReactNode | null {
+function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | undefined, benchmarks: BenchmarkThresholds): React.ReactNode | null {
   // Only custo_variavel has benchmarks
   if (tipo !== 'custo_variavel') return null;
 
@@ -134,14 +134,12 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): Re
 
   let color: string;
   if (isPessoal) {
-    // CMO benchmark
-    if (avPct < 25) color = '#00A86B';
-    else if (avPct <= 35) color = '#D97706';
+    if (avPct < benchmarks.cmo_verde) color = '#00A86B';
+    else if (avPct <= benchmarks.cmo_amarelo) color = '#D97706';
     else color = '#DC2626';
   } else {
-    // CMV benchmark
-    if (avPct < 38) color = '#00A86B';
-    else if (avPct <= 50) color = '#D97706';
+    if (avPct < benchmarks.cmv_verde) color = '#00A86B';
+    else if (avPct <= benchmarks.cmv_amarelo) color = '#D97706';
     else color = '#DC2626';
   }
 
@@ -152,11 +150,24 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): Re
   );
 }
 
+// --- Legend item ---
+function LegendItem({ color, label, sub }: { color: string; label: string; sub: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4A5E80' }}>
+      <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill={color} /></svg>
+      <span style={{ fontWeight: 500 }}>{label}</span>
+      <span style={{ color: '#8A9BBC', fontSize: 10 }}>({sub})</span>
+    </span>
+  );
+}
+
 // --- component ---
 
-interface Props { clienteId: string; }
+import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
 
-export function DreAnualTab({ clienteId }: Props) {
+interface Props { clienteId: string; benchmarks?: BenchmarkThresholds; }
+
+export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -317,7 +328,7 @@ export function DreAnualTab({ clienteId }: Props) {
     }
 
     const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
-    const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId)) : null;
+    const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId), benchmarks) : null;
 
     return (
       <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right', background: baseBg }}>
@@ -606,6 +617,26 @@ export function DreAnualTab({ clienteId }: Props) {
           </Select>
         </div>
       </div>
+
+      {/* Benchmark Legend */}
+      {hasContas && hasAnyData && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5" style={{ borderColor: '#DDE4F0', background: '#F6F9FF' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Benchmarks AV%
+          </span>
+          <span className="flex items-center gap-4">
+            <LegendItem color="#00A86B" label={`CMV < ${benchmarks.cmv_verde}%`} sub="Saudável" />
+            <LegendItem color="#D97706" label={`CMV ${benchmarks.cmv_verde}–${benchmarks.cmv_amarelo}%`} sub="Atenção" />
+            <LegendItem color="#DC2626" label={`CMV > ${benchmarks.cmv_amarelo}%`} sub="Risco" />
+          </span>
+          <span style={{ width: 1, height: 16, background: '#DDE4F0' }} />
+          <span className="flex items-center gap-4">
+            <LegendItem color="#00A86B" label={`CMO < ${benchmarks.cmo_verde}%`} sub="Saudável" />
+            <LegendItem color="#D97706" label={`CMO ${benchmarks.cmo_verde}–${benchmarks.cmo_amarelo}%`} sub="Atenção" />
+            <LegendItem color="#DC2626" label={`CMO > ${benchmarks.cmo_amarelo}%`} sub="Risco" />
+          </span>
+        </div>
+      )}
 
       {/* Empty states */}
       {!hasContas && (

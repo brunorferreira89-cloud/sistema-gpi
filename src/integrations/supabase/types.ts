@@ -65,6 +65,41 @@ export type Database = {
           },
         ]
       }
+      benchmark_config: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          id: string
+          limite_amarelo: number
+          limite_verde: number
+          tipo: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          id?: string
+          limite_amarelo: number
+          limite_verde: number
+          tipo: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          id?: string
+          limite_amarelo?: number
+          limite_verde?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benchmark_config_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           administrador_cpf: string | null
