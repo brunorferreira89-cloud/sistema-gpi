@@ -317,7 +317,7 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
                       {/* Expanded details */}
                       {isExpanded && (
                         <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
-                          {s.parametros.length > 0 && (
+                          {(s.parametros?.length ?? 0) > 0 && (
                             <div style={{ marginBottom: 8 }}>
                               <span style={{ fontSize: 10, fontWeight: 700, color: C.txtSec }}>Parâmetros:</span>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
