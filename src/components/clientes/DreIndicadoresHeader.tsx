@@ -605,6 +605,32 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
         </IndicatorCard>
       </div>
 
+      {/* Botão Análise Completa */}
+      {hasData && clienteId && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <button
+            onClick={() => {
+              setIndicadorInicialModal(undefined);
+              setAnaliseCompletaOpen(true);
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 8,
+              border: '1px solid rgba(26,60,255,0.2)',
+              background: 'linear-gradient(135deg, rgba(26,60,255,0.06), rgba(0,153,230,0.04))',
+              color: '#1A3CFF', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.04em', cursor: 'pointer',
+              fontFamily: "'DM Sans', system-ui",
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.12), rgba(0,153,230,0.08))'}
+            onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.06), rgba(0,153,230,0.04))'}
+          >
+            ◎ Ver Análise Completa
+          </button>
+        </div>
+      )}
+
       {/* Responsive overrides */}
       <style>{`
         @media (max-width: 1200px) and (min-width: 768px) {
@@ -616,6 +642,16 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
       `}</style>
 
       <AnaliseDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} titulo={drawerTitulo} dados={drawerDados} />
+
+      {clienteId && latestMonth && (
+        <AnaliseCompletaModal
+          open={analiseCompletaOpen}
+          onClose={() => setAnaliseCompletaOpen(false)}
+          cliente={{ id: clienteId, nome_empresa: '' }}
+          competencia={latestMonth.value}
+          indicadorInicial={indicadorInicialModal}
+        />
+      )}
     </div>
   );
 }
