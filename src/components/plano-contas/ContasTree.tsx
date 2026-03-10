@@ -60,14 +60,44 @@ function SortableRow({ id, renderContent }: { id: string; renderContent: (listen
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
-    outline: isDragging ? '2px dashed #1A3CFF' : 'none',
+    opacity: isDragging ? 0 : 1,
     position: 'relative' as const,
     zIndex: isDragging ? 10 : 'auto',
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       {renderContent(listeners)}
+    </div>
+  );
+}
+
+// ─── Lightweight overlay for dragged item ───────────────────────────
+function DragOverlayContent({ conta }: { conta: ContaRow | undefined }) {
+  if (!conta) return null;
+  const displayName = conta.nome.replace(/^\([+-]\)\s*/, '');
+  const isEntrada = conta.nome.startsWith('(+)') || (!conta.nome.startsWith('(-)') && conta.tipo === 'receita');
+
+  return (
+    <div
+      className="flex items-center gap-2 px-4 py-2 rounded"
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid #1A3CFF',
+        borderRadius: 4,
+        opacity: 0.95,
+        boxShadow: '0 4px 12px rgba(26,60,255,0.15)',
+        fontSize: 13,
+        color: '#0D1B35',
+        fontWeight: conta.nivel <= 1 ? 600 : 400,
+        textTransform: conta.nivel === 0 ? 'uppercase' : 'none',
+      }}
+    >
+      {conta.nivel === 2 && (
+        <span style={{ color: isEntrada ? '#16A34A' : '#DC2626', fontWeight: 700 }}>
+          {isEntrada ? '↑' : '↓'}
+        </span>
+      )}
+      <span>{displayName}</span>
     </div>
   );
 }
