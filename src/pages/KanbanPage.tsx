@@ -100,7 +100,7 @@ export default function KanbanPage() {
           toInsert.push({
             cliente_id: c.id,
             tipo: 'auditoria_diaria',
-            titulo: `Auditoria — ${c.nome_empresa}`,
+            titulo: `Auditoria — ${c.razao_social || c.nome_empresa}`,
             status: 'pendente',
             prioridade: 'normal',
             data_tarefa: dateStr,
