@@ -19,7 +19,7 @@ export default function AlertasPage() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, segmento').eq('status', 'ativo').order('nome_empresa');
+      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('status', 'ativo').order('nome_empresa');
       if (error) throw error;
       return data;
     },
