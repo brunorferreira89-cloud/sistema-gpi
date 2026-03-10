@@ -41,7 +41,7 @@ function calcIndicatorValue(leafs: ContaRow[], valMap: Record<string, number | n
     if (!tipos.includes(c.tipo)) continue;
     const v = valMap[c.id];
     if (v == null) continue;
-    total += c.tipo === 'receita' ? v : -Math.abs(v);
+    total += v;
   }
   return total;
 }
@@ -51,7 +51,7 @@ function sumByTipo(leafs: ContaRow[], valMap: Record<string, number | null>, tip
   for (const c of leafs) {
     if (c.tipo !== tipo) continue;
     const v = valMap[c.id];
-    if (v != null) total += Math.abs(v);
+    if (v != null) total += v;
   }
   return total;
 }
