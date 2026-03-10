@@ -81,7 +81,7 @@ function formatGeradoEm(d: string): string {
 
 export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
   const { id: clienteId } = useParams<{ id: string }>();
-  const [analysis, setAnalysis] = useState<{ titulo: string; analise: string; acao: string } | null>(null);
+  const [analysis, setAnalysis] = useState<{ titulo: string; contexto?: string; analise: string; alerta?: string | null; acao: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [geradoEm, setGeradoEm] = useState<string | null>(null);
 
