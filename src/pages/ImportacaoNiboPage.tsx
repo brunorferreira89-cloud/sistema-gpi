@@ -119,7 +119,7 @@ export default function ImportacaoNiboPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-txt-muted hover:text-primary"
-                        onClick={() => setActionDialog({ type: 'edit', importId: h.id, currentCompetencia: h.competencia })}
+                        onClick={() => setActionDialog({ type: 'edit', importId: h.id, currentCompetencia: h.competencia, clienteId: h.cliente_id })}
                         title="Alterar competência"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -128,7 +128,7 @@ export default function ImportacaoNiboPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-txt-muted hover:text-destructive"
-                        onClick={() => setActionDialog({ type: 'delete', importId: h.id, currentCompetencia: h.competencia })}
+                        onClick={() => setActionDialog({ type: 'delete', importId: h.id, currentCompetencia: h.competencia, clienteId: h.cliente_id })}
                         title="Excluir importação"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
