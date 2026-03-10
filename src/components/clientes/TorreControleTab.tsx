@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { BookOpen, FileSpreadsheet, TrendingUp, TrendingDown } from 'lucide-react';
-import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
+import { buildDreRows, calcIndicador, getLeafContas } from '@/lib/dre-indicadores';
 import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const competencias = getCompetenciaOptions();
@@ -111,9 +111,10 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const faturamento = useMemo(() => {
     if (!contas) return { real: 0, meta: 0 };
-    const receitaContas = contas.filter((c) => c.tipo === 'receita');
+    const leafContas = getLeafContas(contas);
+    const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
     let real = 0, meta = 0;
-    receitaContas.forEach((c) => {
+    receitaLeafs.forEach((c) => {
       const v = valoresMap[c.id];
       if (v?.valor_realizado) real += v.valor_realizado;
       if (v?.valor_meta) meta += v.valor_meta;
