@@ -817,8 +817,161 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             </thead>
             <tbody>
               {buildTableBody()}
+              {/* --- SALDOS DE CONTAS --- */}
+              {contasBancarias.length > 0 && (
+                <>
+                  <tr>
+                    <td colSpan={months.length * 2 + 3} style={{ padding: '16px 12px 8px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.08em', background: '#FAFCFF' }}>
+                      SALDOS DE CONTAS
+                    </td>
+                  </tr>
+                  {contasBancarias.map((nomeConta) => {
+                    const saldos = saldosMap[nomeConta] || {};
+                    return (['saldo_inicial', 'saldo_final'] as const).map((field) => {
+                      const fieldLabel = field === 'saldo_inicial' ? 'Saldo Inicial' : 'Saldo Final';
+                      let yearTotal = 0;
+                      let hasYearVal = false;
+                      return (
+                        <tr key={`${nomeConta}_${field}`}
+                          className="hover:bg-[#F6F9FF]"
+                          style={{ borderBottom: '1px solid #F8F9FB' }}
+                          onMouseEnter={() => setHoveredConta(nomeConta)}
+                          onMouseLeave={() => setHoveredConta(null)}
+                        >
+                          <td style={stickyTd('#FFFFFF', { padding: '7px 12px 7px 16px', fontWeight: 400, fontSize: 12, color: '#4A5E80' })}>
+                            <span className="flex items-center gap-2">
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {nomeConta} — {fieldLabel}
+                              </span>
+                              {field === 'saldo_inicial' && hoveredConta === nomeConta && (
+                                <button
+                                  onClick={() => deleteContaBancaria(nomeConta)}
+                                  className="p-0.5 rounded hover:bg-red-100"
+                                  style={{ lineHeight: 0, flexShrink: 0 }}
+                                >
+                                  <Trash2 className="h-3 w-3" style={{ color: '#DC2626' }} />
+                                </button>
+                              )}
+                            </span>
+                          </td>
+                          {months.map((m) => {
+                            const val = saldos[m.value]?.[field] ?? null;
+                            if (val != null) { yearTotal += val; hasYearVal = true; }
+                            const editKey = `${nomeConta}_${m.value}`;
+                            const isEditing = editingSaldo?.key === editKey && editingSaldo?.field === field;
+
+                            return [
+                              <td key={`${m.value}_val`} style={{
+                                textAlign: val == null ? 'center' : 'right',
+                                fontFamily: 'monospace', fontSize: 12, color: val == null ? '#C4CFEA' : '#0D1B35',
+                                padding: '7px 4px', width: 80, minWidth: 80, cursor: 'pointer',
+                                background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined,
+                              }}
+                                onClick={() => {
+                                  setEditingSaldo({ key: editKey, field });
+                                  setEditingSaldoValue(val != null ? String(val) : '');
+                                }}
+                              >
+                                {isEditing ? (
+                                  <span className="flex items-center gap-1">
+                                    <input
+                                      autoFocus
+                                      type="number"
+                                      value={editingSaldoValue}
+                                      onChange={(e) => setEditingSaldoValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          const num = editingSaldoValue.trim() === '' ? null : Number(editingSaldoValue);
+                                          saveSaldo(nomeConta, m.value, field, num);
+                                        }
+                                        if (e.key === 'Escape') setEditingSaldo(null);
+                                      }}
+                                      onBlur={() => {
+                                        const num = editingSaldoValue.trim() === '' ? null : Number(editingSaldoValue);
+                                        saveSaldo(nomeConta, m.value, field, num);
+                                      }}
+                                      style={{
+                                        width: '100%', textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+                                        border: '1px solid #1A3CFF', borderRadius: 4, padding: '2px 4px',
+                                        outline: 'none', background: '#FFFFFF',
+                                      }}
+                                    />
+                                    {savingSaldo && <Loader2 className="h-3 w-3 animate-spin" style={{ color: '#8A9BBC', flexShrink: 0 }} />}
+                                  </span>
+                                ) : (
+                                  val != null ? formatCurrency(val).replace('R$\u00a0', '').replace('R$ ', '') : '—'
+                                )}
+                              </td>,
+                              <td key={`${m.value}_av_saldo`} style={{ width: 52, minWidth: 52 }} />,
+                            ];
+                          })}
+                          <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? '#0D1B35' : '#C4CFEA' }}>
+                            {field === 'saldo_final' && hasYearVal ? formatCurrency(yearTotal).replace('R$\u00a0', '').replace('R$ ', '') : '—'}
+                          </td>
+                          <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
+                        </tr>
+                      );
+                    });
+                  })}
+                  {/* Saldo Final Consolidado */}
+                  <tr style={{ background: '#0D1B35' }}>
+                    <td style={{ ...stickyTd('#0D1B35', { padding: '11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRightColor: '#2A3A5C' }) }}>
+                      <span className="flex items-center gap-2">
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
+                        Saldo Final Consolidado
+                      </span>
+                    </td>
+                    {months.map((m) => {
+                      let total = 0;
+                      let has = false;
+                      contasBancarias.forEach((nome) => {
+                        const v = saldosMap[nome]?.[m.value]?.saldo_final;
+                        if (v != null) { total += v; has = true; }
+                      });
+                      const f = has ? fmtIndicadorVal(total) : { text: '—', color: '#8A9BBC' };
+                      return [
+                        <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px', width: 80, minWidth: 80 }}>
+                          {f.text}
+                        </td>,
+                        <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52 }} />,
+                      ];
+                    })}
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, padding: '11px 12px', background: '#0F1F3D', borderLeft: '1px solid #2A3A5C', color: '#8A9BBC', width: 80 }}>
+                      —
+                    </td>
+                    <td style={{ width: 52, minWidth: 52 }} />
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
+          {/* Add conta button */}
+          <div style={{ padding: '8px 12px' }}>
+            {addingConta ? (
+              <span className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  placeholder="Nome da conta (ex: Bradesco CC)"
+                  value={newContaNome}
+                  onChange={(e) => setNewContaNome(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addContaBancaria();
+                    if (e.key === 'Escape') { setAddingConta(false); setNewContaNome(''); }
+                  }}
+                  onBlur={() => { if (!newContaNome.trim()) { setAddingConta(false); } }}
+                  style={{ fontSize: 12, border: '1px solid #1A3CFF', borderRadius: 4, padding: '4px 8px', outline: 'none', width: 220 }}
+                />
+              </span>
+            ) : (
+              <button
+                onClick={() => setAddingConta(true)}
+                style={{ fontSize: 11, color: '#1A3CFF', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <Plus style={{ width: 12, height: 12 }} />
+                Adicionar conta
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
