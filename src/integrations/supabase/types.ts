@@ -261,6 +261,7 @@ export type Database = {
           ativo: boolean
           cliente_id: string | null
           conta_id: string | null
+          conta_ids: string[] | null
           created_at: string | null
           descricao: string | null
           direcao: string
@@ -276,6 +277,7 @@ export type Database = {
           ativo?: boolean
           cliente_id?: string | null
           conta_id?: string | null
+          conta_ids?: string[] | null
           created_at?: string | null
           descricao?: string | null
           direcao?: string
@@ -291,6 +293,7 @@ export type Database = {
           ativo?: boolean
           cliente_id?: string | null
           conta_id?: string | null
+          conta_ids?: string[] | null
           created_at?: string | null
           descricao?: string | null
           direcao?: string
