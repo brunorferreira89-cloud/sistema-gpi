@@ -112,7 +112,7 @@ export default function TorrePage() {
   }, [valores]);
 
   // KPI calculations
-  const leafContas = useMemo(() => contas ? getLeafContas(contas) : [], [contas]);
+  const leafContas = useMemo(() => contas ? getLeafContas(contas as any) : [], [contas]);
 
   const faturamento = useMemo(() => {
     if (!leafContas.length) return { real: 0, meta: 0 };
