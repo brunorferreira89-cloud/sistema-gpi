@@ -100,10 +100,10 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
 
   const fatVal = fatReal || 1;
   const mc_pct = fatReal ? (mcReal / fatReal) * 100 : 0;
-  const cmv_pct = fatReal ? (cmvReal / fatReal) * 100 : 0;
-  const cmo_pct = fatReal ? (cmoReal / fatReal) * 100 : 0;
+  const cmv_pct = fatReal ? (Math.abs(cmvReal) / fatReal) * 100 : 0;
+  const cmo_pct = fatReal ? (Math.abs(cmoReal) / fatReal) * 100 : 0;
   const gc_pct = fatReal ? (gcReal / fatReal) * 100 : 0;
-  const pe = mc_pct > 0 ? dfReal / (mc_pct / 100) : 0;
+  const pe = mc_pct > 0 ? Math.abs(dfReal) / (mc_pct / 100) : 0;
   const ms = fatReal > 0 && pe > 0 ? ((fatReal - pe) / fatReal) * 100 : 0;
 
   const hasData = (valores || []).length > 0;
