@@ -34,3 +34,13 @@ export const statusLabels: Record<string, string> = {
   onboarding: 'Onboarding',
   inativo: 'Inativo',
 };
+
+export const formatCnpj = (cnpj?: string | null): string | null => {
+  if (!cnpj) return null;
+  const digits = cnpj.replace(/\D/g, '');
+  if (digits.length !== 14) return cnpj;
+  return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+};
+
+export const nomeExibido = (cliente: { razao_social?: string | null; nome_empresa?: string | null }): string =>
+  cliente.razao_social || cliente.nome_empresa || '';
