@@ -5,10 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, FileSpreadsheet, Upload, TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCurrency, type ContaTipo, tipoBadgeColors, tipoLabels } from '@/lib/plano-contas-utils';
+import { BookOpen, FileSpreadsheet, Upload, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
-import { getLeafContas } from '@/lib/dre-indicadores';
+import { getLeafContas, sumLeafByTipo, calcIndicador, sumChildrenOfGroup, sumChildrenOfSection, indicadorAfterType } from '@/lib/dre-indicadores';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
 
 const competencias = getCompetenciaOptions();
@@ -24,7 +24,6 @@ const tipoBorderColors: Record<string, string> = {
 function AnimatedNumber({ value, prefix = '' }: { value: number; prefix?: string }) {
   const [display, setDisplay] = useState(0);
   useState(() => {
-    let start = 0;
     const duration = 800;
     const startTime = performance.now();
     const animate = (now: number) => {
@@ -39,23 +38,12 @@ function AnimatedNumber({ value, prefix = '' }: { value: number; prefix?: string
   return <span>{prefix}{formatCurrency(display)}</span>;
 }
 
-function CheckmarkSVG() {
-  return (
-    <svg className="h-4 w-4 text-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline
-        points="4 12 9 17 20 6"
-        style={{ strokeDasharray: 20, strokeDashoffset: 0, animation: 'checkDraw 0.4s ease-out forwards' }}
-      />
-    </svg>
-  );
-}
-
 function DeltaBadge({ realizado, meta }: { realizado: number | null; meta: number | null }) {
   if (realizado == null || meta == null || meta === 0) return null;
   const delta = ((realizado - meta) / Math.abs(meta)) * 100;
   const positive = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? 'bg-green/10 text-green' : 'bg-red/10 text-red animate-[pulseDelta_2s_ease-in-out_infinite]'}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? 'bg-green/10 text-green' : 'bg-red/10 text-red'}`}>
       {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
       {positive ? '+' : ''}{delta.toFixed(1)}%
     </span>
@@ -66,6 +54,7 @@ export default function TorrePage() {
   const [clienteId, setClienteId] = useState('');
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [importOpen, setImportOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
   const { data: clientes } = useQuery({
@@ -81,7 +70,7 @@ export default function TorrePage() {
     enabled: !!clienteId,
     queryFn: async () => {
       const { data } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
-      return data || [];
+      return (data || []) as ContaRow[];
     },
   });
 
@@ -100,64 +89,106 @@ export default function TorrePage() {
     queryKey: ['last-import', clienteId],
     enabled: !!clienteId,
     queryFn: async () => {
-      const { data } = await supabase.from('importacoes_nibo' as any).select('created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(1);
+      const { data } = await supabase.from('importacoes_nibo').select('created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(1);
       return (data as any)?.[0] || null;
     },
   });
 
-  const valoresMap = useMemo(() => {
-    const map: Record<string, { valor_realizado: number | null; valor_meta: number | null }> = {};
-    valores?.forEach((v) => { map[v.conta_id] = { valor_realizado: v.valor_realizado, valor_meta: v.valor_meta }; });
+  const realizadoMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    valores?.forEach((v) => { map[v.conta_id] = v.valor_realizado; });
     return map;
   }, [valores]);
 
-  // KPI calculations
-  const leafContas = useMemo(() => contas ? getLeafContas(contas as any) : [], [contas]);
+  const metaMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    valores?.forEach((v) => { map[v.conta_id] = v.valor_meta; });
+    return map;
+  }, [valores]);
+
+  const leafContas = useMemo(() => contas ? getLeafContas(contas) : [], [contas]);
 
   const faturamento = useMemo(() => {
     if (!leafContas.length) return { real: 0, meta: 0 };
     const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
     let real = 0, meta = 0;
     receitaLeafs.forEach((c) => {
-      const v = valoresMap[c.id];
-      if (v?.valor_realizado) real += v.valor_realizado;
-      if (v?.valor_meta) meta += v.valor_meta;
+      const r = realizadoMap[c.id];
+      if (r != null) real += r;
+      const m = metaMap[c.id];
+      if (m != null) meta += m;
     });
     return { real, meta };
-  }, [leafContas, valoresMap]);
+  }, [leafContas, realizadoMap, metaMap]);
 
-  const custos = useMemo(() => {
-    return leafContas.filter((c) => c.tipo === 'custo_variavel').reduce((s, c) => s + (valoresMap[c.id]?.valor_realizado || 0), 0);
-  }, [leafContas, valoresMap]);
+  const custosTotal = useMemo(() => sumLeafByTipo(contas || [], realizadoMap, 'custo_variavel'), [contas, realizadoMap]);
+  const despesasTotal = useMemo(() => sumLeafByTipo(contas || [], realizadoMap, 'despesa_fixa'), [contas, realizadoMap]);
+  const investTotal = useMemo(() => sumLeafByTipo(contas || [], realizadoMap, 'investimento'), [contas, realizadoMap]);
 
-  const despesas = useMemo(() => {
-    return leafContas.filter((c) => c.tipo === 'despesa_fixa').reduce((s, c) => s + (valoresMap[c.id]?.valor_realizado || 0), 0);
-  }, [leafContas, valoresMap]);
-
-  const margem = faturamento.real - custos;
-  const lucro = margem - despesas;
+  const margem = faturamento.real - custosTotal;
+  const resultOp = margem - despesasTotal;
+  const geracaoCaixa = resultOp - investTotal;
   const clienteSel = clientes?.find((c) => c.id === clienteId);
   const compLabel = competencias.find((c) => c.value === competencia)?.label || '';
   const hasContas = contas && contas.length > 0;
   const hasValores = valores && valores.some((v) => v.valor_realizado != null);
 
   const kpis = [
-    { label: 'Faturamento Bruto', value: faturamento.real, meta: faturamento.meta, ref: null },
-    { label: 'Margem de Contribuição', value: margem, meta: null, ref: '> 40%', pct: faturamento.real ? (margem / faturamento.real * 100).toFixed(1) : '0' },
-    { label: 'Lucro Operacional', value: lucro, meta: null, ref: null, pct: faturamento.real ? (lucro / faturamento.real * 100).toFixed(1) : '0' },
-    { label: 'Geração de Caixa', value: lucro, meta: null, ref: '> 10%', pct: faturamento.real ? (lucro / faturamento.real * 100).toFixed(1) : '0' },
+    { label: 'Faturamento Bruto', value: faturamento.real, meta: faturamento.meta, pct: null },
+    { label: 'Margem de Contribuição', value: margem, meta: null, pct: faturamento.real ? (margem / faturamento.real * 100).toFixed(1) : '0' },
+    { label: 'Resultado Operacional', value: resultOp, meta: null, pct: faturamento.real ? (resultOp / faturamento.real * 100).toFixed(1) : '0' },
+    { label: 'Geração de Caixa', value: geracaoCaixa, meta: null, pct: faturamento.real ? (geracaoCaixa / faturamento.real * 100).toFixed(1) : '0' },
   ];
+
+  const toggleCollapse = (id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // Build visible rows with hierarchy
+  const visibleContas = useMemo(() => {
+    if (!contas) return [];
+    return contas.filter((conta) => {
+      if (conta.nivel === 2 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) return false;
+      if (conta.nivel === 1 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) return false;
+      if (conta.nivel === 2 && conta.conta_pai_id) {
+        const parent = contas.find((c) => c.id === conta.conta_pai_id);
+        if (parent?.conta_pai_id && collapsed.has(parent.conta_pai_id)) return false;
+      }
+      return true;
+    });
+  }, [contas, collapsed]);
+
+  // Build rows with indicators
+  const dreRows = useMemo(() => {
+    const rows: ({ type: 'conta'; conta: ContaRow } | { type: 'indicador'; indicador: any })[] = [];
+    let lastTipo = '';
+    for (const conta of visibleContas) {
+      if (lastTipo && lastTipo !== conta.tipo) {
+        const ind = indicadorAfterType[lastTipo];
+        if (ind) rows.push({ type: 'indicador', indicador: ind });
+      }
+      rows.push({ type: 'conta', conta });
+      lastTipo = conta.tipo;
+    }
+    if (lastTipo) {
+      const ind = indicadorAfterType[lastTipo];
+      if (ind) rows.push({ type: 'indicador', indicador: ind });
+    }
+    return rows;
+  }, [visibleContas]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-txt">Torre de Controle</h1>
-      </div>
+      <div><h1 className="text-2xl font-bold text-txt">Torre de Controle</h1></div>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="space-y-1">
           <label className="text-xs text-txt-muted">Cliente</label>
-          <Select value={clienteId} onValueChange={setClienteId}>
+          <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setCollapsed(new Set()); }}>
             <SelectTrigger className="w-64"><SelectValue placeholder="Selecionar cliente..." /></SelectTrigger>
             <SelectContent>
               {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
@@ -185,7 +216,6 @@ export default function TorrePage() {
         ) : null}
       </div>
 
-      {/* Empty states */}
       {clienteId && !hasContas && (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <BookOpen className="h-16 w-16 text-txt-muted/40" />
@@ -202,7 +232,6 @@ export default function TorrePage() {
         </div>
       )}
 
-      {/* KPI Cards */}
       {clienteId && hasContas && hasValores && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -212,19 +241,17 @@ export default function TorrePage() {
                 <div className="p-4 space-y-2">
                   <p className="text-xs text-txt-muted">{kpi.label}</p>
                   <p className="text-xl font-bold font-mono-data text-txt">
-                    <AnimatedNumber value={kpi.value} prefix="" />
+                    <AnimatedNumber value={kpi.value} />
                   </p>
                   <div className="flex items-center gap-2">
                     {kpi.meta != null && <DeltaBadge realizado={kpi.value} meta={kpi.meta} />}
                     {kpi.pct && <span className="text-xs text-txt-sec">{kpi.pct}% s/ fat.</span>}
-                    {kpi.ref && <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Ref {kpi.ref}</Badge>}
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* DRE Table */}
           <div className="rounded-xl border border-border bg-surface overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -234,51 +261,77 @@ export default function TorrePage() {
                   <th className="p-3 text-right">A.V.%</th>
                   <th className="p-3 text-right">Meta</th>
                   <th className="p-3 text-right">Δ vs Meta</th>
-                  <th className="p-3 w-8"></th>
                 </tr>
               </thead>
               <tbody>
-                {contas?.map((conta, idx) => {
-                  const v = valoresMap[conta.id];
-                  const real = v?.valor_realizado;
-                  const meta = v?.valor_meta;
-                  const av = real != null && faturamento.real ? ((real / faturamento.real) * 100).toFixed(1) : null;
-                  const isHighlight = conta.is_total || conta.nivel === 1;
+                {dreRows.map((row, idx) => {
+                  if (row.type === 'indicador') {
+                    const ind = row.indicador;
+                    const realVal = calcIndicador(contas!, realizadoMap, ind.acumula);
+                    const metaVal = calcIndicador(contas!, metaMap, ind.acumula);
+                    const av = faturamento.real ? ((realVal / faturamento.real) * 100).toFixed(1) : null;
+                    return (
+                      <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
+                        <td className="p-3 text-txt">{ind.nome}</td>
+                        <td className="p-3 text-right font-mono-data">
+                          <span className={realVal >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(realVal)}</span>
+                        </td>
+                        <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
+                        <td className="p-3 text-right font-mono-data text-txt-sec">{metaVal !== 0 ? formatCurrency(metaVal) : '—'}</td>
+                        <td className="p-3 text-right"><DeltaBadge realizado={realVal} meta={metaVal !== 0 ? metaVal : null} /></td>
+                      </tr>
+                    );
+                  }
+
+                  const conta = row.conta;
+                  const isSecao = conta.nivel === 0;
+                  const isGrupo = conta.nivel === 1;
+
+                  let displayReal: number | null = null;
+                  let displayMeta: number | null = null;
+                  if (conta.nivel === 2) {
+                    displayReal = realizadoMap[conta.id] ?? null;
+                    displayMeta = metaMap[conta.id] ?? null;
+                  } else if (isGrupo) {
+                    displayReal = sumChildrenOfGroup(contas!, realizadoMap, conta.id);
+                    displayMeta = sumChildrenOfGroup(contas!, metaMap, conta.id);
+                  } else if (isSecao) {
+                    displayReal = sumChildrenOfSection(contas!, realizadoMap, conta.id);
+                    displayMeta = sumChildrenOfSection(contas!, metaMap, conta.id);
+                  }
+
+                  const av = displayReal != null && faturamento.real ? ((displayReal / faturamento.real) * 100).toFixed(1) : null;
                   const borderColor = tipoBorderColors[conta.tipo] || 'border-l-transparent';
-                  const metaAtingida = real != null && meta != null && conta.tipo === 'receita' ? real >= meta : real != null && meta != null ? real <= meta : false;
+                  const hasChildren = contas!.some((c) => c.conta_pai_id === conta.id);
+                  const isCollapsed = collapsed.has(conta.id);
 
                   return (
                     <tr
                       key={conta.id}
-                      className={`border-b border-border/50 border-l-[3px] ${borderColor} ${isHighlight ? 'bg-[hsl(220,60%,97%)] font-semibold' : ''}`}
-                      style={{ animation: `waterfallIn 0.4s cubic-bezier(0.16,1,0.3,1) ${idx * 0.055}s both` }}
+                      className={`border-b border-border/50 border-l-[3px] ${borderColor} ${
+                        isSecao ? 'bg-muted font-bold uppercase text-xs' :
+                        isGrupo ? 'bg-muted/50 font-semibold' : ''
+                      }`}
+                      style={{ animation: `waterfallIn 0.4s cubic-bezier(0.16,1,0.3,1) ${idx * 0.03}s both` }}
                     >
                       <td className="p-3 text-txt" style={{ paddingLeft: `${12 + conta.nivel * 20}px` }}>
-                        {conta.nome}
+                        <div className="flex items-center gap-1.5">
+                          {hasChildren && (isSecao || isGrupo) && (
+                            <button onClick={() => toggleCollapse(conta.id)} className="p-0.5 rounded hover:bg-surface-hi">
+                              {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          {conta.nome}
+                        </div>
                       </td>
                       <td className="p-3 text-right font-mono-data text-txt">
-                        {real != null ? (
-                          <div className="relative">
-                            {formatCurrency(real)}
-                            <div
-                              className={`absolute bottom-0 left-0 h-[2px] origin-left ${conta.tipo === 'receita' ? 'bg-primary' : conta.tipo === 'custo_variavel' ? 'bg-red' : 'bg-amber'}`}
-                              style={{ animation: 'barFill 0.6s ease-out forwards', width: '100%' }}
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-txt-muted">—</span>
-                        )}
+                        {displayReal != null ? formatCurrency(displayReal) : '—'}
                       </td>
                       <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
                       <td className="p-3 text-right font-mono-data text-txt-sec">
-                        {meta != null ? formatCurrency(meta) : '—'}
+                        {displayMeta != null ? formatCurrency(displayMeta) : '—'}
                       </td>
-                      <td className="p-3 text-right">
-                        <DeltaBadge realizado={real} meta={meta} />
-                      </td>
-                      <td className="p-3">
-                        {metaAtingida && <CheckmarkSVG />}
-                      </td>
+                      <td className="p-3 text-right"><DeltaBadge realizado={displayReal} meta={displayMeta} /></td>
                     </tr>
                   );
                 })}
@@ -296,7 +349,7 @@ export default function TorrePage() {
           clienteNome={clienteSel?.nome_empresa || ''}
           competencia={competencia}
           competenciaLabel={compLabel}
-          contas={contas?.map((c) => ({ id: c.id, nome: c.nome })) || []}
+          contas={contas?.filter((c) => c.nivel === 2).map((c) => ({ id: c.id, nome: c.nome })) || []}
         />
       )}
     </div>

@@ -4,15 +4,10 @@ export interface IndicadorDRE {
   key: string;
   nome: string;
   tipo: 'indicador';
-  /** Which account types to sum for this indicator */
   acumula: string[];
   borderColor: string;
 }
 
-/**
- * The 4 standard DRE financial indicators, in order.
- * Each one accumulates account types up to that point.
- */
 export const indicadoresDRE: IndicadorDRE[] = [
   {
     key: 'margem_contribuicao',
@@ -30,7 +25,7 @@ export const indicadoresDRE: IndicadorDRE[] = [
   },
   {
     key: 'resultado_apos_investimentos',
-    nome: '= RESULTADO APÓS INVESTIMENTOS',
+    nome: '= GERAÇÃO DE CAIXA',
     tipo: 'indicador',
     acumula: ['receita', 'custo_variavel', 'despesa_fixa', 'investimento'],
     borderColor: 'border-l-[#9333EA]',
@@ -45,29 +40,23 @@ export const indicadoresDRE: IndicadorDRE[] = [
 ];
 
 /**
- * Determines if a conta at a given index is a "leaf" (has no children).
- * A conta is a leaf if:
- * - It's not marked as is_total
- * - The next conta in order has nivel <= current (meaning it's a sibling or higher), or there is no next conta
+ * A conta is a leaf (nivel 2) if it's the lowest level where values are stored.
+ * nivel=0 (seção) and nivel=1 (grupo) are NEVER leafs — they are totalized.
  */
 export function isLeafConta(contas: ContaRow[], index: number): boolean {
   const conta = contas[index];
   if (conta.is_total) return false;
-  const next = contas[index + 1];
-  return !next || next.nivel <= conta.nivel;
+  // Only nivel 2 stores values
+  return conta.nivel === 2;
 }
 
-/**
- * Returns only leaf contas (those without children) to avoid double-counting.
- */
 export function getLeafContas(contas: ContaRow[]): ContaRow[] {
-  return contas.filter((_, i) => isLeafConta(contas, i));
+  return contas.filter((c) => c.nivel === 2 && !c.is_total);
 }
 
 /**
- * Given accounts and a values map, calculate the value of an indicator
- * by summing only LEAF accounts whose tipo is in acumula list.
- * This prevents double-counting parent/sub-group accounts.
+ * Calculate indicator value by summing only nivel=2 (leaf) accounts.
+ * Receita adds positively, all other types subtract.
  */
 export function calcIndicador(
   contas: ContaRow[],
@@ -75,10 +64,35 @@ export function calcIndicador(
   acumula: string[]
 ): number {
   let total = 0;
-  for (let i = 0; i < contas.length; i++) {
-    if (!isLeafConta(contas, i)) continue;
-    const c = contas[i];
+  const leafs = getLeafContas(contas);
+  for (const c of leafs) {
     if (acumula.includes(c.tipo)) {
+      const val = valoresMap[c.id];
+      if (val != null) {
+        // Receita adds, everything else subtracts
+        if (c.tipo === 'receita') {
+          total += val;
+        } else {
+          total -= val;
+        }
+      }
+    }
+  }
+  return total;
+}
+
+/**
+ * Sum leaf contas of a given type (always positive sum for display).
+ */
+export function sumLeafByTipo(
+  contas: ContaRow[],
+  valoresMap: Record<string, number | null>,
+  tipo: string
+): number {
+  let total = 0;
+  const leafs = getLeafContas(contas);
+  for (const c of leafs) {
+    if (c.tipo === tipo) {
       const val = valoresMap[c.id];
       if (val != null) total += val;
     }
@@ -87,19 +101,60 @@ export function calcIndicador(
 }
 
 /**
- * Sum only leaf contas of a given type. Useful for faturamento, custos, etc.
+ * Sum children (nivel=2) under a specific parent (nivel=1 grupo).
  */
-export function sumLeafByTipo(
+export function sumChildrenOfGroup(
   contas: ContaRow[],
   valoresMap: Record<string, number | null>,
-  tipo: string
-): number {
-  return calcIndicador(contas, valoresMap, [tipo]);
+  groupId: string
+): number | null {
+  const children = contas.filter((c) => c.conta_pai_id === groupId && c.nivel === 2);
+  if (children.length === 0) return null;
+  let hasAnyValue = false;
+  let total = 0;
+  for (const c of children) {
+    const val = valoresMap[c.id];
+    if (val != null) {
+      hasAnyValue = true;
+      total += val;
+    }
+  }
+  return hasAnyValue ? total : null;
 }
 
 /**
- * Determines after which account type each indicator should be inserted.
+ * Sum all groups (nivel=1) under a specific section (nivel=0).
  */
+export function sumChildrenOfSection(
+  contas: ContaRow[],
+  valoresMap: Record<string, number | null>,
+  sectionId: string
+): number | null {
+  const groups = contas.filter((c) => c.conta_pai_id === sectionId && c.nivel === 1);
+  if (groups.length === 0) {
+    // Maybe categorias directly under section
+    const directChildren = contas.filter((c) => c.conta_pai_id === sectionId && c.nivel === 2);
+    if (directChildren.length === 0) return null;
+    let hasAny = false;
+    let total = 0;
+    for (const c of directChildren) {
+      const val = valoresMap[c.id];
+      if (val != null) { hasAny = true; total += val; }
+    }
+    return hasAny ? total : null;
+  }
+  let hasAny = false;
+  let total = 0;
+  for (const g of groups) {
+    const groupTotal = sumChildrenOfGroup(contas, valoresMap, g.id);
+    if (groupTotal != null) {
+      hasAny = true;
+      total += groupTotal;
+    }
+  }
+  return hasAny ? total : null;
+}
+
 export const indicadorAfterType: Record<string, IndicadorDRE> = {
   custo_variavel: indicadoresDRE[0],
   despesa_fixa: indicadoresDRE[1],
@@ -107,20 +162,17 @@ export const indicadorAfterType: Record<string, IndicadorDRE> = {
   financeiro: indicadoresDRE[3],
 };
 
-/**
- * Build ordered rows (contas + indicators) for rendering.
- */
 export type DreRow =
   | { type: 'conta'; conta: ContaRow }
   | { type: 'indicador'; indicador: IndicadorDRE };
 
 export function buildDreRows(contas: ContaRow[]): DreRow[] {
   const rows: DreRow[] = [];
-  
+
   for (let i = 0; i < contas.length; i++) {
     const conta = contas[i];
     rows.push({ type: 'conta', conta });
-    
+
     const nextConta = contas[i + 1];
     if (!nextConta || nextConta.tipo !== conta.tipo) {
       const indicator = indicadorAfterType[conta.tipo];
@@ -129,6 +181,6 @@ export function buildDreRows(contas: ContaRow[]): DreRow[] {
       }
     }
   }
-  
+
   return rows;
 }
