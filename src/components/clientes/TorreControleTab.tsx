@@ -802,6 +802,7 @@ export function TorreControleTab({ clienteId }: Props) {
         metasExistentes={metaMap}
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
+        onRegenerar={() => handleSugerirMetas(true)}
       />
     </div>
   );
