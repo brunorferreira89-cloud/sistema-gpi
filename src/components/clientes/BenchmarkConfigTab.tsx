@@ -94,7 +94,7 @@ export function BenchmarkConfigTab({ clienteId }: Props) {
         .from('benchmark_configuracoes' as any)
         .select('*')
         .eq('cliente_id', clienteId);
-      return (data || []) as BenchmarkConfigRow[];
+      return (data || []) as unknown as BenchmarkConfigRow[];
     },
   });
 
