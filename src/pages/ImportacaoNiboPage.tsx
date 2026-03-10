@@ -105,7 +105,7 @@ export default function ImportacaoNiboPage() {
 
   const handleFile = useCallback(async (file: File) => {
     try {
-      const result = await parseValoresNibo(file);
+      const result = await parseValoresNibo(file, contasN2.map(c => c.nome));
       if (!result.valido) {
         toast.error(result.erro || 'Erro ao processar arquivo');
         return;
