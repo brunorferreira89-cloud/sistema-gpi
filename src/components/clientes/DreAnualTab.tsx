@@ -563,6 +563,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     const isExpense = ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(node.conta.tipo);
     let yearTotal = 0;
     let hasYearVal = false;
+    let yearFat = 0;
 
     return (
       <tr key={node.conta.id} className="hover:bg-[#F6F9FF]" style={{ background: '#FFFFFF', borderBottom: '1px solid #F0F4FA' }}>
@@ -580,6 +581,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
           const monthMap = getMonthMap(m.value);
           const val = sumLeafsOfNode(node, monthMap);
           if (val != null) { yearTotal += val; hasYearVal = true; }
+          const fat = faturamentoPorMes[m.value] || 0;
+          yearFat += fat;
           const f = fmtVal(val);
           const prevVal = i > 0 ? sumLeafsOfNode(node, getMonthMap(months[i - 1].value)) : null;
           return [
@@ -591,14 +594,18 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             }}>
               {f.text}
             </td>,
-            showAV ? <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW, background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined }} /> : null,
+            renderAvCell(val, fat, {
+              isSubgrupo: true,
+              contaId: node.conta.id,
+              isCurrent: isCurrentMonth(m.value),
+            }),
             renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
           ];
         })}
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '8px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
-        {showAV && <td style={{ width: avColW, minWidth: avColW, background: '#F6F9FF' }} />}
+        {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isSubgrupo: true, contaId: node.conta.id, bg: '#F6F9FF' })}
         {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
