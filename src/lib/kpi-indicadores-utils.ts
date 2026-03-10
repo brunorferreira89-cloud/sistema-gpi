@@ -155,7 +155,6 @@ export function calcularIndicadores(
         });
       }
     } else if (ind.tipo_fonte === 'subgrupo') {
-      // Use conta_ids array if available, fallback to conta_id
       const contaIds: string[] = (ind as any).conta_ids && Array.isArray((ind as any).conta_ids) && (ind as any).conta_ids.length > 0
         ? (ind as any).conta_ids
         : ind.conta_id ? [ind.conta_id] : [];
@@ -164,15 +163,29 @@ export function calcularIndicadores(
         let total = 0;
         let hasAny = false;
         for (const cid of contaIds) {
-          const children = contas.filter(c => c.conta_pai_id === cid && c.nivel === 2);
-          children.forEach(c => {
-            const v = valoresMap[c.id];
+          const conta = contas.find(c => c.id === cid);
+          if (!conta) continue;
+
+          if (conta.nivel === 1) {
+            // N1: sum all N2 children
+            const children = contas.filter(c => c.conta_pai_id === cid && c.nivel === 2);
+            children.forEach(c => {
+              const v = valoresMap[c.id];
+              if (v != null) {
+                hasAny = true;
+                total += v;
+                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+              }
+            });
+          } else if (conta.nivel === 2) {
+            // N2: sum directly
+            const v = valoresMap[cid];
             if (v != null) {
               hasAny = true;
               total += v;
-              detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+              detalhe.push({ nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
             }
-          });
+          }
         }
         valor = hasAny ? total : null;
       } else {

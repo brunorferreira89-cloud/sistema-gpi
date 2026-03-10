@@ -184,23 +184,21 @@ export function DreAnualTab({ clienteId }: Props) {
   });
 
   const benchmarkMap = useMemo(() => {
-    const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string }>();
+    const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string; nome: string }>();
     const defaults: any[] = [];
     const overrides: any[] = [];
     (kpiIndicadores || []).forEach((k: any) => {
       if (k.cliente_id === clienteId) overrides.push(k);
       else defaults.push(k);
     });
-    // Resolve: override wins by name
     const overrideNames = new Set(overrides.map((o: any) => o.nome));
     const merged = [...overrides, ...defaults.filter((d: any) => !overrideNames.has(d.nome))];
     
-    const config = { limite_verde: 0, limite_ambar: 0, direcao: '' };
     for (const k of merged) {
       const contaIds: string[] = k.conta_ids && Array.isArray(k.conta_ids) && k.conta_ids.length > 0
         ? k.conta_ids
         : k.conta_id ? [k.conta_id] : [];
-      const cfg = { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao };
+      const cfg = { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao, nome: k.nome };
       for (const cid of contaIds) {
         map.set(cid, cfg);
       }
@@ -431,11 +429,12 @@ export function DreAnualTab({ clienteId }: Props) {
     isGrupo?: boolean;
     isReceita?: boolean;
     isSubgrupo?: boolean;
+    isCategoria?: boolean;
     contaId?: string;
     isCurrent?: boolean;
   }): React.ReactNode => {
     if (!showAV) return null;
-    const { bg, isGrupo, isReceita, isSubgrupo, contaId, isCurrent } = opts || {};
+    const { bg, isGrupo, isReceita, isSubgrupo, isCategoria, contaId, isCurrent } = opts || {};
     const baseBg = isCurrent ? (bg === '#F0F4FA' ? '#E8EEF8' : bg === '#0D1B35' ? undefined : '#FAFCFF') : bg;
 
     if (isGrupo || isReceita) {
@@ -452,10 +451,11 @@ export function DreAnualTab({ clienteId }: Props) {
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
 
-    if (isSubgrupo && contaId) {
+    // Show dot for both N1 (subgrupo) and N2 (categoria) if in benchmarkMap
+    if ((isSubgrupo || isCategoria) && contaId) {
       const config = benchmarkMap.get(contaId);
       if (config) {
-        let dotColor = '#DC2626'; // vermelho default
+        let dotColor = '#DC2626';
         if (config.direcao === 'menor_melhor') {
           if (avPct < config.limite_verde) dotColor = '#00A86B';
           else if (avPct < config.limite_ambar) dotColor = '#D97706';
@@ -464,7 +464,7 @@ export function DreAnualTab({ clienteId }: Props) {
           else if (avPct > config.limite_ambar) dotColor = '#D97706';
         }
         const sign = config.direcao === 'maior_melhor' ? '>' : '<';
-        tooltipText = `Benchmark: verde ${sign}${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho ${config.direcao === 'menor_melhor' ? '>' : '<'}${config.limite_ambar}%`;
+        tooltipText = `Benchmark [${config.nome}]: verde ${sign}${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho ${config.direcao === 'menor_melhor' ? '>' : '<'}${config.limite_ambar}%`;
         dot = <span style={{ fontSize: 8, color: dotColor, lineHeight: 1 }}>●</span>;
       }
     }
@@ -534,6 +534,8 @@ export function DreAnualTab({ clienteId }: Props) {
             </td>,
             renderAvCell(val, fat, {
               isReceita,
+              isCategoria: true,
+              contaId: node.conta.id,
               isCurrent: isCurrentMonth(m.value),
             }),
             renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
@@ -542,7 +544,7 @@ export function DreAnualTab({ clienteId }: Props) {
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
-        {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isReceita, bg: '#F6F9FF' })}
+        {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isReceita, isCategoria: true, contaId: node.conta.id, bg: '#F6F9FF' })}
         {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
