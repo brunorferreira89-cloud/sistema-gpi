@@ -747,7 +747,7 @@ export function TorreControleTab({ clienteId }: Props) {
             {/* AI suggest button + Table */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: -8 }}>
               <button
-                onClick={handleSugerirMetas}
+                onClick={() => handleSugerirMetas()}
                 disabled={loadingSugestao}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,

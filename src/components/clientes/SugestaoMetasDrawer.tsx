@@ -36,6 +36,7 @@ interface SugestaoMetasDrawerProps {
   metasExistentes: Record<string, { meta_tipo: string; meta_valor: number | null }>;
   onAplicar: (selecionadas: SugestaoMeta[]) => Promise<void>;
   loading: boolean;
+  onRegenerar?: () => void;
 }
 
 // ── Colors ───────────────────────────────────────────────────────
