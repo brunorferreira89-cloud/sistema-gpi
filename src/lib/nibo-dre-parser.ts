@@ -144,10 +144,10 @@ export function parseValoresNibo(file: File): Promise<ResultadoParseValores> {
             let val = 0;
             if (valCell) {
               if (typeof valCell.v === 'number') {
-                val = Math.abs(valCell.v);
+                val = valCell.v;
               } else if (typeof valCell.v === 'string') {
                 const parsed = parseFloat(valCell.v.replace(/[^\d,.-]/g, '').replace(',', '.'));
-                if (!isNaN(parsed)) val = Math.abs(parsed);
+                if (!isNaN(parsed)) val = parsed;
               }
             }
             valoresRow[mesesDisponiveis[mi]] = val;
