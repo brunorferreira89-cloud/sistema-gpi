@@ -3,8 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen, AlertTriangle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Pencil, Trash2, Copy, BookOpen, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { type ContaRow } from '@/lib/plano-contas-utils';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
 import { ImportActionDialog } from '@/components/importacao/ImportActionDialog';
@@ -34,7 +38,31 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string } | null>(null);
   const [planoOpen, setPlanoOpen] = useState(false);
+  const [deletePlanoOpen, setDeletePlanoOpen] = useState(false);
+  const [deletingPlano, setDeletingPlano] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleDeletePlano = async () => {
+    setDeletingPlano(true);
+    try {
+      // Delete all contas (valores_mensais cascade via FK)
+      const { error } = await supabase.from('plano_de_contas').delete().eq('cliente_id', clienteId);
+      if (error) throw error;
+      // Also delete import records
+      await supabase.from('importacoes_nibo').delete().eq('cliente_id', clienteId);
+      toast.success('Plano de contas e dados financeiros excluídos com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['plano-contas'] });
+      queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
+      refetchContas();
+      setDeletePlanoOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir plano de contas.');
+    } finally {
+      setDeletingPlano(false);
+    }
+  };
 
   const { data: contas, refetch: refetchContas } = useQuery({
     queryKey: ['plano-contas-import', clienteId],
@@ -260,6 +288,11 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
             <Button variant="outline" onClick={() => setCopyOpen(true)} className="gap-2">
               <Copy className="h-4 w-4" />Copiar de outro cliente
             </Button>
+            {hasContas && (
+              <Button variant="outline" onClick={() => setDeletePlanoOpen(true)} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 className="h-4 w-4" />Apagar plano de contas
+              </Button>
+            )}
           </div>
 
           {hasContas ? (
@@ -316,6 +349,42 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
           onCancel={() => setActionDialog(null)}
         />
       )}
+
+      {/* Delete plano dialog */}
+      <AlertDialog open={deletePlanoOpen} onOpenChange={setDeletePlanoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <ShieldAlert className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Apagar plano de contas</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="space-y-2">
+              <p>Você está prestes a excluir <strong>todo o plano de contas</strong> deste cliente, incluindo:</p>
+              <ul className="list-disc pl-5 text-sm space-y-1">
+                <li>Todas as contas ({contas?.length || 0} registros)</li>
+                <li>Todos os valores financeiros importados</li>
+                <li>Todo o histórico de importações</li>
+              </ul>
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span><strong>Atenção:</strong> Esta ação é irreversível. Após a exclusão, será necessário reimportar o plano a partir do arquivo do Nibo.</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingPlano}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePlano}
+              disabled={deletingPlano}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingPlano ? 'Excluindo...' : 'Sim, apagar tudo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
