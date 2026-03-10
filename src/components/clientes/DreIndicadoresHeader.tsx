@@ -515,11 +515,6 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
 
   return (
     <div style={{ marginBottom: 24 }}>
-      {hasData && (
-        <div style={{ fontSize: 11, color: '#8A9BBC', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Referência: {monthLabel}
-        </div>
-      )}
 
       {/* Linha 1 — DRE Operacional */}
       <div className="dre-header-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
