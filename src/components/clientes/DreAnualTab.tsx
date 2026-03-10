@@ -80,7 +80,9 @@ function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | n
     const v = valMap[c.id];
     if (v == null) continue;
     hasAny = true;
-    total += c.tipo === 'receita' ? v : -v;
+    // Apply category prefix sign, then type-level sign
+    const signed = hasPrefixMinus(c.nome) ? -Math.abs(v) : Math.abs(v);
+    total += c.tipo === 'receita' ? signed : -signed;
   }
   return hasAny ? total : null;
 }
@@ -199,7 +201,9 @@ export function DreAnualTab({ clienteId }: Props) {
       for (const c of leafContas) {
         if (c.tipo === 'receita') {
           const v = valoresMap[c.id]?.[m.value];
-          if (v != null) total += v;
+          if (v != null) {
+            total += hasPrefixMinus(c.nome) ? -Math.abs(v) : Math.abs(v);
+          }
         }
       }
       map[m.value] = total;
