@@ -347,10 +347,10 @@ export function TorreControleTab({ clienteId }: Props) {
   });
 
   const { data: metas, isLoading: loadingMetas } = useQuery({
-    queryKey: ['torre-metas', clienteId, competencia],
-    enabled: !!clienteId && !!competencia,
+    queryKey: ['torre-metas', clienteId, mesSeg],
+    enabled: !!clienteId && !!mesSeg,
     queryFn: async () => {
-      const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor').eq('cliente_id', clienteId).eq('competencia', competencia);
+      const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor').eq('cliente_id', clienteId).eq('competencia', mesSeg);
       return (data || []) as TorreMeta[];
     },
   });
