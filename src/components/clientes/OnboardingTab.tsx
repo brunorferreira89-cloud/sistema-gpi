@@ -104,6 +104,14 @@ export function OnboardingTab({ clienteId }: Props) {
                         />
                         <span className={`flex-1 text-sm ${item.concluido ? 'text-txt-muted line-through' : 'text-txt'}`}>
                           {item.item}
+                          {isKpiConfig && !item.concluido && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/clientes/${clienteId}?tab=configuracao`); }}
+                              className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Ir para Configuração
+                            </button>
+                          )}
                         </span>
                         {isCritical && (
                           <span className="flex items-center gap-1 rounded-full bg-primary-lo px-2 py-0.5 text-[10px] font-semibold text-primary">
