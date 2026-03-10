@@ -59,18 +59,18 @@ function SparkLineFull({ data, color, w = 320, h = 48 }: { data: number[]; color
   );
 }
 
-/** Derive competencia date (YYYY-MM-01) from mes_referencia like "Fevereiro 2026" */
+/** Derive competencia date (YYYY-MM-01) from mes_referencia like "Fevereiro 2026" or "Fevereiro de 2026" */
 function mesRefToCompetencia(mesRef: string): string | null {
   const meses: Record<string, string> = {
     janeiro: '01', fevereiro: '02', março: '03', marco: '03', abril: '04',
     maio: '05', junho: '06', julho: '07', agosto: '08', setembro: '09',
     outubro: '10', novembro: '11', dezembro: '12',
   };
-  const parts = mesRef.trim().toLowerCase().split(/\s+/);
+  const parts = mesRef.trim().toLowerCase().split(/\s+/).filter(p => p !== 'de');
   if (parts.length < 2) return null;
   const mm = meses[parts[0]];
-  const yyyy = parts[1];
-  if (!mm || !yyyy) return null;
+  const yyyy = parts[parts.length - 1];
+  if (!mm || !yyyy || !/^\d{4}$/.test(yyyy)) return null;
   return `${yyyy}-${mm}-01`;
 }
 
