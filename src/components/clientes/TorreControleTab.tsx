@@ -655,22 +655,22 @@ export function TorreControleTab({ clienteId }: Props) {
     const antVal = totaisAnt[key as keyof typeof totaisAnt];
 
     return (
-      <tr key={key} style={{ background: 'rgba(26,60,255,0.05)', borderTop: '2px solid rgba(26,60,255,0.12)', borderBottom: '2px solid rgba(26,60,255,0.12)' }}>
+      <tr key={key} style={{ background: '#0D1B35' }}>
         <td style={{ width: 24 }} />
-        <td style={{ padding: '10px 8px 10px 16px', fontWeight: 800, fontSize: 12, color: '#1A3CFF' }}>
+        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: '#0099E6', fontSize: 13 }}>◈</span>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
             {config.nome}
           </span>
         </td>
-        <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 800, color: antVal < 0 ? C.red : C.green, padding: '10px 10px', width: 110 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 110 }}>
           {fmtTorre(antVal)}
         </td>
-        <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 800, color: realVal < 0 ? C.red : C.green, padding: '10px 10px', width: 120 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 120 }}>
           {fmtTorre(realVal)}
         </td>
-        <td style={{ textAlign: 'right', padding: '10px 10px', width: 130, color: C.txtMuted, fontFamily: "'Courier New', monospace", fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '10px 10px', width: 120, color: C.txtMuted, fontFamily: "'Courier New', monospace", fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', width: 130, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', width: 120, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td style={{ width: 96 }} />
       </tr>
     );
