@@ -982,7 +982,7 @@ export function DreAnualTab({ clienteId }: Props) {
           </div>
           <div className="space-y-1">
             <label className="text-xs" style={{ color: '#8A9BBC' }}>Ano</label>
-            <Select value={ano} onValueChange={(v) => { setAno(v); }}>
+            <Select value={ano} onValueChange={(v) => { setAno(v); setMesSelecionado(null); }}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
             </Select>
