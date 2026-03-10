@@ -122,18 +122,25 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
   return { text: abs, color: '#00A86B' };
 }
 
-// --- Benchmark helpers ---
-function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | undefined, benchmarks: BenchmarkThresholds): React.ReactNode | null {
-  if (tipo !== 'custo_variavel') return null;
-  const isPessoal = subgrupoNome?.toUpperCase().includes('PESSOAL') || subgrupoNome?.toUpperCase().includes('MÃO DE OBRA') || subgrupoNome?.toUpperCase().includes('MAO DE OBRA');
+// --- Dynamic Benchmark from benchmark_configuracoes ---
+interface BenchmarkConfigRow {
+  id: string;
+  cliente_id: string;
+  conta_id: string;
+  limite_verde: number;
+  limite_ambar: number;
+  direcao: string;
+}
+
+function getDynamicBenchmarkDot(avPct: number, config: BenchmarkConfigRow): React.ReactNode {
   let color: string;
-  if (isPessoal) {
-    if (avPct < benchmarks.cmo_verde) color = '#00A86B';
-    else if (avPct <= benchmarks.cmo_amarelo) color = '#D97706';
+  if (config.direcao === 'menor_melhor') {
+    if (avPct < config.limite_verde) color = '#00A86B';
+    else if (avPct < config.limite_ambar) color = '#D97706';
     else color = '#DC2626';
   } else {
-    if (avPct < benchmarks.cmv_verde) color = '#00A86B';
-    else if (avPct <= benchmarks.cmv_amarelo) color = '#D97706';
+    if (avPct > config.limite_verde) color = '#00A86B';
+    else if (avPct > config.limite_ambar) color = '#D97706';
     else color = '#DC2626';
   }
   return (
@@ -143,14 +150,11 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | und
   );
 }
 
-function LegendItem({ color, label, sub }: { color: string; label: string; sub: string }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4A5E80' }}>
-      <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill={color} /></svg>
-      <span style={{ fontWeight: 500 }}>{label}</span>
-      <span style={{ color: '#8A9BBC', fontSize: 10 }}>({sub})</span>
-    </span>
-  );
+function getBenchmarkTooltip(config: BenchmarkConfigRow): string {
+  if (config.direcao === 'menor_melhor') {
+    return `Benchmark: verde <${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho >${config.limite_ambar}%`;
+  }
+  return `Benchmark: verde >${config.limite_verde}% · âmbar ${config.limite_ambar}–${config.limite_verde}% · vermelho <${config.limite_ambar}%`;
 }
 
 import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
