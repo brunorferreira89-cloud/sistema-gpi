@@ -82,8 +82,8 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
   );
   let cmoReal = 0, cmoMeta = 0;
   cmoContas.forEach((c) => {
-    cmoReal += Math.abs(realizadoMap[c.id] || 0);
-    cmoMeta += Math.abs(metaMap[c.id] || 0);
+    cmoReal += realizadoMap[c.id] || 0;
+    cmoMeta += metaMap[c.id] || 0;
   });
 
   // GC = Resultado de Caixa (all 5 types)
