@@ -177,7 +177,7 @@ export default function ImportacaoNiboPage() {
       }));
 
       if (rows.length > 0) {
-        const { error } = await supabase.from('valores_mensais').upsert(rows, { onConflict: 'conta_id,competencia' });
+        const { error } = await supabase.from('valores_mensais').upsert(rows, { onConflict: 'conta_id,competencia', ignoreDuplicates: false });
         if (error) throw error;
       }
 
