@@ -124,6 +124,34 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
   return { text: abs, color: '#00A86B' };
 }
 
+// --- Benchmark helpers ---
+function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome?: string): React.ReactNode | null {
+  // Only custo_variavel has benchmarks
+  if (tipo !== 'custo_variavel') return null;
+
+  // Check if this is a PESSOAL (CMO) subgroup
+  const isPessoal = subgrupoNome?.toUpperCase().includes('PESSOAL') || subgrupoNome?.toUpperCase().includes('MÃO DE OBRA') || subgrupoNome?.toUpperCase().includes('MAO DE OBRA');
+
+  let color: string;
+  if (isPessoal) {
+    // CMO benchmark
+    if (avPct < 25) color = '#00A86B';
+    else if (avPct <= 35) color = '#D97706';
+    else color = '#DC2626';
+  } else {
+    // CMV benchmark
+    if (avPct < 38) color = '#00A86B';
+    else if (avPct <= 50) color = '#D97706';
+    else color = '#DC2626';
+  }
+
+  return (
+    <svg width="6" height="6" style={{ flexShrink: 0 }}>
+      <circle cx="3" cy="3" r="3" fill={color} />
+    </svg>
+  );
+}
+
 // --- component ---
 
 interface Props { clienteId: string; }
@@ -201,7 +229,6 @@ export function DreAnualTab({ clienteId }: Props) {
         if (c.tipo === 'receita') {
           const v = valoresMap[c.id]?.[m.value];
           if (v != null) {
-            // Value already signed correctly from DB
             total += v;
           }
         }
@@ -239,6 +266,82 @@ export function DreAnualTab({ clienteId }: Props) {
 
   const isCurrentMonth = (comp: string) => comp === currentMonthComp;
 
+  // --- AV% helper ---
+  const fmtAv = (val: number | null, fat: number): string | null => {
+    if (val == null || val === 0 || fat === 0) return null;
+    const pct = (Math.abs(val) / Math.abs(fat)) * 100;
+    return `${pct.toFixed(1)}%`;
+  };
+
+  // Find parent subgroup name for a category (for CMO benchmark detection)
+  const getSubgrupoNome = (contaId: string): string | undefined => {
+    const conta = contas?.find(c => c.id === contaId);
+    if (!conta?.conta_pai_id) return undefined;
+    const parent = contas?.find(c => c.id === conta.conta_pai_id);
+    return parent?.nome;
+  };
+
+  // --- AV% cell renderer ---
+  const renderAvCell = (val: number | null, fat: number, opts?: {
+    bg?: string;
+    isGrupo?: boolean;
+    isReceita?: boolean;
+    tipo?: string;
+    contaId?: string;
+    isCurrent?: boolean;
+  }): React.ReactNode => {
+    const { bg, isGrupo, isReceita, tipo, contaId, isCurrent } = opts || {};
+    const baseBg = isCurrent ? (bg === '#F0F4FA' ? '#E8EEF8' : bg === '#0D1B35' ? undefined : '#FAFCFF') : bg;
+
+    // Groups and subgroups: empty AV%
+    if (isGrupo) {
+      return (
+        <td style={{ width: 52, minWidth: 52, padding: '0 6px', background: baseBg }} />
+      );
+    }
+
+    // Receita group (would be 100%): skip
+    if (isReceita) {
+      return (
+        <td style={{ width: 52, minWidth: 52, padding: '0 6px', background: baseBg }} />
+      );
+    }
+
+    const avStr = fmtAv(val, fat);
+    if (!avStr) {
+      return (
+        <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right', color: '#C4CFEA', fontSize: 11, background: baseBg }}>
+          {val == null ? '' : ''}
+        </td>
+      );
+    }
+
+    const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
+    const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId)) : null;
+
+    return (
+      <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right', background: baseBg }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+          {dot}
+          <span style={{ color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace' }}>{avStr}</span>
+        </span>
+      </td>
+    );
+  };
+
+  // --- Indicador AV% cell ---
+  const renderIndicadorAvCell = (val: number | null, fat: number, dotColor: string): React.ReactNode => {
+    if (val == null || fat === 0) {
+      return <td style={{ width: 52, minWidth: 52, padding: '0 6px' }} />;
+    }
+    const pct = ((val / fat) * 100).toFixed(1);
+    return (
+      <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right' }}>
+        <span style={{ color: dotColor, fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{pct}%</span>
+      </td>
+    );
+  };
+
   // --- Row renderers ---
 
   const renderCategoriaRow = (node: DreNode) => {
@@ -246,9 +349,11 @@ export function DreAnualTab({ clienteId }: Props) {
     const isPlus = hasPrefixPlus(nome);
     const isMinus = hasPrefixMinus(nome);
     const cleanName = nome.replace(/^\([+-]\)\s*/, '');
+    const isReceita = node.conta.tipo === 'receita';
 
     let yearTotal = 0;
     let hasYearVal = false;
+    let yearFat = 0;
 
     return (
       <tr key={node.conta.id} className="hover:bg-[#F6F9FF]" style={{ borderBottom: '1px solid #F8F9FB' }}>
@@ -262,20 +367,30 @@ export function DreAnualTab({ clienteId }: Props) {
         {months.map((m) => {
           const val = valoresMap[node.conta.id]?.[m.value] ?? null;
           if (val != null) { yearTotal += val; hasYearVal = true; }
+          const fat = faturamentoPorMes[m.value] || 0;
+          yearFat += fat;
           const f = fmtVal(val);
-          return (
+          return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
               fontFamily: 'monospace', fontSize: 12, color: f.color, padding: '7px 12px',
               background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined,
+              width: 80, minWidth: 80,
             }}>
               {f.text}
-            </td>
-          );
+            </td>,
+            renderAvCell(val, fat, {
+              isReceita,
+              tipo: node.conta.nivel === 2 ? node.conta.tipo : undefined,
+              contaId: node.conta.nivel === 2 ? node.conta.id : undefined,
+              isCurrent: isCurrentMonth(m.value),
+            }),
+          ];
         })}
-        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px' }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
+        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
+        {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isReceita, bg: '#F6F9FF', tipo: node.conta.nivel === 2 ? node.conta.tipo : undefined, contaId: node.conta.nivel === 2 ? node.conta.id : undefined })}
       </tr>
     );
   };
@@ -303,19 +418,22 @@ export function DreAnualTab({ clienteId }: Props) {
           const val = sumLeafsOfNode(node, monthMap);
           if (val != null) { yearTotal += val; hasYearVal = true; }
           const f = fmtVal(val);
-          return (
+          return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
               fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: f.color, padding: '8px 12px',
               background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined,
+              width: 80, minWidth: 80,
             }}>
               {f.text}
-            </td>
-          );
+            </td>,
+            <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52, background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined }} />,
+          ];
         })}
-        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '8px 12px' }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
+        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '8px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
+        <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
       </tr>
     );
   };
@@ -343,19 +461,22 @@ export function DreAnualTab({ clienteId }: Props) {
           const val = sumLeafsOfNode(node, monthMap);
           if (val != null) { yearTotal += val; hasYearVal = true; }
           const f = fmtVal(val);
-          return (
+          return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
               fontFamily: 'monospace', fontWeight: 700, fontSize: 12, color: f.color, padding: '10px 12px',
               background: isCurrentMonth(m.value) ? '#E8EEF8' : undefined,
+              width: 80, minWidth: 80,
             }}>
               {f.text}
-            </td>
-          );
+            </td>,
+            <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52, background: isCurrentMonth(m.value) ? '#E8EEF8' : '#F0F4FA' }} />,
+          ];
         })}
-        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, padding: '10px 12px' }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
+        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, padding: '10px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
+        <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
       </tr>
     );
   };
@@ -363,6 +484,7 @@ export function DreAnualTab({ clienteId }: Props) {
   const renderIndicadorRows = (ind: Indicador) => {
     let yearTotal = 0;
     let hasYearVal = false;
+    let yearFat = 0;
     const rows: React.ReactNode[] = [];
 
     // Value row
@@ -377,17 +499,21 @@ export function DreAnualTab({ clienteId }: Props) {
         {months.map((m) => {
           const monthMap = getMonthMap(m.value);
           const val = calcIndicadorValue(leafContas, monthMap, ind.tipos);
+          const fat = faturamentoPorMes[m.value] || 0;
           if (val != null) { yearTotal += val; hasYearVal = true; }
+          yearFat += fat;
           const f = fmtIndicadorVal(val);
-          return (
-            <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px' }}>
+          return [
+            <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px', width: 80, minWidth: 80 }}>
               {f.text}
-            </td>
-          );
+            </td>,
+            renderIndicadorAvCell(val, fat, ind.dotColor),
+          ];
         })}
-        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, padding: '11px 12px', background: '#0F1F3D', borderLeft: '1px solid #2A3A5C', color: hasYearVal ? fmtIndicadorVal(yearTotal).color : '#8A9BBC' }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, padding: '11px 12px', background: '#0F1F3D', borderLeft: '1px solid #2A3A5C', color: hasYearVal ? fmtIndicadorVal(yearTotal).color : '#8A9BBC', width: 80 }}>
           {hasYearVal ? fmtIndicadorVal(yearTotal).text : '—'}
         </td>
+        {renderIndicadorAvCell(hasYearVal ? yearTotal : null, yearFat, ind.dotColor)}
       </tr>
     );
 
@@ -402,19 +528,21 @@ export function DreAnualTab({ clienteId }: Props) {
           const val = calcIndicadorValue(leafContas, monthMap, ind.tipos);
           const fat = faturamentoPorMes[m.value] || 0;
           const pct = fat !== 0 && val != null ? ((val / fat) * 100).toFixed(0) : null;
-          return (
-            <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#1A3CFF', padding: '6px 12px' }}>
+          return [
+            <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#1A3CFF', padding: '6px 12px', width: 80, minWidth: 80 }}>
               {pct != null ? `${pct} %` : '—'}
-            </td>
-          );
+            </td>,
+            <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52 }} />,
+          ];
         })}
-        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#1A3CFF', padding: '6px 12px' }) }}>
+        <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#1A3CFF', padding: '6px 12px', width: 80 }) }}>
           {(() => {
             const totalFat = Object.values(faturamentoPorMes).reduce((a, b) => a + b, 0);
             if (!hasYearVal || totalFat === 0) return '—';
             return `${((yearTotal / totalFat) * 100).toFixed(0)} %`;
           })()}
         </td>
+        <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
       </tr>
     );
 
@@ -460,6 +588,9 @@ export function DreAnualTab({ clienteId }: Props) {
     return output;
   };
 
+  // colWidth: 80 (value) + 52 (AV%) = 132 per month, + 132 for year col
+  const tableMinWidth = 280 + 12 * 132 + 132;
+
   return (
     <div className="space-y-4">
       {/* Title + Filter */}
@@ -494,7 +625,7 @@ export function DreAnualTab({ clienteId }: Props) {
       {/* DRE Table */}
       {hasContas && hasAnyData && (
         <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
-          <table style={{ borderCollapse: 'collapse', minWidth: 280 + 12 * 88 + 96 }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: tableMinWidth }}>
             <thead>
               <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                 <th style={{
@@ -506,24 +637,37 @@ export function DreAnualTab({ clienteId }: Props) {
                 }}>
                   RESULTADO
                 </th>
-                {months.map((m) => (
+                {months.map((m) => [
                   <th key={m.value} style={{
                     padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: isCurrentMonth(m.value) ? 700 : 600,
                     color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
-                    width: 88, whiteSpace: 'nowrap',
+                    width: 80, minWidth: 80, whiteSpace: 'nowrap',
                     background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
                   }}>
                     {m.shortLabel}
-                  </th>
-                ))}
+                  </th>,
+                  <th key={`${m.value}_av`} style={{
+                    padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
+                    color: '#8A9BBC', fontStyle: 'italic', width: 52, minWidth: 52,
+                    background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                  }}>
+                    AV
+                  </th>,
+                ])}
                 <th style={{
                   ...yearColStyle({
                     padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700,
                     color: '#0D1B35', textTransform: 'uppercase', letterSpacing: '0.06em',
-                    width: 96, whiteSpace: 'nowrap',
+                    width: 80, whiteSpace: 'nowrap',
                   }),
                 }}>
                   {ano}
+                </th>
+                <th style={{
+                  padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
+                  color: '#8A9BBC', fontStyle: 'italic', width: 52, minWidth: 52, background: '#F6F9FF',
+                }}>
+                  AV
                 </th>
               </tr>
             </thead>
