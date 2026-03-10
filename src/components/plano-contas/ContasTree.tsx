@@ -309,17 +309,14 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
               {...(listeners || {})}
             />
             <span className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: '#374151' }}>{node.nome}</span>
+            <button onClick={() => startAdd(node.id, 1)} className="flex items-center gap-0.5 cursor-pointer" style={{ color: '#1A3CFF', fontSize: 11, fontWeight: 500, background: 'none', border: 'none', padding: 0 }}>
+              <Plus className="h-3 w-3" /> Subgrupo
+            </button>
           </div>
-          <div className="flex items-center gap-3">
-            <span style={{ color: '#8A9BBC', fontStyle: 'italic', fontSize: 11 }}>subtotal</span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => openEditDialog(node)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Editar">
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => startAdd(node.id, 1)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Adicionar subgrupo">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => openEditDialog(node)} className="p-1 text-[#6B7280] hover:text-[#374151] rounded hover:bg-black/5" title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
         {renderInlineAdd(node.id, 1, 'px-4')}
