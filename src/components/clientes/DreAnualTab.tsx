@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet } from 'lucide-react';
 import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
+import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const tipoBorderColors: Record<string, string> = {
   receita: 'border-l-primary',
@@ -182,7 +183,13 @@ export function DreAnualTab({ clienteId }: Props) {
                   let acumuladoTotal = 0;
                   return (
                     <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
-                      <td className="p-3 text-txt sticky left-0 bg-primary/5 z-10">{ind.nome}</td>
+                      <td className="p-3 text-txt sticky left-0 bg-primary/5 z-10">
+                        {mesSelecionado ? (
+                          <IndicadorDetalhe indicador={ind} contas={contas!} valoresMap={getMonthValuesMap(mesSelecionado)}>
+                            {ind.nome}
+                          </IndicadorDetalhe>
+                        ) : ind.nome}
+                      </td>
                       {displayMonths.map((m) => {
                         const monthMap = getMonthValuesMap(m.value);
                         const val = calcIndicador(contas!, monthMap, ind.acumula);
