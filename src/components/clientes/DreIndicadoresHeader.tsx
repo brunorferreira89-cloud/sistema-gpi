@@ -391,7 +391,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
             <div style={{ textAlign: 'center', color: '#8A9BBC', fontSize: 12, marginTop: 20 }}>Importe dados para visualizar</div>
           ) : (
             <ResponsiveContainer width="100%" height={80}>
-              <LineChart data={lineData} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
+              <ComposedChart data={lineData} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gcFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={gcColor} stopOpacity={0.08} />
