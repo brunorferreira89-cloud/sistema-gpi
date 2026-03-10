@@ -4,6 +4,7 @@ import { formatCurrency } from '@/lib/plano-contas-utils';
 import type { ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
+import { AnaliseCompletaModal } from './AnaliseCompletaModal';
 
 /* ──────── types ──────── */
 interface Props {
