@@ -143,6 +143,16 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
           <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: C.txtMuted, padding: 4 }}>
             <X style={{ width: 18, height: 18 }} />
           </button>
+          {!loading && sugestoes.length > 0 && onRegenerar && (
+            <button
+              onClick={onRegenerar}
+              style={{ position: 'absolute', top: 16, right: 44, background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', color: C.txtSec, padding: '3px 10px', fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.pLo; e.currentTarget.style.color = C.primary; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = C.txtSec; }}
+            >
+              🔄 Regenerar
+            </button>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <span style={{ fontSize: 13 }}>✨</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.18em' }}>SUGESTÃO DE METAS · IA</span>
