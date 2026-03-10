@@ -59,7 +59,7 @@ export default function ReunioesPage() {
     },
   });
 
-  const getClienteNome = (id: string) => clientes?.find((c) => c.id === id)?.nome_empresa || '—';
+  const getClienteNome = (id: string) => { const c = clientes?.find((c) => c.id === id); return c?.razao_social || c?.nome_empresa || '—'; };
   const getClienteSegmento = (id: string) => clientes?.find((c) => c.id === id)?.segmento || 'outro';
 
   const filterReunioes = (tipo: string) => {
