@@ -67,7 +67,7 @@ const confiancaBadge = (c: 'alta' | 'media' | 'baixa') => {
 };
 
 // ── Component ───────────────────────────────────────────────────
-export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, sugestoes, metasExistentes, onAplicar, loading, onRegenerar }: SugestaoMetasDrawerProps) {
+export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, sugestoes, metasExistentes, onAplicar, loading, onRegenerar, geradoEm, fromCache }: SugestaoMetasDrawerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editedValues, setEditedValues] = useState<Record<string, { tipo: 'pct' | 'valor'; valor: number }>>({});
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -145,16 +145,6 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
           <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: C.txtMuted, padding: 4 }}>
             <X style={{ width: 18, height: 18 }} />
           </button>
-          {!loading && sugestoes.length > 0 && onRegenerar && (
-            <button
-              onClick={onRegenerar}
-              style={{ position: 'absolute', top: 16, right: 44, background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', color: C.txtSec, padding: '3px 10px', fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.pLo; e.currentTarget.style.color = C.primary; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = C.txtSec; }}
-            >
-              🔄 Regenerar
-            </button>
-          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <span style={{ fontSize: 13 }}>✨</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.18em' }}>SUGESTÃO DE METAS · IA</span>
@@ -163,6 +153,77 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
           <p style={{ fontSize: 11, color: C.txtMuted, margin: '4px 0 0' }}>
             {cliente ? nomeExibido(cliente).toUpperCase() : ''} · {compLabel}
           </p>
+          {geradoEm && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              marginTop: 6,
+            }}>
+              {fromCache ? (
+                <>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                    color: '#00A86B',
+                    background: 'rgba(0,168,107,0.08)',
+                    border: '1px solid rgba(0,168,107,0.2)',
+                    padding: '2px 7px', borderRadius: 4,
+                  }}>
+                    ✓ CACHE
+                  </span>
+                  <span style={{ fontSize: 10, color: C.txtMuted }}>
+                    Gerado em {new Date(geradoEm).toLocaleDateString('pt-BR', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    } as any)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                    color: C.primary,
+                    background: 'rgba(26,60,255,0.08)',
+                    border: '1px solid rgba(26,60,255,0.18)',
+                    padding: '2px 7px', borderRadius: 4,
+                  }}>
+                    ✨ NOVO
+                  </span>
+                  <span style={{ fontSize: 10, color: C.txtMuted }}>Acabou de ser gerado</span>
+                </>
+              )}
+
+              {onRegenerar && (
+                <button
+                  onClick={onRegenerar}
+                  disabled={loading}
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 5,
+                    border: `1px solid ${C.borderStr}`,
+                    background: 'transparent',
+                    color: C.txtSec, fontSize: 10, fontWeight: 600,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.5 : 1,
+                    fontFamily: "'DM Sans', system-ui",
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    if (!loading) {
+                      e.currentTarget.style.borderColor = C.primary;
+                      e.currentTarget.style.color = C.primary;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = C.borderStr;
+                    e.currentTarget.style.color = C.txtSec;
+                  }}
+                  title="Apaga o cache e gera uma nova análise"
+                >
+                  🔄 Regenerar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Loading */}
