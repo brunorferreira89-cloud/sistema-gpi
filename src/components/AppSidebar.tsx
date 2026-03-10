@@ -2,7 +2,7 @@ import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscop
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import gpiLogo from '@/assets/gpi-logo.png';
+import gpiLogo from '@/assets/gpi-logo-dark.png';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
