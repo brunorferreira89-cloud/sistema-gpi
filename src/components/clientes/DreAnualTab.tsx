@@ -443,17 +443,17 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     );
   };
 
-  // --- AV% cell renderer ---
+   // --- AV% cell renderer ---
   const renderAvCell = (val: number | null, fat: number, opts?: {
     bg?: string;
     isGrupo?: boolean;
     isReceita?: boolean;
-    tipo?: string;
+    isSubgrupo?: boolean;
     contaId?: string;
     isCurrent?: boolean;
   }): React.ReactNode => {
     if (!showAV) return null;
-    const { bg, isGrupo, isReceita, tipo, contaId, isCurrent } = opts || {};
+    const { bg, isGrupo, isReceita, isSubgrupo, contaId, isCurrent } = opts || {};
     const baseBg = isCurrent ? (bg === '#F0F4FA' ? '#E8EEF8' : bg === '#0D1B35' ? undefined : '#FAFCFF') : bg;
 
     if (isGrupo || isReceita) {
@@ -466,10 +466,20 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     }
 
     const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
-    const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId), benchmarks) : null;
+
+    // Only show benchmark dot on subgrupos (nivel=1) with a configured benchmark
+    let dot: React.ReactNode = null;
+    let tooltipText: string | null = null;
+    if (isSubgrupo && contaId) {
+      const config = benchmarkMap.get(contaId);
+      if (config) {
+        dot = getDynamicBenchmarkDot(avPct, config);
+        tooltipText = getBenchmarkTooltip(config);
+      }
+    }
 
     return (
-      <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }}>
+      <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }} title={tooltipText || undefined}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
           {dot}
           <span style={{ color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace' }}>{avStr}</span>
