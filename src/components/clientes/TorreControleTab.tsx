@@ -815,7 +815,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   <thead>
                     <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>CONTA DRE</th>
+                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid #DDE4F0' }}>CONTA DRE</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntLabel || 'MÊS ANT.'}</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>REALIZADO</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>META</th>
