@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { nomeExibido, formatCnpj } from '@/lib/clientes-utils';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
 
