@@ -168,6 +168,40 @@ export function DreAnualTab({ clienteId }: Props) {
   const [newContaNome, setNewContaNome] = useState('');
   const [hoveredConta, setHoveredConta] = useState<string | null>(null);
 
+  // --- Benchmark from kpi_indicadores ---
+  const { data: kpiIndicadores } = useQuery({
+    queryKey: ['kpi-indicadores-benchmark', clienteId],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('kpi_indicadores')
+        .select('*')
+        .eq('tipo_fonte', 'subgrupo')
+        .eq('ativo', true)
+        .or(`cliente_id.eq.${clienteId},cliente_id.is.null`);
+      return data || [];
+    },
+  });
+
+  const benchmarkMap = useMemo(() => {
+    const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string }>();
+    const defaults: typeof kpiIndicadores = [];
+    const overrides: typeof kpiIndicadores = [];
+    (kpiIndicadores || []).forEach((k: any) => {
+      if (k.cliente_id === clienteId) overrides.push(k);
+      else defaults.push(k);
+    });
+    // First add defaults
+    (defaults as any[]).forEach((k) => {
+      if (k.conta_id) map.set(k.conta_id, { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao });
+    });
+    // Then override with client-specific
+    (overrides as any[]).forEach((k) => {
+      if (k.conta_id) map.set(k.conta_id, { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao });
+    });
+    return map;
+  }, [kpiIndicadores, clienteId]);
+
   const { data: saldosData } = useQuery({
     queryKey: ['saldos-contas', clienteId, ano],
     enabled: !!clienteId,
