@@ -34,16 +34,19 @@ function deveIgnorar(nome: string): boolean {
   return LINHAS_IGNORADAS.some((ig) => lower === ig || lower.startsWith(ig));
 }
 
-function isAllUpperCase(str: string): boolean {
-  const alpha = str.replace(/[^a-zA-ZÀ-ÿ]/g, '');
-  return alpha.length > 0 && alpha === alpha.toUpperCase();
-}
-
-function isTotalizadorLine(nome: string): boolean {
-  const trimmed = nome.trim();
-  // Uppercase lines without prefix are totalizers (seções)
-  if (!trimmed.startsWith('(') && isAllUpperCase(trimmed) && trimmed.length > 2) return true;
-  return false;
+/**
+ * A real category has mixed case after removing prefix.
+ * Totalizers (groups/subgroups) are ALL UPPERCASE.
+ */
+function isCategoriaReal(nome: string): boolean {
+  if (!nome) return false;
+  const semPrefixo = nome.replace(/^\([+-]\)\s*/, '').trim();
+  if (!semPrefixo) return false;
+  const apenasLetras = semPrefixo.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+  if (apenasLetras.length === 0) return false;
+  // If all letters are uppercase → it's a totalizer, not a real category
+  if (apenasLetras === apenasLetras.toUpperCase()) return false;
+  return true;
 }
 
 export function mesAbrevParaNumero(abrev: string): string | null {
@@ -128,8 +131,8 @@ export function parseValoresNibo(file: File): Promise<ResultadoParseValores> {
           const nomeOriginal = String(nameCell.v).trim();
           if (!nomeOriginal) continue;
           if (deveIgnorar(nomeOriginal)) continue;
-          if (isTotalizadorLine(nomeOriginal)) continue;
-          if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix
+          if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix (+) or (-)
+          if (!isCategoriaReal(nomeOriginal)) continue; // Skip totalizers (all uppercase)
 
           const valoresRow: Record<string, number> = {};
           for (let mi = 0; mi < mesesDisponiveis.length; mi++) {
