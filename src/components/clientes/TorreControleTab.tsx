@@ -550,7 +550,7 @@ export function TorreControleTab({ clienteId }: Props) {
     const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
 
     // Styles — copied from DreAnualTab.tsx
-    let rowBg = '#FFFFFF';
+    let rowBg = '#FAFCFF';
     let fontWeight = 400;
     let fontSize = 12;
     let textColor = '#4A5E80';
