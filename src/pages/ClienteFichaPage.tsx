@@ -147,7 +147,10 @@ export default function ClienteFichaPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-txt">{cliente.razao_social || cliente.nome_empresa}</h2>
+          <h2 className="text-2xl font-bold text-txt">{nomeExibido(cliente)}</h2>
+          {cliente.cnpj && (
+            <p className="mt-0.5 text-[11px] text-txt-muted font-normal" style={{ letterSpacing: '0.03em' }}>{formatCnpj(cliente.cnpj)}</p>
+          )}
           <div className="mt-1 flex items-center gap-2 text-xs text-txt-muted">
             <Popover>
               <PopoverTrigger>
