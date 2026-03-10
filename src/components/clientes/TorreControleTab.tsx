@@ -185,7 +185,11 @@ export function TorreControleTab({ clienteId }: Props) {
 
                   return (
                     <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
-                      <td className="p-3 text-txt">{ind.nome}</td>
+                      <td className="p-3 text-txt">
+                        <IndicadorDetalhe indicador={ind} contas={contas!} valoresMap={realizadoMap}>
+                          {ind.nome}
+                        </IndicadorDetalhe>
+                      </td>
                       <td className="p-3 text-right font-mono text-xs">
                         <span className={realVal >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(realVal)}</span>
                       </td>
