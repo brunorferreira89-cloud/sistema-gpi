@@ -75,7 +75,6 @@ function getSubgroups(
         if (vp != null) valPrev += Math.abs(vp);
       }
     }
-    // Top 5 filhas by abs value
     const filhas = children
       .map(ch => {
         const v = valMap[ch.id];
@@ -131,9 +130,10 @@ function statusLabel(color: string): 'verde' | 'ambar' | 'vermelho' {
 }
 
 const BLUE = '#1A3CFF';
+const INVEST_BLUE = '#0099E6';
 
 /* ──────── sparkline SVG ──────── */
-function MiniSparkLine({ data, color, w = 48, h = 20 }: { data: number[]; color: string; w?: number; h?: number }) {
+function MiniSparkLine({ data, color, w = 48, h = 32 }: { data: number[]; color: string; w?: number; h?: number }) {
   if (data.length < 2) return <div style={{ width: w, height: h }} />;
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -150,31 +150,6 @@ function MiniSparkLine({ data, color, w = 48, h = 20 }: { data: number[]; color:
     <svg width={w} height={h} className="inline-block">
       <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.6} />
       <circle cx={lastX} cy={lastY} r={3} fill={color} />
-    </svg>
-  );
-}
-
-/* ──────── mini arc gauge ──────── */
-function MiniArcGauge({ value, color, size = 32 }: { value: number; color: string; size?: number }) {
-  const r = size * 0.36;
-  const cx = size / 2;
-  const cy = size / 2;
-  const sw = 4;
-  const circ = 2 * Math.PI * r;
-  const arcFrac = 0.5;
-  const arcLen = circ * arcFrac;
-  const gapLen = circ - arcLen;
-  const clamped = Math.max(0, Math.min(100, Math.abs(value)));
-  const fillLen = (clamped / 100) * arcLen;
-  return (
-    <svg width={size} height={size * 0.7}>
-      <g transform={`rotate(180 ${cx} ${cy})`}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth={sw} strokeDasharray={`${arcLen} ${gapLen}`} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={sw} strokeDasharray={`${fillLen} ${circ - fillLen}`} strokeLinecap="round" />
-      </g>
-      <text x={cx} y={cy + 2} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 8, fontWeight: 800, fontFamily: "'Courier New', monospace", fill: color }}>
-        {value.toFixed(1).replace('.', ',')}
-      </text>
     </svg>
   );
 }
@@ -199,12 +174,12 @@ function IndicatorCard({ index, color, label, children, hasData, onClick }: {
       onMouseLeave={() => setHovered(false)}
       style={{
         background: '#FFFFFF',
-        border: '1px solid hsl(var(--border))',
-        borderRadius: 16,
-        padding: '16px 20px',
+        border: '1px solid #DDE4F0',
+        borderRadius: 12,
+        padding: 16,
         position: 'relative',
         overflow: 'hidden',
-        height: 88,
+        minHeight: 88,
         opacity: visible ? 1 : 0,
         transform: visible ? (hovered ? 'translateY(-1px)' : 'translateY(0)') : 'translateY(8px)',
         transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 200ms ease, box-shadow 200ms ease',
@@ -213,8 +188,8 @@ function IndicatorCard({ index, color, label, children, hasData, onClick }: {
       }}
     >
       <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 100% 0%, ${color}0F, transparent 70%)`, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '16px 16px 0 0', background: color, width: `${lineWidth}%`, transition: 'width 400ms cubic-bezier(0.16,1,0.3,1)' }} />
-      <div style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.08em', color: '#8A9BBC', fontWeight: 600, marginBottom: 4, position: 'relative' }}>{label}</div>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '12px 12px 0 0', background: color, width: `${lineWidth}%`, transition: 'width 400ms cubic-bezier(0.16,1,0.3,1)' }} />
+      <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.05em', color: '#8A9BBC', fontWeight: 600, marginBottom: 4, position: 'relative' }}>{label}</div>
       <div style={{ position: 'relative' }}>{children}</div>
     </div>
   );
@@ -254,30 +229,46 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
   const currentMap = latestMonth ? getMonthMap(latestMonth.value) : {};
   const prevMap = prevMonth ? getMonthMap(prevMonth.value) : {};
 
+  // Core values
   const fat = hasData ? calcIndicatorValue(leafs, currentMap, ['receita']) : 0;
-  const fatPrev = prevMonth ? calcIndicatorValue(leafs, prevMap, ['receita']) : 0;
+  const custosVar = hasData ? sumByTipo(leafs, currentMap, 'custo_variavel') : 0;
   const mc = hasData ? calcIndicatorValue(leafs, currentMap, ['receita', 'custo_variavel']) : 0;
-  const ro = hasData ? calcIndicatorValue(leafs, currentMap, ['receita', 'custo_variavel', 'despesa_fixa']) : 0;
-  const gc = hasData ? calcIndicatorValue(leafs, currentMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']) : 0;
-
-  const mcPct = fat ? (mc / fat) * 100 : 0;
-  const roPct = fat ? (ro / fat) * 100 : 0;
-  const gcPct = fat ? (gc / fat) * 100 : 0;
-  const tendPct = fatPrev ? ((fat - fatPrev) / Math.abs(fatPrev)) * 100 : 0;
-
-  // Additional sums for PE
   const despesasFixas = hasData ? sumByTipo(leafs, currentMap, 'despesa_fixa') : 0;
+  const ro = hasData ? calcIndicatorValue(leafs, currentMap, ['receita', 'custo_variavel', 'despesa_fixa']) : 0;
   const investimentos = hasData ? sumByTipo(leafs, currentMap, 'investimento') : 0;
   const financeiro = hasData ? sumByTipo(leafs, currentMap, 'financeiro') : 0;
+  const rai = hasData ? calcIndicatorValue(leafs, currentMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']) : 0;
+  const gc = hasData ? calcIndicatorValue(leafs, currentMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']) : 0;
+
+  // Percentages
+  const custosVarPct = fat ? (custosVar / fat) * 100 : 0;
+  const mcPct = fat ? (mc / fat) * 100 : 0;
+  const despFixasPct = fat ? (despesasFixas / fat) * 100 : 0;
+  const roPct = fat ? (ro / fat) * 100 : 0;
+  const investPct = fat ? (investimentos / fat) * 100 : 0;
+  const financeiroPct = fat ? (financeiro / fat) * 100 : 0;
+  const raiPct = fat ? (rai / fat) * 100 : 0;
+  const gcPct = fat ? (gc / fat) * 100 : 0;
+
+  // Financeiro sign-based value (positive = entrada, negative = saída)
+  const financeiroSigned = hasData ? calcIndicatorValue(leafs, currentMap, ['financeiro']) : 0;
+
+  // PE
   const mcDecimal = fat ? mc / fat : 0;
   const peMinimo = mcDecimal ? despesasFixas / mcDecimal : 0;
   const peIdeal = mcDecimal ? (despesasFixas + investimentos + financeiro) / mcDecimal : 0;
   const gapMinimo = fat - peMinimo;
   const gapIdeal = fat - peIdeal;
 
+  // History arrays
   const histFat = last6.map(m => calcIndicatorValue(leafs, getMonthMap(m.value), ['receita']));
+  const histCustos = last6.map(m => sumByTipo(leafs, getMonthMap(m.value), 'custo_variavel'));
   const histMC = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const mcV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel']); return f ? (mcV / f) * 100 : 0; });
+  const histDesp = last6.map(m => sumByTipo(leafs, getMonthMap(m.value), 'despesa_fixa'));
   const histRO = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const roV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa']); return f ? (roV / f) * 100 : 0; });
+  const histInvest = last6.map(m => sumByTipo(leafs, getMonthMap(m.value), 'investimento'));
+  const histFin = last6.map(m => sumByTipo(leafs, getMonthMap(m.value), 'financeiro'));
+  const histRAI = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const r = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']); return f ? (r / f) * 100 : 0; });
   const histGC = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const gcV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']); return f ? (gcV / f) * 100 : 0; });
   const histPE = last6.map(m => {
     const mm = getMonthMap(m.value);
@@ -288,36 +279,37 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
     return mcD ? df / mcD : 0;
   });
 
+  // Colors
+  const custosColor = statusColor(custosVarPct, [38, 50], 'lower_better');
   const mcColor = statusColor(mcPct, [30, 40], 'higher_better');
+  const despColor = statusColor(despFixasPct, [25, 35], 'lower_better');
   const roColor = statusColor(roPct, [5, 10], 'higher_better');
+  const raiColor = statusColor(raiPct, [0, 5], 'higher_better');
   const gcColor = statusColor(gcPct, [3, 10], 'higher_better');
-  const tendColor = tendPct >= 0 ? '#00A86B' : '#DC2626';
+  const finColor = financeiroSigned > 0 ? '#00A86B' : financeiroSigned < 0 ? '#DC2626' : '#8A9BBC';
   const peColor = gapMinimo >= 0 ? '#00A86B' : '#DC2626';
 
+  // Animations
   const animFat = useAnimatedNumber(hasData ? fat : 0, 600, 0);
-  const animMcPct = useAnimatedNumber(hasData ? mcPct : 0, 600, 60);
-  const animRoPct = useAnimatedNumber(hasData ? roPct : 0, 600, 120);
-  const animGcPct = useAnimatedNumber(hasData ? gcPct : 0, 600, 180);
-  const animTend = useAnimatedNumber(hasData ? tendPct : 0, 600, 240);
+  const animCustos = useAnimatedNumber(hasData ? custosVar : 0, 600, 60);
+  const animMcPct = useAnimatedNumber(hasData ? mcPct : 0, 600, 120);
+  const animDesp = useAnimatedNumber(hasData ? despesasFixas : 0, 600, 180);
+  const animRoPct = useAnimatedNumber(hasData ? roPct : 0, 600, 240);
+  const animInvest = useAnimatedNumber(hasData ? investimentos : 0, 600, 300);
+  const animFin = useAnimatedNumber(hasData ? financeiro : 0, 600, 360);
+  const animRaiPct = useAnimatedNumber(hasData ? raiPct : 0, 600, 420);
+  const animGcPct = useAnimatedNumber(hasData ? gcPct : 0, 600, 480);
 
   const monthLabel = latestMonth ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '') : '';
   const monthLabelFull = latestMonth ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
-  const prevMonthLabel = prevMonth ? new Date(prevMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '') : '';
-  const prevMonthLabelFull = prevMonth ? new Date(prevMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
-
-  const histLabels = last6.map(m => m.shortLabel);
-
-  const barData = last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i], isLast: i === last6.length - 1 }));
-  const lineData = last6.map((m, i) => ({ mes: m.shortLabel, gc: histGC[i] }));
-
-  const [chartsVisible, setChartsVisible] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setChartsVisible(true), 300); return () => clearTimeout(t); }, []);
 
   const openDrawer = (titulo: string, dados: AnaliseDrawerDados) => {
     setDrawerTitulo(titulo);
     setDrawerDados(dados);
     setDrawerOpen(true);
   };
+
+  /* ── click handlers ── */
 
   const handleFatClick = () => {
     if (!hasData) return;
@@ -331,6 +323,21 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
       formula: `Faturamento = Soma de todas as Receitas Operacionais\n= ${subsText}\n= ${fmtCurrency(fat)}`,
       composicao: subs,
       instrucao_especifica: 'Identifique qual canal de receita mais contribui, qual está crescendo e qual está caindo vs mês anterior. Aponte oportunidade ou risco específico.',
+    });
+  };
+
+  const handleCustosClick = () => {
+    if (!hasData) return;
+    const subs = getSubgroups(contas, 'custo_variavel', currentMap, fat, prevMap);
+    const subsText = subs.map(s => `${s.nome}: ${fmtCurrency(s.valor)} (${fmtPct(s.pct_faturamento)})`).join('\n');
+    openDrawer('Custos Operacionais', {
+      indicador: 'Custos Operacionais', valor_atual: custosVarPct, valor_absoluto: custosVar, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(custosColor), limite_verde: 38, limite_ambar: 50,
+      direcao: 'menor_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histCustos[i] })),
+      formula: `Custos Op. = Soma dos Custos Variáveis\n${subsText}\n= ${fmtCurrency(custosVar)} (${fmtPct(custosVarPct)} do fat.)`,
+      composicao: subs,
+      instrucao_especifica: 'Identifique qual custo variável mais pressiona o faturamento. Verifique se algum subgrupo cresceu vs mês anterior. Sugira onde reduzir.',
     });
   };
 
@@ -354,6 +361,21 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
     });
   };
 
+  const handleDespClick = () => {
+    if (!hasData) return;
+    const subs = getSubgroups(contas, 'despesa_fixa', currentMap, fat, prevMap);
+    const subsText = subs.map(s => `${s.nome}: ${fmtCurrency(s.valor)} (${fmtPct(s.pct_faturamento)})`).join('\n');
+    openDrawer('Despesas Fixas', {
+      indicador: 'Despesas Fixas', valor_atual: despFixasPct, valor_absoluto: despesasFixas, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(despColor), limite_verde: 25, limite_ambar: 35,
+      direcao: 'menor_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histDesp[i] })),
+      formula: `Despesas Fixas = Soma das Despesas Operacionais\n${subsText}\n= ${fmtCurrency(despesasFixas)} (${fmtPct(despFixasPct)} do fat.)`,
+      composicao: subs,
+      instrucao_especifica: 'Identifique a despesa fixa mais pesada em % do faturamento. Avalie se é estrutural ou pontual. Cite o nome exato da conta mais relevante.',
+    });
+  };
+
   const handleRoClick = () => {
     if (!hasData) return;
     const despSubs = getSubgroups(contas, 'despesa_fixa', currentMap, fat);
@@ -373,6 +395,55 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
     });
   };
 
+  const handleInvestClick = () => {
+    if (!hasData) return;
+    const subs = getSubgroups(contas, 'investimento', currentMap, fat, prevMap);
+    const subsText = subs.map(s => `${s.nome}: ${fmtCurrency(s.valor)} (${fmtPct(s.pct_faturamento)})`).join('\n');
+    openDrawer('Atividades de Investimento', {
+      indicador: 'Atividades de Investimento', valor_atual: investPct, valor_absoluto: investimentos, faturamento: fat,
+      mes_referencia: monthLabelFull, status: 'verde', limite_verde: 0, limite_ambar: 0,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histInvest[i] })),
+      formula: `Invest. = Soma das Atividades de Investimento\n${subsText}\n= ${fmtCurrency(investimentos)} (${fmtPct(investPct)} do fat.)`,
+      composicao: subs,
+      instrucao_especifica: 'Avalie se os investimentos realizados são proporcionais ao resultado operacional disponível. Identifique o maior item de investimento e seu impacto no fluxo de caixa.',
+    });
+  };
+
+  const handleFinClick = () => {
+    if (!hasData) return;
+    const subs = getSubgroups(contas, 'financeiro', currentMap, fat, prevMap);
+    const subsText = subs.map(s => `${s.nome}: ${fmtCurrency(s.valor)} (${fmtPct(s.pct_faturamento)})`).join('\n');
+    openDrawer('Atividades de Financiamento', {
+      indicador: 'Atividades de Financiamento', valor_atual: financeiroPct, valor_absoluto: financeiro, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(finColor), limite_verde: 0, limite_ambar: 0,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histFin[i] })),
+      formula: `Financ. = Soma das Atividades de Financiamento\n${subsText}\n= ${fmtCurrency(financeiro)} (${fmtPct(financeiroPct)} do fat.)`,
+      composicao: subs,
+      instrucao_especifica: 'Identifique se as atividades de financiamento representam entrada (empréstimos/aportes) ou saída (pagamento de dívidas/retiradas). Avalie o impacto no caixa disponível.',
+    });
+  };
+
+  const handleRaiClick = () => {
+    if (!hasData) return;
+    const roVal = ro;
+    const roPctVal = roPct;
+    openDrawer('Resultado após Investimentos', {
+      indicador: 'Resultado após Investimentos', valor_atual: raiPct, valor_absoluto: rai, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(raiColor), limite_verde: 5, limite_ambar: 0,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histRAI[i] })),
+      formula: `RAI = Resultado Operacional − Investimentos\nRO: ${fmtCurrency(roVal)} (${fmtPct(roPctVal)})\nInvest.: ${fmtCurrency(investimentos)} (${fmtPct(investPct)})\n= ${fmtCurrency(rai)} (${fmtPct(raiPct)})`,
+      composicao: [
+        { nome: 'Resultado Operacional', grupo: 'RO', nivel: 'totalizador', valor: roVal, pct_faturamento: roPctVal },
+        { nome: '(-) Atividades de Investimento', grupo: 'Investimento', nivel: 'totalizador', valor: investimentos, pct_faturamento: investPct },
+        { nome: '= Resultado após Invest.', grupo: 'Resultado', nivel: 'totalizador', valor: rai, pct_faturamento: raiPct },
+      ],
+      instrucao_especifica: 'Avalie se o resultado operacional é suficiente para absorver os investimentos realizados. Se RAI negativo, indique se é por baixo RO ou por investimentos excessivos no período.',
+    });
+  };
+
   const handleGcClick = () => {
     if (!hasData) return;
     const recSubs = getSubgroups(contas, 'receita', currentMap, fat);
@@ -385,7 +456,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
       mes_referencia: monthLabelFull, status: statusLabel(gcColor), limite_verde: 10, limite_ambar: 3,
       direcao: 'maior_melhor',
       historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histGC[i] })),
-      formula: `GC = Faturamento - Custos Variáveis - Despesas Fixas - Investimentos ± Financeiro\n= ${fmtCurrency(fat)} - ${fmtCurrency(sumByTipo(leafs, currentMap, 'custo_variavel'))} - ${fmtCurrency(despesasFixas)} - ${fmtCurrency(investimentos)} ± ${fmtCurrency(financeiro)}\n= ${fmtCurrency(gc)} (${fmtPct(gcPct)})`,
+      formula: `GC = Faturamento - Custos Variáveis - Despesas Fixas - Investimentos ± Financeiro\n= ${fmtCurrency(fat)} - ${fmtCurrency(custosVar)} - ${fmtCurrency(despesasFixas)} - ${fmtCurrency(investimentos)} ± ${fmtCurrency(financeiro)}\n= ${fmtCurrency(gc)} (${fmtPct(gcPct)})`,
       composicao: [
         ...recSubs.map(s => ({ ...s, grupo: 'Receitas' })),
         ...custoSubs.map(s => ({ ...s, grupo: 'Custos Variáveis' })),
@@ -394,21 +465,6 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
         ...finSubs.map(s => ({ ...s, grupo: 'Financeiro' })),
       ],
       instrucao_especifica: 'Analise a geração de caixa considerando todos os 5 grupos (receitas, custos variáveis, despesas fixas, investimentos, financeiro). Identifique qual grupo mais impacta negativamente e sugira ação.',
-    });
-  };
-
-  const handleTendClick = () => {
-    if (!hasData || !prevMonth) return;
-    const subs = getSubgroups(contas, 'receita', currentMap, fat, prevMap);
-    const subsText = subs.map(s => `${s.nome}: ${fmtCurrency(s.valor_anterior || 0)} → ${fmtCurrency(s.valor)} (${s.variacao_pct?.toFixed(1) || '0'}%)`).join('\n');
-    openDrawer('Tendência Faturamento', {
-      indicador: 'Tendência Faturamento', valor_atual: tendPct, valor_absoluto: fat - fatPrev, faturamento: fat,
-      mes_referencia: monthLabelFull, status: tendPct >= 0 ? 'verde' : 'vermelho', limite_verde: 5, limite_ambar: 0,
-      direcao: 'maior_melhor',
-      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i] })),
-      formula: `Tendência = (Faturamento Atual - Faturamento Anterior) / Faturamento Anterior × 100\nAtual (${monthLabelFull}): ${fmtCurrency(fat)}\nAnterior (${prevMonthLabelFull}): ${fmtCurrency(fatPrev)}\nVariação: ${fmtPct(tendPct)}\nPor canal:\n${subsText}`,
-      composicao: subs.sort((a, b) => Math.abs(b.variacao_abs || 0) - Math.abs(a.variacao_abs || 0)),
-      instrucao_especifica: 'Identifique qual canal de receita causou a maior variação (positiva ou negativa). Se tendência negativa, aponte qual canal reverteu e o que fazer. Se positiva, aponte qual canal alavancou e como sustentar.',
     });
   };
 
@@ -437,6 +493,20 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
     });
   };
 
+  /* ── card content helper ── */
+  const cardValue = (val: number, isAbs: boolean, color: string) => (
+    <div style={{ fontSize: 28, fontWeight: 800, fontFamily: "'Courier New', monospace", color }}>
+      {hasData ? (isAbs ? fmtCurrency(val) : fmtPct(val)) : '—'}
+    </div>
+  );
+
+  const cardBottom = (label: string, sparkData: number[], color: string) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+      <span style={{ fontSize: 11, color: '#8A9BBC' }}>{hasData ? label : ''}</span>
+      {hasData && <MiniSparkLine data={sparkData} color={color} />}
+    </div>
+  );
+
   return (
     <div style={{ marginBottom: 24 }}>
       {hasData && (
@@ -445,159 +515,98 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
         </div>
       )}
 
-      {/* 5 indicator cards */}
-      <div className="grid gap-3 dre-header-cards" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      {/* Linha 1 — DRE Operacional */}
+      <div className="dre-header-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+        {/* 1. Faturamento */}
         <IndicatorCard index={0} color={BLUE} label="Faturamento" hasData={hasData} onClick={hasData ? handleFatClick : undefined}>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: BLUE }}>
-            {hasData ? fmtCurrency(animFat) : '—'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: '#8A9BBC' }}>{hasData ? monthLabel : ''}</span>
-            {hasData && <MiniSparkLine data={histFat} color={BLUE} />}
-          </div>
+          {cardValue(animFat, true, BLUE)}
+          {cardBottom(monthLabel, histFat, BLUE)}
         </IndicatorCard>
 
-        <IndicatorCard index={1} color={mcColor} label="Margem de Contribuição" hasData={hasData} onClick={hasData ? handleMcClick : undefined}>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: mcColor }}>
-            {hasData ? fmtPct(animMcPct) : '—'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: '#8A9BBC' }}>{hasData ? `${fmtCurrency(mc)} abs.` : ''}</span>
-            {hasData && <MiniSparkLine data={histMC} color={mcColor} />}
-          </div>
+        {/* 2. Custos Operacionais */}
+        <IndicatorCard index={1} color={custosColor} label="Custos Operacionais" hasData={hasData} onClick={hasData ? handleCustosClick : undefined}>
+          {cardValue(animCustos, true, custosColor)}
+          {cardBottom(`${fmtPct(custosVarPct)} fat. atual`, histCustos, custosColor)}
         </IndicatorCard>
 
-        <IndicatorCard index={2} color={roColor} label="Resultado Operacional" hasData={hasData} onClick={hasData ? handleRoClick : undefined}>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: roColor }}>
-            {hasData ? fmtPct(animRoPct) : '—'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: '#8A9BBC' }}>{hasData ? `${fmtCurrency(ro)} abs.` : ''}</span>
-            {hasData && <MiniSparkLine data={histRO} color={roColor} />}
-          </div>
+        {/* 3. Margem de Contribuição */}
+        <IndicatorCard index={2} color={mcColor} label="Margem de Contribuição" hasData={hasData} onClick={hasData ? handleMcClick : undefined}>
+          {cardValue(animMcPct, false, mcColor)}
+          {cardBottom(`${fmtCurrency(mc)} abs.`, histMC, mcColor)}
         </IndicatorCard>
 
-        <IndicatorCard index={3} color={gcColor} label="Geração de Caixa" hasData={hasData} onClick={hasData ? handleGcClick : undefined}>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: gcColor }}>
-            {hasData ? fmtPct(animGcPct) : '—'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: '#8A9BBC' }}>{hasData ? `${fmtCurrency(gc)} abs.` : ''}</span>
-            {hasData && <MiniArcGauge value={gcPct} color={gcColor} />}
-          </div>
+        {/* 4. Despesas Fixas */}
+        <IndicatorCard index={3} color={despColor} label="Despesas Fixas" hasData={hasData} onClick={hasData ? handleDespClick : undefined}>
+          {cardValue(animDesp, true, despColor)}
+          {cardBottom(`${fmtPct(despFixasPct)} fat. atual`, histDesp, despColor)}
         </IndicatorCard>
 
-        <IndicatorCard index={4} color={tendColor} label="Tendência Faturamento" hasData={hasData} onClick={hasData ? handleTendClick : undefined}>
-          <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: tendColor }}>
-            {hasData ? `${tendPct >= 0 ? '▲' : '▼'} ${tendPct >= 0 ? '+' : ''}${animTend.toFixed(1).replace('.', ',')}%` : '—'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: '#8A9BBC' }}>{hasData && prevMonth ? `vs ${prevMonthLabel}` : ''}</span>
-            {hasData && prevMonth && (
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 20 }}>
-                <div style={{ width: 4, borderRadius: 2, background: '#C4CFEA', height: Math.max(4, (fatPrev / Math.max(fat, fatPrev, 1)) * 20) }} />
-                <div style={{ width: 4, borderRadius: 2, background: BLUE, height: Math.max(4, (fat / Math.max(fat, fatPrev, 1)) * 20) }} />
-              </div>
-            )}
-          </div>
+        {/* 5. Resultado Operacional */}
+        <IndicatorCard index={4} color={roColor} label="Resultado Operacional" hasData={hasData} onClick={hasData ? handleRoClick : undefined}>
+          {cardValue(animRoPct, false, roColor)}
+          {cardBottom(`${fmtCurrency(ro)} abs.`, histRO, roColor)}
         </IndicatorCard>
       </div>
 
-      {/* Ponto de Equilíbrio card */}
-      {hasData && (
-        <div className="grid gap-3 mt-3 dre-pe-card" style={{ gridTemplateColumns: '1fr' }}>
-          <IndicatorCard index={5} color={peColor} label="Ponto de Equilíbrio" hasData={hasData} onClick={handlePeClick}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 0, height: 44 }}>
-              {/* Mínimo */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 2 }}>Mínimo</div>
-                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#0D1B35' }}>
-                  {fmtCurrency(peMinimo)}
-                </div>
-                <div style={{ fontSize: 11, color: gapMinimo >= 0 ? '#00A86B' : '#DC2626', fontWeight: 500 }}>
-                  {gapMinimo >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(gapMinimo))} {gapMinimo >= 0 ? 'acima' : 'abaixo'}
-                </div>
+      {/* Linha 2 — Fluxo de Caixa e Equilíbrio */}
+      <div className="dre-header-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginTop: 12 }}>
+        {/* 6. Ativ. Investimento */}
+        <IndicatorCard index={5} color={INVEST_BLUE} label="Ativ. Investimento" hasData={hasData} onClick={hasData ? handleInvestClick : undefined}>
+          {cardValue(animInvest, true, INVEST_BLUE)}
+          {cardBottom(`${fmtPct(investPct)} fat. atual`, histInvest, INVEST_BLUE)}
+        </IndicatorCard>
+
+        {/* 7. Ativ. Financiamento */}
+        <IndicatorCard index={6} color={finColor} label="Ativ. Financiamento" hasData={hasData} onClick={hasData ? handleFinClick : undefined}>
+          {cardValue(animFin, true, finColor)}
+          {cardBottom(`${fmtPct(financeiroPct)} fat. atual`, histFin, finColor)}
+        </IndicatorCard>
+
+        {/* 8. Resultado após Invest. */}
+        <IndicatorCard index={7} color={raiColor} label="Resultado após Invest." hasData={hasData} onClick={hasData ? handleRaiClick : undefined}>
+          {cardValue(animRaiPct, false, raiColor)}
+          {cardBottom(`${fmtCurrency(rai)} abs.`, histRAI, raiColor)}
+        </IndicatorCard>
+
+        {/* 9. Geração de Caixa */}
+        <IndicatorCard index={8} color={gcColor} label="Geração de Caixa" hasData={hasData} onClick={hasData ? handleGcClick : undefined}>
+          {cardValue(animGcPct, false, gcColor)}
+          {cardBottom(`${fmtCurrency(gc)} abs.`, histGC, gcColor)}
+        </IndicatorCard>
+
+        {/* 10. Ponto de Equilíbrio */}
+        <IndicatorCard index={9} color={peColor} label="Ponto de Equilíbrio" hasData={hasData} onClick={hasData ? handlePeClick : undefined}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 1 }}>Mínimo</div>
+              <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#0D1B35' }}>
+                {hasData ? fmtCurrency(peMinimo) : '—'}
               </div>
-              {/* Divider */}
-              <div style={{ width: 1, height: 40, background: '#DDE4F0', margin: '0 16px', alignSelf: 'center' }} />
-              {/* Ideal */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 2 }}>Ideal</div>
-                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#0D1B35' }}>
-                  {fmtCurrency(peIdeal)}
-                </div>
-                <div style={{ fontSize: 11, color: gapIdeal >= 0 ? '#00A86B' : '#DC2626', fontWeight: 500 }}>
-                  {gapIdeal >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(gapIdeal))} {gapIdeal >= 0 ? 'acima' : 'abaixo'}
-                </div>
+              <div style={{ fontSize: 10, color: gapMinimo >= 0 ? '#00A86B' : '#DC2626', fontWeight: 500 }}>
+                {hasData && <>{gapMinimo >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(gapMinimo))}</>}
               </div>
             </div>
-          </IndicatorCard>
-        </div>
-      )}
-
-      {/* 2 mini charts */}
-      <div className="hidden md:grid gap-3 mt-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-        <div style={{
-          background: '#FFFFFF', border: '1px solid hsl(var(--border))', borderRadius: 16,
-          padding: '16px 20px', height: 140,
-          opacity: chartsVisible ? 1 : 0, transform: chartsVisible ? 'translateY(0)' : 'translateY(8px)',
-          transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1) 300ms, transform 350ms cubic-bezier(0.16,1,0.3,1) 300ms',
-        }}>
-          <div style={{ textTransform: 'uppercase', fontSize: 10, color: '#8A9BBC', fontWeight: 600, letterSpacing: '0.08em' }}>Receita Mensal</div>
-          <div style={{ fontSize: 11, color: '#4A5E80', marginBottom: 4 }}>últimos {last6.length} meses</div>
-          {!hasData ? (
-            <div style={{ textAlign: 'center', color: '#8A9BBC', fontSize: 12, marginTop: 20 }}>Importe dados para visualizar</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={80}>
-              <BarChart data={barData} margin={{ top: 12, right: 4, left: 4, bottom: 0 }}>
-                <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#8A9BBC' }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v: number) => [fmtCurrency(v), 'Receita']} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #DDE4F0' }} />
-                <Bar dataKey="valor" radius={[4, 4, 0, 0]} animationDuration={500}>
-                  {barData.map((entry, i) => (<Cell key={i} fill={BLUE} fillOpacity={entry.isLast ? 1 : 0.3} />))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div style={{
-          background: '#FFFFFF', border: '1px solid hsl(var(--border))', borderRadius: 16,
-          padding: '16px 20px', height: 140,
-          opacity: chartsVisible ? 1 : 0, transform: chartsVisible ? 'translateY(0)' : 'translateY(8px)',
-          transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1) 360ms, transform 350ms cubic-bezier(0.16,1,0.3,1) 360ms',
-        }}>
-          <div style={{ textTransform: 'uppercase', fontSize: 10, color: '#8A9BBC', fontWeight: 600, letterSpacing: '0.08em' }}>Geração de Caixa</div>
-          <div style={{ fontSize: 11, color: '#4A5E80', marginBottom: 4 }}>% sobre faturamento · últimos {last6.length} meses</div>
-          {!hasData ? (
-            <div style={{ textAlign: 'center', color: '#8A9BBC', fontSize: 12, marginTop: 20 }}>Importe dados para visualizar</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={80}>
-              <ComposedChart data={lineData} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gcFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={gcColor} stopOpacity={0.08} />
-                    <stop offset="100%" stopColor={gcColor} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#8A9BBC' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 9, fill: '#8A9BBC' }} axisLine={false} tickLine={false} width={24} domain={['auto', 'auto']} />
-                <ReferenceLine y={10} stroke="#00A86B" strokeDasharray="4 4" strokeOpacity={0.4} label={{ value: 'meta 10%', fontSize: 9, fill: '#00A86B', position: 'right' }} />
-                <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, 'GC']} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #DDE4F0' }} />
-                <Area type="monotone" dataKey="gc" stroke="none" fill="url(#gcFill)" />
-                <Line type="monotone" dataKey="gc" stroke={gcColor} strokeWidth={2} dot={{ r: 4, stroke: '#fff', strokeWidth: 2, fill: gcColor }} activeDot={{ r: 6 }} animationDuration={600} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+            <div style={{ width: 1, height: 36, background: '#DDE4F0', alignSelf: 'center' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 1 }}>Ideal</div>
+              <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#0D1B35' }}>
+                {hasData ? fmtCurrency(peIdeal) : '—'}
+              </div>
+              <div style={{ fontSize: 10, color: gapIdeal >= 0 ? '#00A86B' : '#DC2626', fontWeight: 500 }}>
+                {hasData && <>{gapIdeal >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(gapIdeal))}</>}
+              </div>
+            </div>
+          </div>
+        </IndicatorCard>
       </div>
 
       {/* Responsive overrides */}
       <style>{`
         @media (max-width: 1200px) and (min-width: 768px) {
-          .dre-header-cards { grid-template-columns: repeat(3, 1fr) !important; }
+          .dre-header-grid { grid-template-columns: repeat(3, 1fr) !important; }
         }
         @media (max-width: 767px) {
-          .dre-header-cards { grid-template-columns: repeat(2, 1fr) !important; }
+          .dre-header-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
 
