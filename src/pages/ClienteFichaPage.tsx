@@ -147,7 +147,7 @@ export default function ClienteFichaPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-txt">{cliente.nome_empresa}</h2>
+          <h2 className="text-2xl font-bold text-txt">{cliente.razao_social || cliente.nome_empresa}</h2>
           <div className="mt-1 flex items-center gap-2 text-xs text-txt-muted">
             <Popover>
               <PopoverTrigger>

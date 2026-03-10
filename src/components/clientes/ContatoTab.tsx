@@ -101,7 +101,7 @@ export function ContatoTab({ clienteId, cliente }: ContatoTabProps) {
       <div className="rounded-xl border border-border bg-surface p-5">
         <div className="flex items-center justify-between mb-3">
           <SectionTitle>Dados Cadastrais</SectionTitle>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setEditOpen(true)}>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => { setEditOpen(true); }}>
             <Pencil className="h-3.5 w-3.5" /> Editar
           </Button>
         </div>
