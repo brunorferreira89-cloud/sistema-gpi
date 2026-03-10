@@ -12,6 +12,7 @@ interface Props {
   valoresAnuais: { conta_id: string; competencia: string; valor_realizado: number | null }[];
   months: { value: string; label: string; shortLabel: string }[];
   mesSelecionado?: string;
+  clienteId?: string;
 }
 
 /* ──────── animated counter ──────── */
