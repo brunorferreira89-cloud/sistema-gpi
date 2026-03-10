@@ -609,11 +609,11 @@ export function TorreControleTab({ clienteId }: Props) {
             ) : null}
           </td>
           {/* Nome */}
-          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360 }}>
+          <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360, letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
               {hasMeta && !isTotal && !isSubgrupo && !isCat && <span style={{ color: C.primary, fontSize: 6 }}>●</span>}
-              {isGrupo && !isTotal ? conta.nome.toUpperCase() : conta.nome}
+              {conta.nome}
             </span>
           </td>
           {/* Mês anterior */}
