@@ -282,6 +282,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [loadingSugestao, setLoadingSugestao] = useState(false);
   const [sugestaoGeradaEm, setSugestaoGeradaEm] = useState<string | null>(null);
   const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
+  const [narrativa, setNarrativa] = useState<string | null>(null);
 
   const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
   const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
@@ -475,6 +476,7 @@ export function TorreControleTab({ clienteId }: Props) {
         confianca: (s.confianca === 'média' ? 'media' : s.confianca) as SugestaoMeta['confianca'],
       }));
       setSugestoes(enriched);
+      setNarrativa(data?.narrativa || null);
       setSugestaoGeradaEm(data?.gerado_em || null);
       setSugestaoFromCache(data?.cached || false);
     } catch (err) {
@@ -828,6 +830,7 @@ export function TorreControleTab({ clienteId }: Props) {
         fromCache={sugestaoFromCache}
         contas={contas || []}
         realizadoMap={realizadoMap}
+        narrativa={narrativa}
       />
     </div>
   );

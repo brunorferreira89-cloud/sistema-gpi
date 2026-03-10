@@ -45,6 +45,7 @@ interface SugestaoMetasDrawerProps {
   fromCache?: boolean;
   contas?: ContaRow[];
   realizadoMap?: Record<string, number | null>;
+  narrativa?: string | null;
 }
 
 // ── Colors ───────────────────────────────────────────────────────
@@ -247,11 +248,92 @@ function MetaIACell({ sugestao, isReceita, isSelected, onToggle }: {
   );
 }
 
+// ── Narrativa Comandante GPI ─────────────────────────────────────
+const iconesSecao: Record<string, string> = {
+  'Leitura dos Instrumentos':       '🎛️',
+  'Destino e Altitude Alvo':        '✈️',
+  'Por que estes ajustes nos controles': '🕹️',
+  'Turbulências no caminho':        '⛈️',
+  'Checklist antes da decolagem':   '✅',
+};
+
+function NarrativaComandante({ texto }: { texto: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Parse sections: split by **Title**
+  const sections = useMemo(() => {
+    const parts: { titulo: string; corpo: string }[] = [];
+    const regex = /\*\*(.+?)\*\*/g;
+    let match;
+    const matches: { titulo: string; start: number; end: number }[] = [];
+    while ((match = regex.exec(texto)) !== null) {
+      matches.push({ titulo: match[1], start: match.index, end: match.index + match[0].length });
+    }
+    for (let i = 0; i < matches.length; i++) {
+      const bodyStart = matches[i].end;
+      const bodyEnd = i + 1 < matches.length ? matches[i + 1].start : texto.length;
+      parts.push({ titulo: matches[i].titulo, corpo: texto.substring(bodyStart, bodyEnd).trim() });
+    }
+    return parts;
+  }, [texto]);
+
+  if (!texto) return null;
+
+  return (
+    <div style={{
+      margin: '0', borderBottom: `1px solid ${C.border}`,
+      background: 'linear-gradient(135deg, rgba(26,60,255,0.02), rgba(0,153,230,0.02))',
+    }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 24px', background: 'none', border: 'none',
+          cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
+        }}
+      >
+        <span style={{ fontSize: 14 }}>🧑‍✈️</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.primary, letterSpacing: '0.08em' }}>
+          RELATÓRIO DO COMANDANTE GPI
+        </span>
+        <span style={{ fontSize: 10, color: C.txtMuted, marginLeft: 'auto' }}>
+          {expanded ? '▲ Recolher' : '▼ Expandir'}
+        </span>
+      </button>
+      {expanded && (
+        <div style={{ padding: '0 24px 16px', animation: 'modalEnter 0.2s ease forwards' }}>
+          {sections.map((sec, i) => {
+            const icon = iconesSecao[sec.titulo] || '📋';
+            return (
+              <div key={i} style={{ marginBottom: 14 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4,
+                }}>
+                  <span style={{ fontSize: 13 }}>{icon}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: C.txt,
+                    letterSpacing: '0.03em',
+                  }}>{sec.titulo}</span>
+                </div>
+                <p style={{
+                  fontSize: 12, color: C.txtSec, lineHeight: 1.65,
+                  margin: 0, paddingLeft: 22,
+                  whiteSpace: 'pre-wrap',
+                }}>{sec.corpo}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Component ───────────────────────────────────────────────────
 export function SugestaoMetasDrawer({
   open, onClose, cliente, competencia, sugestoes, metasExistentes,
   onAplicar, loading, onRegenerar, geradoEm, fromCache,
-  contas = [], realizadoMap = {},
+  contas = [], realizadoMap = {}, narrativa,
 }: SugestaoMetasDrawerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
@@ -660,6 +742,9 @@ export function SugestaoMetasDrawer({
               </div>
               <span style={{ fontSize: 10, color: C.txtMuted }}>{sugestoes.length} sugestões · {existingCount} já têm meta</span>
             </div>
+
+            {/* Narrativa Comandante GPI */}
+            {narrativa && <NarrativaComandante texto={narrativa} />}
 
             {/* Table */}
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
