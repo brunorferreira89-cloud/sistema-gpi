@@ -71,9 +71,9 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
   const fatMeta = sumLeafByTipo(contas, metaMap, 'receita');
   const mcReal = calcIndicador(contas, realizadoMap, ['receita', 'custo_variavel']);
   const mcMeta = calcIndicador(contas, metaMap, ['receita', 'custo_variavel']);
-  const cmvReal = Math.abs(sumLeafByTipo(contas, realizadoMap, 'custo_variavel'));
-  const cmvMeta = Math.abs(sumLeafByTipo(contas, metaMap, 'custo_variavel'));
-  const dfReal = Math.abs(sumLeafByTipo(contas, realizadoMap, 'despesa_fixa'));
+  const cmvReal = sumLeafByTipo(contas, realizadoMap, 'custo_variavel');
+  const cmvMeta = sumLeafByTipo(contas, metaMap, 'custo_variavel');
+  const dfReal = sumLeafByTipo(contas, realizadoMap, 'despesa_fixa');
 
   // CMO: look for personnel-related leaf accounts within despesa_fixa
   const cmoKeywords = ['pessoal', 'salário', 'salario', 'folha', 'cmo', 'mão de obra', 'mao de obra', 'pró-labore', 'pro-labore'];
