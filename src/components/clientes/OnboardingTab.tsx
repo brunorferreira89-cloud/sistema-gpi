@@ -16,6 +16,7 @@ interface Props {
 
 export function OnboardingTab({ clienteId }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [openSemanas, setOpenSemanas] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true, 4: true });
 
