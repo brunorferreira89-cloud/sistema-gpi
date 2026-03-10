@@ -266,7 +266,7 @@ export default function ClienteFichaPage() {
         <TabsContent value="importacao">
           <ImportacaoTab
             clienteId={clienteId!}
-            clienteNome={cliente.nome_empresa}
+            clienteNome={nomeExibido(cliente)}
             clienteSegmento={cliente.segmento}
             clienteFaixa={cliente.faturamento_faixa}
           />
