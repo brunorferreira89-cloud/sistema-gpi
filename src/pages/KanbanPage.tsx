@@ -289,7 +289,7 @@ export default function KanbanPage() {
 
       <TarefaDialog
         open={dialogOpen} onOpenChange={setDialogOpen} tarefa={editingTarefa}
-        clientes={clientes.filter((c) => c.status === 'ativo').map((c) => ({ id: c.id, nome_empresa: c.nome_empresa }))}
+        clientes={clientes.filter((c) => c.status === 'ativo').map((c) => ({ id: c.id, nome_empresa: c.razao_social || c.nome_empresa }))}
         analistas={analistas.map((a) => ({ id: a.id, nome: a.nome }))}
         defaultDate={selectedDate} onSaved={() => queryClient.invalidateQueries({ queryKey: ['tarefas', dateStr] })}
       />
