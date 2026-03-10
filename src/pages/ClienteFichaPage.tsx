@@ -15,7 +15,7 @@ import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
 import { ImportacaoTab } from '@/components/clientes/ImportacaoTab';
 import { ContatoTab } from '@/components/clientes/ContatoTab';
-import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
+import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels, formatCnpj, nomeExibido } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
