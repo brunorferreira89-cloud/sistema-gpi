@@ -38,7 +38,31 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string } | null>(null);
   const [planoOpen, setPlanoOpen] = useState(false);
+  const [deletePlanoOpen, setDeletePlanoOpen] = useState(false);
+  const [deletingPlano, setDeletingPlano] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleDeletePlano = async () => {
+    setDeletingPlano(true);
+    try {
+      // Delete all contas (valores_mensais cascade via FK)
+      const { error } = await supabase.from('plano_de_contas').delete().eq('cliente_id', clienteId);
+      if (error) throw error;
+      // Also delete import records
+      await supabase.from('importacoes_nibo').delete().eq('cliente_id', clienteId);
+      toast.success('Plano de contas e dados financeiros excluídos com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['plano-contas'] });
+      queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
+      queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
+      refetchContas();
+      setDeletePlanoOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir plano de contas.');
+    } finally {
+      setDeletingPlano(false);
+    }
+  };
 
   const { data: contas, refetch: refetchContas } = useQuery({
     queryKey: ['plano-contas-import', clienteId],
