@@ -43,7 +43,7 @@ export default function KPIsPage() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('id, nome_empresa').eq('status', 'ativo').order('nome_empresa');
+      const { data } = await supabase.from('clientes').select('id, nome_empresa, razao_social').eq('status', 'ativo').order('nome_empresa');
       return data || [];
     },
   });
