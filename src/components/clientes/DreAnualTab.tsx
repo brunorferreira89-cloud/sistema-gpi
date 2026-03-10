@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet } from 'lucide-react';
 import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
+import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const tipoBorderColors: Record<string, string> = {
   receita: 'border-l-primary',

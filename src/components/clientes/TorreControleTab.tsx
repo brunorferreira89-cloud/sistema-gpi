@@ -6,6 +6,7 @@ import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { BookOpen, FileSpreadsheet, TrendingUp, TrendingDown } from 'lucide-react';
 import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
+import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const competencias = getCompetenciaOptions();
 
