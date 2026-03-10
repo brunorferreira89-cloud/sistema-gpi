@@ -832,7 +832,6 @@ export function TorreControleTab({ clienteId }: Props) {
                     ))}
                   </tbody>
                 </table>
-              </div>
             </div>
           </>
         )}
