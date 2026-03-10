@@ -117,12 +117,13 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
       // 2. Clear valor_realizado for this competencia
       if (contas && contas.length > 0) {
         const contaIds = contas.map((c) => c.id);
-        const { error: clearError } = await supabase
+        // Permanently delete valores_mensais for this competencia
+        const { error: deleteError } = await supabase
           .from('valores_mensais')
-          .update({ valor_realizado: null })
+          .delete()
           .in('conta_id', contaIds)
           .eq('competencia', currentCompetencia);
-        if (clearError) throw clearError;
+        if (deleteError) throw deleteError;
       }
 
       // 3. Delete import record
