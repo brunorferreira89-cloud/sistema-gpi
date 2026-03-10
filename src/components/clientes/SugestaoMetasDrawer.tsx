@@ -127,15 +127,24 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
   return (
     <>
       {/* Overlay */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(13,27,53,0.25)', zIndex: 998 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(13,27,53,0.45)', zIndex: 50 }} />
 
-      {/* Drawer */}
+      {/* Modal container */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, width: 520, height: '100vh', zIndex: 999,
-        background: C.surface, borderLeft: `1px solid ${C.borderStr}`,
-        boxShadow: '-4px 0 32px rgba(13,27,53,0.10)',
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24, pointerEvents: 'none',
+      }}>
+      {/* Modal box */}
+      <div style={{
+        background: '#FFFFFF', borderRadius: 16,
+        width: '100%', maxWidth: 680, maxHeight: '88vh',
         display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 80px rgba(13,27,53,0.18), 0 0 0 1px rgba(196,207,234,0.5)',
+        overflow: 'hidden',
         fontFamily: "'DM Sans', system-ui",
+        pointerEvents: 'auto',
+        animation: 'modalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}>
         {/* Header */}
         <div style={{
