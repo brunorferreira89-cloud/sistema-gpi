@@ -547,36 +547,36 @@ export function TorreControleTab({ clienteId }: Props) {
     const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
 
     const hasMeta = meta && meta.meta_valor !== null;
-    const paddingLeft = isGrupo ? 16 : isSubgrupo ? 28 : (hasMeta ? 38 : 40);
+    const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
 
-    // Styles
-    let rowBg = hasMeta ? '#FFFFFF' : '#FAFCFF';
-    let fontWeight = hasMeta ? 500 : 400;
-    let fontSize = 11;
-    let textColor = hasMeta ? '#0D1B35' : '#4A5E80';
-    let borderLeft = hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
+    // Styles — copied from DreAnualTab.tsx
+    let rowBg = '#FFFFFF';
+    let fontWeight = 400;
+    let fontSize = 12;
+    let textColor = '#4A5E80';
+    let borderLeft = isCat && hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
     let borderTop = 'none';
-    let borderBottom = '1px solid rgba(221,228,240,0.4)';
+    let borderBottom = '1px solid #F8F9FB';
     let letterSpacing: string | undefined = undefined;
     let textTransform: 'uppercase' | 'none' = 'none';
 
     if (isTotal) {
-      rowBg = 'rgba(26,60,255,0.05)';
-      fontWeight = 800;
-      fontSize = 12;
-      textColor = '#1A3CFF';
-      borderLeft = 'none';
-      borderTop = '2px solid rgba(26,60,255,0.12)';
-      borderBottom = '2px solid rgba(26,60,255,0.12)';
-    } else if (isGrupo) {
-      rowBg = 'rgba(26,60,255,0.03)';
+      rowBg = '#0D1B35';
       fontWeight = 700;
-      fontSize = 11;
+      fontSize = 12;
+      textColor = '#FFFFFF';
+      borderLeft = 'none';
+      borderTop = 'none';
+      borderBottom = 'none';
+    } else if (isGrupo) {
+      rowBg = '#F0F4FA';
+      fontWeight = 700;
+      fontSize = 12;
       textColor = '#0D1B35';
       borderLeft = 'none';
-      borderTop = '1px solid #DDE4F0';
-      borderBottom = '1px solid #DDE4F0';
-      letterSpacing = '0.03em';
+      borderTop = '1px solid #C4CFEA';
+      borderBottom = '1px solid #C4CFEA';
+      letterSpacing = '0.04em';
       textTransform = 'uppercase';
     } else if (isSubgrupo) {
       rowBg = '#FFFFFF';
@@ -584,7 +584,7 @@ export function TorreControleTab({ clienteId }: Props) {
       fontSize = 12;
       textColor = '#0D1B35';
       borderLeft = 'none';
-      borderBottom = '1px solid rgba(221,228,240,0.6)';
+      borderBottom = '1px solid #F0F4FA';
     }
 
     return (
