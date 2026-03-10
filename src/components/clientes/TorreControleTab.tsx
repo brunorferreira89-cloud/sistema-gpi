@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
-import { BookOpen, FileSpreadsheet, TrendingUp, TrendingDown } from 'lucide-react';
-import { buildDreRows, calcIndicador, getLeafContas } from '@/lib/dre-indicadores';
+import { BookOpen, FileSpreadsheet, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { calcIndicador, getLeafContas, sumChildrenOfGroup, sumChildrenOfSection, indicadorAfterType, type IndicadorDRE } from '@/lib/dre-indicadores';
 import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const competencias = getCompetenciaOptions();
@@ -42,12 +42,13 @@ function VariacaoBadge({ atual, anterior }: { atual: number | null; anterior: nu
   );
 }
 
-interface Props {
-  clienteId: string;
-}
+interface Props { clienteId: string; }
+
+type DreRowExt = { type: 'conta'; conta: ContaRow } | { type: 'indicador'; indicador: IndicadorDRE };
 
 export function TorreControleTab({ clienteId }: Props) {
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const mesAnterior = useMemo(() => {
     if (!competencia) return '';
@@ -85,12 +86,6 @@ export function TorreControleTab({ clienteId }: Props) {
     },
   });
 
-  const valoresMap = useMemo(() => {
-    const map: Record<string, { valor_realizado: number | null; valor_meta: number | null }> = {};
-    valores?.forEach((v) => { map[v.conta_id] = { valor_realizado: v.valor_realizado, valor_meta: v.valor_meta }; });
-    return map;
-  }, [valores]);
-
   const realizadoMap = useMemo(() => {
     const map: Record<string, number | null> = {};
     valores?.forEach((v) => { map[v.conta_id] = v.valor_realizado; });
@@ -111,23 +106,57 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const faturamento = useMemo(() => {
     if (!contas) return { real: 0, meta: 0 };
-    const leafContas = getLeafContas(contas);
-    const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
+    const leafs = getLeafContas(contas);
+    const receitaLeafs = leafs.filter((c) => c.tipo === 'receita');
     let real = 0, meta = 0;
     receitaLeafs.forEach((c) => {
-      const v = valoresMap[c.id];
-      if (v?.valor_realizado) real += v.valor_realizado;
-      if (v?.valor_meta) meta += v.valor_meta;
+      const r = realizadoMap[c.id]; if (r != null) real += r;
+      const m = metaMap[c.id]; if (m != null) meta += m;
     });
     return { real, meta };
-  }, [contas, valoresMap]);
+  }, [contas, realizadoMap, metaMap]);
 
   const hasContas = contas && contas.length > 0;
   const hasValores = valores && valores.some((v) => v.valor_realizado != null);
   const hasAnterior = valoresAnterior && valoresAnterior.some((v) => v.valor_realizado != null);
   const compLabel = competencias.find((c) => c.value === competencia)?.label || '';
 
-  const dreRows = useMemo(() => (contas ? buildDreRows(contas) : []), [contas]);
+  const toggleCollapse = (id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const visibleRows = useMemo((): DreRowExt[] => {
+    if (!contas) return [];
+    const rows: DreRowExt[] = [];
+    let lastTipo = '';
+
+    for (const conta of contas) {
+      // Check visibility (collapsed parents)
+      if (conta.nivel === 2 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) continue;
+      if (conta.nivel === 1 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) continue;
+      if (conta.nivel === 2 && conta.conta_pai_id) {
+        const parent = contas.find((c) => c.id === conta.conta_pai_id);
+        if (parent?.conta_pai_id && collapsed.has(parent.conta_pai_id)) continue;
+      }
+
+      if (lastTipo && lastTipo !== conta.tipo) {
+        const indicator = indicadorAfterType[lastTipo];
+        if (indicator) rows.push({ type: 'indicador', indicador: indicator });
+      }
+      rows.push({ type: 'conta', conta });
+      lastTipo = conta.tipo;
+    }
+
+    if (lastTipo) {
+      const indicator = indicadorAfterType[lastTipo];
+      if (indicator) rows.push({ type: 'indicador', indicador: indicator });
+    }
+    return rows;
+  }, [contas, collapsed]);
 
   return (
     <div className="space-y-4">
@@ -176,7 +205,7 @@ export function TorreControleTab({ clienteId }: Props) {
               </tr>
             </thead>
             <tbody>
-              {dreRows.map((row) => {
+              {visibleRows.map((row) => {
                 if (row.type === 'indicador') {
                   const ind = row.indicador;
                   const realVal = calcIndicador(contas!, realizadoMap, ind.acumula);
@@ -187,28 +216,18 @@ export function TorreControleTab({ clienteId }: Props) {
                   return (
                     <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
                       <td className="p-3 text-txt">
-                        <IndicadorDetalhe indicador={ind} contas={contas!} valoresMap={realizadoMap}>
-                          {ind.nome}
-                        </IndicadorDetalhe>
+                        <IndicadorDetalhe indicador={ind} contas={contas!} valoresMap={realizadoMap}>{ind.nome}</IndicadorDetalhe>
                       </td>
                       <td className="p-3 text-right font-mono text-xs">
                         <span className={realVal >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(realVal)}</span>
                       </td>
                       <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
-                      <td className="p-3 text-right font-mono text-xs text-txt-sec">
-                        {metaVal !== 0 ? formatCurrency(metaVal) : '—'}
-                      </td>
-                      <td className="p-3 text-right">
-                        <DeltaBadge realizado={realVal} meta={metaVal !== 0 ? metaVal : null} />
-                      </td>
+                      <td className="p-3 text-right font-mono text-xs text-txt-sec">{metaVal !== 0 ? formatCurrency(metaVal) : '—'}</td>
+                      <td className="p-3 text-right"><DeltaBadge realizado={realVal} meta={metaVal !== 0 ? metaVal : null} /></td>
                       {hasAnterior && (
                         <>
-                          <td className="p-3 text-right font-mono text-xs text-txt-sec border-l border-border/50">
-                            {antVal != null ? formatCurrency(antVal) : '—'}
-                          </td>
-                          <td className="p-3 text-right">
-                            <VariacaoBadge atual={realVal} anterior={antVal} />
-                          </td>
+                          <td className="p-3 text-right font-mono text-xs text-txt-sec border-l border-border/50">{antVal != null ? formatCurrency(antVal) : '—'}</td>
+                          <td className="p-3 text-right"><VariacaoBadge atual={realVal} anterior={antVal} /></td>
                         </>
                       )}
                     </tr>
@@ -216,25 +235,55 @@ export function TorreControleTab({ clienteId }: Props) {
                 }
 
                 const conta = row.conta;
-                const v = valoresMap[conta.id];
-                const real = v?.valor_realizado;
-                const meta = v?.valor_meta;
-                const ant = valoresAntMap[conta.id];
-                const av = real != null && faturamento.real ? ((real / faturamento.real) * 100).toFixed(1) : null;
-                const isHighlight = conta.is_total || conta.nivel === 1;
+                const isSecao = conta.nivel === 0;
+                const isGrupo = conta.nivel === 1;
+                const isConta = conta.nivel === 2;
+
+                let displayReal: number | null = null;
+                let displayMeta: number | null = null;
+                let displayAnt: number | null = null;
+
+                if (isConta) {
+                  displayReal = realizadoMap[conta.id] ?? null;
+                  displayMeta = metaMap[conta.id] ?? null;
+                  displayAnt = valoresAntMap[conta.id] ?? null;
+                } else if (isGrupo) {
+                  displayReal = sumChildrenOfGroup(contas!, realizadoMap, conta.id);
+                  displayMeta = sumChildrenOfGroup(contas!, metaMap, conta.id);
+                  displayAnt = hasAnterior ? sumChildrenOfGroup(contas!, valoresAntMap, conta.id) : null;
+                } else if (isSecao) {
+                  displayReal = sumChildrenOfSection(contas!, realizadoMap, conta.id);
+                  displayMeta = sumChildrenOfSection(contas!, metaMap, conta.id);
+                  displayAnt = hasAnterior ? sumChildrenOfSection(contas!, valoresAntMap, conta.id) : null;
+                }
+
+                const av = displayReal != null && faturamento.real ? ((displayReal / faturamento.real) * 100).toFixed(1) : null;
                 const borderColor = tipoBorderColors[conta.tipo] || 'border-l-transparent';
+                const hasChildren = contas!.some((c) => c.conta_pai_id === conta.id);
+                const isCollapsedItem = collapsed.has(conta.id);
 
                 return (
-                  <tr key={conta.id} className={`border-b border-border/50 border-l-[3px] ${borderColor} ${isHighlight ? 'bg-muted/50 font-semibold' : ''}`}>
-                    <td className="p-3 text-txt" style={{ paddingLeft: `${12 + conta.nivel * 20}px` }}>{conta.nome}</td>
-                    <td className="p-3 text-right font-mono text-txt text-xs">{real != null ? formatCurrency(real) : '—'}</td>
+                  <tr key={conta.id} className={`border-b border-border/50 border-l-[3px] ${borderColor} ${
+                    isSecao ? 'bg-muted font-bold uppercase text-xs' : isGrupo ? 'bg-muted/50 font-semibold' : ''
+                  }`}>
+                    <td className="p-3 text-txt" style={{ paddingLeft: `${12 + conta.nivel * 20}px` }}>
+                      <div className="flex items-center gap-1.5">
+                        {hasChildren && (isSecao || isGrupo) && (
+                          <button onClick={() => toggleCollapse(conta.id)} className="p-0.5 rounded hover:bg-surface-hi">
+                            {isCollapsedItem ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                        {conta.nome}
+                      </div>
+                    </td>
+                    <td className="p-3 text-right font-mono text-txt text-xs">{displayReal != null ? formatCurrency(displayReal) : '—'}</td>
                     <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
-                    <td className="p-3 text-right font-mono text-txt-sec text-xs">{meta != null ? formatCurrency(meta) : '—'}</td>
-                    <td className="p-3 text-right"><DeltaBadge realizado={real} meta={meta} /></td>
+                    <td className="p-3 text-right font-mono text-txt-sec text-xs">{displayMeta != null ? formatCurrency(displayMeta) : '—'}</td>
+                    <td className="p-3 text-right"><DeltaBadge realizado={displayReal} meta={displayMeta} /></td>
                     {hasAnterior && (
                       <>
-                        <td className="p-3 text-right font-mono text-txt-sec text-xs border-l border-border/50">{ant != null ? formatCurrency(ant) : '—'}</td>
-                        <td className="p-3 text-right"><VariacaoBadge atual={real} anterior={ant} /></td>
+                        <td className="p-3 text-right font-mono text-txt-sec text-xs border-l border-border/50">{displayAnt != null ? formatCurrency(displayAnt) : '—'}</td>
+                        <td className="p-3 text-right"><VariacaoBadge atual={displayReal} anterior={displayAnt} /></td>
                       </>
                     )}
                   </tr>
