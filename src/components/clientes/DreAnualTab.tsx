@@ -201,7 +201,9 @@ export function DreAnualTab({ clienteId }: Props) {
       for (const c of leafContas) {
         if (c.tipo === 'receita') {
           const v = valoresMap[c.id]?.[m.value];
-          if (v != null) total += v;
+          if (v != null) {
+            total += hasPrefixMinus(c.nome) ? -Math.abs(v) : Math.abs(v);
+          }
         }
       }
       map[m.value] = total;
