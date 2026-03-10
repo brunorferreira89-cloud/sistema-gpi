@@ -520,6 +520,26 @@ export function TorreControleTab({ clienteId }: Props) {
   const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
   const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
 
+  // ── Variation (R$) helper ──────────────────────────────────────
+  const calcVariacao = (node: DreNode): number | null => {
+    const conta = node.conta;
+    if (conta.nivel === 2) {
+      const meta = metaMap[conta.id] || null;
+      const real = realizadoMap[conta.id] ?? null;
+      if (!meta || meta.meta_valor === null || real == null) return null;
+      if (meta.meta_tipo === 'pct') return Math.abs(real) * (meta.meta_valor / 100);
+      return meta.meta_valor - real;
+    }
+    // For groups: sum children variations
+    let total = 0;
+    let hasAny = false;
+    for (const child of node.children) {
+      const v = calcVariacao(child);
+      if (v != null) { total += v; hasAny = true; }
+    }
+    return hasAny ? total : null;
+  };
+
   // ── Render row helpers ────────────────────────────────────────
   const renderRow = (node: DreNode, depth: number) => {
     const conta = node.conta;
