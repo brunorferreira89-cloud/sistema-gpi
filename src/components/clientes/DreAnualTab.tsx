@@ -1175,6 +1175,7 @@ export function DreAnualTab({ clienteId }: Props) {
           </div>
         </div>
       )}
+      <AnaliseDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} titulo={drawerTitulo} dados={drawerDados} />
     </div>
   );
 }
