@@ -184,23 +184,21 @@ export function DreAnualTab({ clienteId }: Props) {
   });
 
   const benchmarkMap = useMemo(() => {
-    const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string }>();
+    const map = new Map<string, { limite_verde: number; limite_ambar: number; direcao: string; nome: string }>();
     const defaults: any[] = [];
     const overrides: any[] = [];
     (kpiIndicadores || []).forEach((k: any) => {
       if (k.cliente_id === clienteId) overrides.push(k);
       else defaults.push(k);
     });
-    // Resolve: override wins by name
     const overrideNames = new Set(overrides.map((o: any) => o.nome));
     const merged = [...overrides, ...defaults.filter((d: any) => !overrideNames.has(d.nome))];
     
-    const config = { limite_verde: 0, limite_ambar: 0, direcao: '' };
     for (const k of merged) {
       const contaIds: string[] = k.conta_ids && Array.isArray(k.conta_ids) && k.conta_ids.length > 0
         ? k.conta_ids
         : k.conta_id ? [k.conta_id] : [];
-      const cfg = { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao };
+      const cfg = { limite_verde: Number(k.limite_verde), limite_ambar: Number(k.limite_ambar), direcao: k.direcao, nome: k.nome };
       for (const cid of contaIds) {
         map.set(cid, cfg);
       }
