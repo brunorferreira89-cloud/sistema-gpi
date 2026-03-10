@@ -446,6 +446,23 @@ export function DreAnualTab({ clienteId }: Props) {
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
 
+    if (isSubgrupo && contaId) {
+      const config = benchmarkMap.get(contaId);
+      if (config) {
+        let dotColor = '#DC2626'; // vermelho default
+        if (config.direcao === 'menor_melhor') {
+          if (avPct < config.limite_verde) dotColor = '#00A86B';
+          else if (avPct < config.limite_ambar) dotColor = '#D97706';
+        } else {
+          if (avPct > config.limite_verde) dotColor = '#00A86B';
+          else if (avPct > config.limite_ambar) dotColor = '#D97706';
+        }
+        const sign = config.direcao === 'maior_melhor' ? '>' : '<';
+        tooltipText = `Benchmark: verde ${sign}${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho ${config.direcao === 'menor_melhor' ? '>' : '<'}${config.limite_ambar}%`;
+        dot = <span style={{ fontSize: 8, color: dotColor, lineHeight: 1 }}>●</span>;
+      }
+    }
+
     return (
       <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }} title={tooltipText || undefined}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
