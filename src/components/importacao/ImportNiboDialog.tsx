@@ -1,9 +1,9 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Upload, FileSpreadsheet, Check, AlertTriangle } from 'lucide-react';
+import { Upload, FileSpreadsheet } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { parseNiboXlsx, buildCompetencia, mesAbrevParaNomeCompleto, type ResultadoParseNibo, type ContaParseada } from '@/lib/nibo-parser';
+import { parseValoresNibo, buildCompetencia, mesAbrevParaNomeCompleto, type ResultadoParseValores } from '@/lib/nibo-dre-parser';
 import { formatCurrency } from '@/lib/plano-contas-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,15 +12,6 @@ import { toast } from 'sonner';
 interface ContaOption {
   id: string;
   nome: string;
-}
-
-interface MappedLine {
-  contaNibo: ContaParseada;
-  mesAbrev: string;
-  valor: number;
-  mappedContaId: string | null;
-  mappedContaNome: string | null;
-  ignored: boolean;
 }
 
 interface Props {
@@ -33,88 +24,63 @@ interface Props {
   contas: ContaOption[];
 }
 
-// Mapping strategies
-function autoMapLines(niboContas: ContaParseada[], planoContas: ContaOption[], clienteId: string, selectedMes: string): MappedLine[] {
-  // Strategy 0: localStorage cache
-  const cacheKey = `gpi_mapeamento_nibo_${clienteId}`;
-  let cache: Record<string, string> = {};
-  try {
-    const raw = localStorage.getItem(cacheKey);
-    if (raw) cache = JSON.parse(raw);
-  } catch { /* empty */ }
-
-  const categorias = niboContas.filter((c) => c.nivel === 2);
-
-  return categorias.map((conta) => {
-    const val = conta.valores[selectedMes] ?? 0;
-    const line: MappedLine = {
-      contaNibo: conta,
-      mesAbrev: selectedMes,
-      valor: val,
-      mappedContaId: null,
-      mappedContaNome: null,
-      ignored: false,
-    };
-
-    // Strategy 0: cache
-    if (cache[conta.nome]) {
-      const cached = planoContas.find((c) => c.id === cache[conta.nome]);
-      if (cached) {
-        line.mappedContaId = cached.id;
-        line.mappedContaNome = cached.nome;
-        return line;
-      }
-    }
-
-    const nomeLower = conta.nome.toLowerCase().trim();
-
-    // Strategy 1: exact match
-    const exact = planoContas.find((c) => c.nome.toLowerCase().trim() === nomeLower);
-    if (exact) {
-      line.mappedContaId = exact.id;
-      line.mappedContaNome = exact.nome;
-      return line;
-    }
-
-    // Strategy 2: partial (≥5 chars)
-    if (nomeLower.length >= 5) {
-      const partial = planoContas.find((c) => {
-        const cLower = c.nome.toLowerCase().trim();
-        return cLower.includes(nomeLower) || nomeLower.includes(cLower);
-      });
-      if (partial) {
-        line.mappedContaId = partial.id;
-        line.mappedContaNome = partial.nome;
-        return line;
-      }
-    }
-
-    return line;
-  });
-}
-
 export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, competencia, competenciaLabel, contas }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [lines, setLines] = useState<MappedLine[]>([]);
+  const [parseResult, setParseResult] = useState<ResultadoParseValores | null>(null);
+  const [selectedMes, setSelectedMes] = useState('');
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [parseResult, setParseResult] = useState<ResultadoParseNibo | null>(null);
-  const [selectedMes, setSelectedMes] = useState('');
+  const [mapped, setMapped] = useState<{ idx: number; nomeLimpo: string; valor: number; mappedContaId: string | null; ignored: boolean }[]>([]);
   const queryClient = useQueryClient();
+
+  const autoMap = useCallback((valores: ResultadoParseValores['valores'], mes: string) => {
+    const cacheKey = `gpi_mapeamento_${clienteId}`;
+    let cache: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) cache = JSON.parse(raw);
+    } catch { /* empty */ }
+
+    return valores.map((v, idx) => {
+      const val = v.valores[mes] ?? 0;
+      const nomeLower = v.nomeLimpo.toLowerCase().trim();
+      let contaId: string | null = null;
+
+      if (cache[v.nomeLimpo]) {
+        const cached = contas.find((c) => c.id === cache[v.nomeLimpo]);
+        if (cached) contaId = cached.id;
+      }
+      if (!contaId) {
+        const exact = contas.find((c) => c.nome.toLowerCase().trim() === nomeLower);
+        if (exact) contaId = exact.id;
+      }
+      if (!contaId && nomeLower.length >= 5) {
+        const partial = contas.find((c) => {
+          const cLower = c.nome.toLowerCase().trim();
+          return cLower.includes(nomeLower) || nomeLower.includes(cLower);
+        });
+        if (partial) contaId = partial.id;
+      }
+
+      return { idx, nomeLimpo: v.nomeLimpo, valor: val, mappedContaId: contaId, ignored: false };
+    });
+  }, [contas, clienteId]);
 
   const handleFile = useCallback(async (file: File) => {
     setIsUploading(true);
     try {
-      const result = await parseNiboXlsx(file);
+      const result = await parseValoresNibo(file);
+      if (!result.valido) {
+        toast.error(result.erro || 'Erro ao processar arquivo');
+        return;
+      }
       setParseResult(result);
       setFileName(file.name);
-      // Default to first month
       if (result.mesesDisponiveis.length > 0) {
         const defaultMes = result.mesesDisponiveis[0];
         setSelectedMes(defaultMes);
-        const mapped = autoMapLines(result.contas, contas, clienteId, defaultMes);
-        setLines(mapped);
+        setMapped(autoMap(result.valores, defaultMes));
       }
       setStep(2);
     } catch {
@@ -122,15 +88,12 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
     } finally {
       setIsUploading(false);
     }
-  }, [contas, clienteId]);
+  }, [autoMap]);
 
-  const handleMesChange = useCallback((mes: string) => {
+  const handleMesChange = (mes: string) => {
     setSelectedMes(mes);
-    if (parseResult) {
-      const mapped = autoMapLines(parseResult.contas, contas, clienteId, mes);
-      setLines(mapped);
-    }
-  }, [parseResult, contas, clienteId]);
+    if (parseResult) setMapped(autoMap(parseResult.valores, mes));
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -139,26 +102,25 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
     else toast.error('Apenas arquivos .xlsx são aceitos');
   }, [handleFile]);
 
-  const updateLine = (index: number, field: Partial<MappedLine>) => {
-    setLines((prev) => prev.map((l, i) => (i === index ? { ...l, ...field } : l)));
+  const updateLine = (idx: number, field: Partial<typeof mapped[0]>) => {
+    setMapped((prev) => prev.map((l) => l.idx === idx ? { ...l, ...field } : l));
   };
 
-  const mappedCount = lines.filter((l) => !l.ignored && l.mappedContaId).length;
-  const unmappedLines = lines.filter((l) => !l.ignored && !l.mappedContaId);
-  const activeLines = lines.filter((l) => !l.ignored && l.mappedContaId);
+  const activeLines = mapped.filter((l) => !l.ignored && l.mappedContaId);
+  const unmappedLines = mapped.filter((l) => !l.ignored && !l.mappedContaId);
+  const mappedCount = activeLines.length;
 
   const handleSave = async () => {
+    if (!parseResult || !selectedMes) return;
     setIsSaving(true);
     try {
-      const comp = parseResult && selectedMes
-        ? buildCompetencia(selectedMes, parseResult.anoReferencia)
-        : competencia;
+      const comp = buildCompetencia(selectedMes, parseResult.anoReferencia);
 
-      // Aggregate values by conta_id
       const aggregated = new Map<string, number>();
       for (const l of activeLines) {
+        const val = parseResult.valores[l.idx].valores[selectedMes] ?? 0;
         const current = aggregated.get(l.mappedContaId!) || 0;
-        aggregated.set(l.mappedContaId!, current + l.valor);
+        aggregated.set(l.mappedContaId!, current + val);
       }
 
       const rows = Array.from(aggregated.entries()).map(([conta_id, valor_realizado]) => ({
@@ -172,12 +134,10 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
         if (error) throw error;
       }
 
-      // Save mapping cache
-      const cacheKey = `gpi_mapeamento_nibo_${clienteId}`;
+      // Save cache
+      const cacheKey = `gpi_mapeamento_${clienteId}`;
       const cache: Record<string, string> = {};
-      for (const l of activeLines) {
-        cache[l.contaNibo.nome] = l.mappedContaId!;
-      }
+      for (const l of activeLines) cache[l.nomeLimpo] = l.mappedContaId!;
       localStorage.setItem(cacheKey, JSON.stringify(cache));
 
       // Record import
@@ -192,15 +152,13 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
         importado_por: userData.user?.id || null,
       });
 
-      const label = parseResult && selectedMes
-        ? mesAbrevParaNomeCompleto(selectedMes, parseResult.anoReferencia)
-        : competenciaLabel;
+      const label = mesAbrevParaNomeCompleto(selectedMes, parseResult.anoReferencia);
       queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
       queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
-      toast.success(`Importação concluída. ${activeLines.length} valores registrados para ${label}.`);
+      toast.success(`${activeLines.length} valores importados para ${label}.`);
       handleClose();
     } catch (err) {
-      console.error('Erro ao salvar importação:', err);
+      console.error(err);
       toast.error('Erro ao salvar importação');
     } finally {
       setIsSaving(false);
@@ -209,7 +167,7 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
 
   const handleClose = () => {
     setStep(1);
-    setLines([]);
+    setMapped([]);
     setFileName('');
     setParseResult(null);
     setSelectedMes('');
@@ -239,6 +197,7 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
               <>
                 <Upload className="h-12 w-12 text-txt-muted" />
                 <p className="text-center text-sm text-txt-sec">Arraste o arquivo de DRE exportado do Nibo</p>
+                <p className="text-xs text-txt-muted">No Nibo: <strong>Relatórios → DRE → Exportar Excel</strong></p>
                 <p className="text-xs text-txt-muted">Cliente: <strong>{clienteNome}</strong></p>
                 <label className="cursor-pointer">
                   <Button variant="outline" size="sm" asChild>
@@ -253,7 +212,6 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
 
         {step === 2 && (
           <div className="space-y-4">
-            {/* Month selector */}
             {parseResult && parseResult.mesesDisponiveis.length > 1 && (
               <div className="space-y-1">
                 <label className="text-xs text-txt-muted">Mês a importar</label>
@@ -269,15 +227,14 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
             )}
 
             <div className="flex items-center gap-4 text-sm">
-              <span className="text-primary font-medium">{mappedCount} contas mapeadas automaticamente</span>
+              <span className="text-primary font-medium">{mappedCount} mapeadas</span>
               <span className="text-txt-muted">·</span>
               <span className="text-amber font-medium">{unmappedLines.length} precisam de atenção</span>
             </div>
 
-            {/* Show only unmapped lines for manual resolution */}
             {unmappedLines.length > 0 && (
               <div className="max-h-[40vh] overflow-y-auto">
-                <p className="text-xs text-txt-muted mb-2 font-medium">Contas não mapeadas — resolução manual:</p>
+                <p className="text-xs text-txt-muted mb-2 font-medium">Contas não mapeadas:</p>
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-surface">
                     <tr className="border-b border-border text-left text-xs text-txt-muted">
@@ -288,57 +245,45 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
                     </tr>
                   </thead>
                   <tbody>
-                    {lines.map((l, i) => {
-                      if (l.mappedContaId || l.ignored) return null;
-                      return (
-                        <tr key={i} className="border-b border-border/50">
-                          <td className="p-2 text-txt">{l.contaNibo.nome}</td>
-                          <td className="p-2 font-mono text-txt">{formatCurrency(l.valor)}</td>
-                          <td className="p-2">
-                            <Select
-                              value=""
-                              onValueChange={(v) => {
-                                const conta = contas.find((c) => c.id === v);
-                                updateLine(i, { mappedContaId: v, mappedContaNome: conta?.nome || null });
-                              }}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Selecionar conta..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {contas.map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => updateLine(i, { ignored: true })}>
-                              Ignorar
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {mapped.filter((l) => !l.mappedContaId && !l.ignored).map((l) => (
+                      <tr key={l.idx} className="border-b border-border/50">
+                        <td className="p-2 text-txt">{l.nomeLimpo}</td>
+                        <td className="p-2 font-mono text-txt">{formatCurrency(l.valor)}</td>
+                        <td className="p-2">
+                          <Select value="" onValueChange={(v) => {
+                            const conta = contas.find((c) => c.id === v);
+                            updateLine(l.idx, { mappedContaId: v });
+                          }}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                            <SelectContent>{contas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </td>
+                        <td className="p-2">
+                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => updateLine(l.idx, { ignored: true })}>Ignorar</Button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             )}
 
-            {/* Summary of mapped */}
             {mappedCount > 0 && (
               <details className="text-xs">
-                <summary className="cursor-pointer text-txt-muted hover:text-txt">{mappedCount} contas mapeadas automaticamente (ver detalhes)</summary>
+                <summary className="cursor-pointer text-txt-muted hover:text-txt">{mappedCount} contas mapeadas (ver detalhes)</summary>
                 <div className="mt-2 max-h-[30vh] overflow-y-auto rounded border border-border/50">
                   <table className="w-full text-xs">
                     <tbody>
-                      {lines.filter((l) => l.mappedContaId && !l.ignored).map((l, i) => (
-                        <tr key={i} className="border-b border-border/30">
-                          <td className="p-1.5 text-txt">{l.contaNibo.nome}</td>
-                          <td className="p-1.5 text-txt-sec">→ {l.mappedContaNome}</td>
-                          <td className="p-1.5 font-mono text-right">{formatCurrency(l.valor)}</td>
-                        </tr>
-                      ))}
+                      {activeLines.map((l) => {
+                        const conta = contas.find((c) => c.id === l.mappedContaId);
+                        return (
+                          <tr key={l.idx} className="border-b border-border/30">
+                            <td className="p-1.5 text-txt">{l.nomeLimpo}</td>
+                            <td className="p-1.5 text-txt-sec">→ {conta?.nome}</td>
+                            <td className="p-1.5 font-mono text-right">{formatCurrency(l.valor)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -370,7 +315,7 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-txt-muted text-xs">Ignoradas / não mapeadas</p>
-                <p className="font-medium text-amber">{lines.length - activeLines.length}</p>
+                <p className="font-medium text-amber">{mapped.length - activeLines.length}</p>
               </div>
             </div>
             <div className="flex justify-end gap-2">
