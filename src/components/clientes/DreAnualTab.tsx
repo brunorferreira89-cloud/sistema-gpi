@@ -85,7 +85,7 @@ function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | n
     const v = valMap[c.id];
     if (v == null) continue;
     hasAny = true;
-    total += c.tipo === 'receita' ? v : -Math.abs(v);
+    total += v;
   }
   return hasAny ? total : null;
 }
