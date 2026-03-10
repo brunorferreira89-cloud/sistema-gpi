@@ -193,6 +193,25 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     },
   });
 
+  // --- Benchmark configuracoes (per-subgroup) ---
+  const { data: benchmarkConfigsData } = useQuery({
+    queryKey: ['benchmark-configuracoes-dre', clienteId],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('benchmark_configuracoes' as any)
+        .select('*')
+        .eq('cliente_id', clienteId);
+      return (data || []) as unknown as BenchmarkConfigRow[];
+    },
+  });
+
+  const benchmarkMap = useMemo(() => {
+    const map = new Map<string, BenchmarkConfigRow>();
+    benchmarkConfigsData?.forEach(c => map.set(c.conta_id, c));
+    return map;
+  }, [benchmarkConfigsData]);
+
   // --- Saldos de contas bancárias ---
   const queryClient = useQueryClient();
   const [editingSaldo, setEditingSaldo] = useState<{ key: string; field: 'saldo_inicial' | 'saldo_final' } | null>(null);
