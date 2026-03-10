@@ -124,7 +124,7 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
 
 interface Props { clienteId: string; }
 
-export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Props) {
+export function DreAnualTab({ clienteId }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
