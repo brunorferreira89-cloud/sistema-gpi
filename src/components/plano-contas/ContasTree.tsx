@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
 import { type ContaRow, type ContaTipo, tipoBadgeColors, tipoLabels, formatCurrency, getCompetenciaAtual } from '@/lib/plano-contas-utils';
-import { ChevronRight, ChevronDown, GripVertical, Pencil, Trash2, Check, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import {
   DndContext,
   closestCenter,
@@ -29,6 +30,12 @@ interface Props {
   onRefresh: () => void;
 }
 
+const nivelLabels: Record<number, { label: string; color: string }> = {
+  1: { label: 'Categoria DRE', color: 'bg-primary/10 text-primary border-primary/20' },
+  2: { label: 'Grupo', color: 'bg-amber/10 text-amber border-amber/20' },
+  3: { label: 'Conta', color: 'bg-muted text-txt-sec border-border' },
+};
+
 function SortableRow({
   conta,
   meta,
@@ -39,6 +46,7 @@ function SortableRow({
   onDelete,
   onRename,
   onChangeTipo,
+  onChangeNivel,
 }: {
   conta: ContaRow;
   meta: number | null;
@@ -49,13 +57,18 @@ function SortableRow({
   onDelete: (contaId: string) => void;
   onRename: (contaId: string, nome: string) => void;
   onChangeTipo: (contaId: string, tipo: ContaTipo) => void;
+  onChangeNivel: (contaId: string, nivel: number) => void;
 }) {
   const [editingMeta, setEditingMeta] = useState(false);
   const [metaValue, setMetaValue] = useState<string>(meta != null ? String(meta) : '');
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(conta.nome);
   const [editingTipo, setEditingTipo] = useState(false);
+  const [editingNivel, setEditingNivel] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isGroup = conta.nivel === 2;
+  const isCategoryHeader = conta.nivel === 1 || conta.is_total;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: conta.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -73,11 +86,19 @@ function SortableRow({
     setEditingName(false);
   };
 
+  const nivelInfo = nivelLabels[conta.nivel] || nivelLabels[3];
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex items-center gap-1 border-b border-border/40 py-2 pr-2 hover:bg-surface-hi/50"
+      className={`group flex items-center gap-1 border-b py-2 pr-2 ${
+        isGroup
+          ? 'border-border bg-surface-hi/60'
+          : isCategoryHeader
+            ? 'border-border bg-primary/5'
+            : 'border-border/40 hover:bg-surface-hi/50'
+      }`}
     >
       <button {...attributes} {...listeners} className="cursor-grab p-1 text-txt-muted opacity-0 group-hover:opacity-100">
         <GripVertical className="h-3.5 w-3.5" />
@@ -85,27 +106,36 @@ function SortableRow({
 
       <div style={{ width: (conta.nivel - 1) * 20 }} className="shrink-0" />
 
+      {/* Collapse toggle for groups */}
       <button onClick={onToggle} className="w-5 shrink-0 text-txt-muted">
-        {hasChildren ? (collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />) : null}
+        {hasChildren ? (
+          collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+        ) : null}
       </button>
 
       <div className="flex-1 min-w-0 flex items-center gap-2">
         {editingName ? (
-          <div className="flex items-center gap-1">
-            <input
-              className="rounded border border-primary bg-surface-hi px-1.5 py-0.5 text-sm text-txt outline-none"
-              value={nameValue}
-              onChange={(e) => setNameValue(e.target.value)}
-              onBlur={handleNameSubmit}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setEditingName(false); }}
-              autoFocus
-            />
-          </div>
+          <input
+            className="rounded border border-primary bg-surface-hi px-1.5 py-0.5 text-sm text-txt outline-none"
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={handleNameSubmit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setEditingName(false); }}
+            autoFocus
+          />
         ) : (
-          <span className={`truncate text-sm ${conta.is_total || conta.nivel === 1 ? 'font-bold text-txt' : 'text-txt-sec'}`}>
+          <span className={`truncate text-sm ${
+            isCategoryHeader
+              ? 'font-bold text-txt uppercase tracking-wide text-xs'
+              : isGroup
+                ? 'font-semibold text-txt'
+                : 'text-txt-sec'
+          }`}>
             {conta.nome}
           </span>
         )}
+
+        {/* Tipo badge */}
         {editingTipo ? (
           <select
             className="shrink-0 rounded border border-primary bg-surface-hi px-1.5 py-0.5 text-[10px] font-medium text-txt outline-none"
@@ -126,39 +156,68 @@ function SortableRow({
             {tipoLabels[conta.tipo as ContaTipo]}
           </button>
         )}
+
+        {/* Nivel badge */}
+        {editingNivel ? (
+          <select
+            className="shrink-0 rounded border border-primary bg-surface-hi px-1.5 py-0.5 text-[10px] font-medium text-txt outline-none"
+            value={conta.nivel}
+            onChange={(e) => { onChangeNivel(conta.id, Number(e.target.value)); setEditingNivel(false); }}
+            onBlur={() => setEditingNivel(false)}
+            autoFocus
+          >
+            <option value={1}>N1 — Categoria DRE</option>
+            <option value={2}>N2 — Grupo</option>
+            <option value={3}>N3 — Conta</option>
+          </select>
+        ) : (
+          <button
+            onClick={() => setEditingNivel(true)}
+            className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium cursor-pointer hover:ring-1 hover:ring-primary/50 ${nivelInfo.color}`}
+          >
+            N{conta.nivel}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {editingMeta ? (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-txt-muted">R$</span>
-            <input
-              ref={inputRef}
-              type="number"
-              className="w-24 rounded border border-primary bg-surface-hi px-2 py-0.5 text-right font-mono text-sm text-txt outline-none"
-              value={metaValue}
-              onChange={(e) => setMetaValue(e.target.value)}
-              onBlur={handleMetaSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleMetaSubmit();
-                if (e.key === 'Escape') { setEditingMeta(false); setMetaValue(meta != null ? String(meta) : ''); }
-              }}
-              autoFocus
-            />
-          </div>
+        {/* Meta editing - only for leaf accounts (nivel 3) */}
+        {conta.nivel >= 3 || (!hasChildren) ? (
+          editingMeta ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-txt-muted">R$</span>
+              <input
+                ref={inputRef}
+                type="number"
+                className="w-24 rounded border border-primary bg-surface-hi px-2 py-0.5 text-right font-mono text-sm text-txt outline-none"
+                value={metaValue}
+                onChange={(e) => setMetaValue(e.target.value)}
+                onBlur={handleMetaSubmit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleMetaSubmit();
+                  if (e.key === 'Escape') { setEditingMeta(false); setMetaValue(meta != null ? String(meta) : ''); }
+                }}
+                autoFocus
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => { setEditingMeta(true); setMetaValue(meta != null ? String(meta) : ''); }}
+              className="min-w-[80px] text-right font-mono text-sm text-txt-sec hover:text-primary"
+            >
+              {meta != null ? formatCurrency(meta) : '—'}
+            </button>
+          )
         ) : (
-          <button
-            onClick={() => { setEditingMeta(true); setMetaValue(meta != null ? String(meta) : ''); }}
-            className="min-w-[80px] text-right font-mono text-sm text-txt-sec hover:text-primary"
-          >
-            {meta != null ? formatCurrency(meta) : '—'}
-          </button>
+          <span className="min-w-[80px] text-right font-mono text-[11px] text-txt-muted italic">subtotal</span>
         )}
 
-        {meta != null ? (
+        {meta != null && conta.nivel >= 3 ? (
           <span className="rounded-full bg-green/10 px-1.5 py-0.5 text-[10px] font-medium text-green">✓ definida</span>
-        ) : (
+        ) : conta.nivel >= 3 ? (
           <span className="rounded-full bg-amber/10 px-1.5 py-0.5 text-[10px] font-medium text-amber">pendente</span>
+        ) : (
+          <span className="w-[60px]" />
         )}
 
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
@@ -179,7 +238,6 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
   const [orderedContas, setOrderedContas] = useState(contas);
   const queryClient = useQueryClient();
 
-  // Sync when contas prop changes (compare by reference)
   if (contas !== orderedContas) {
     setOrderedContas(contas);
   }
@@ -196,6 +254,13 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     childrenMap.get(parentKey)!.push(c.id);
   });
 
+  // Also detect children by nivel adjacency (for flat imports without conta_pai_id)
+  const hasChildrenByNivel = (index: number): boolean => {
+    const conta = orderedContas[index];
+    const next = orderedContas[index + 1];
+    return !!next && next.nivel > conta.nivel;
+  };
+
   const toggleCollapse = (id: string) => {
     setCollapsedIds((prev) => {
       const next = new Set(prev);
@@ -205,18 +270,27 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     });
   };
 
-  // Flatten visible contas
   const getVisibleContas = (): ContaRow[] => {
     const result: ContaRow[] = [];
-    const isAncestorCollapsed = (conta: ContaRow): boolean => {
-      if (!conta.conta_pai_id) return false;
-      if (collapsedIds.has(conta.conta_pai_id)) return true;
-      const parent = orderedContas.find((c) => c.id === conta.conta_pai_id);
-      return parent ? isAncestorCollapsed(parent) : false;
-    };
-    orderedContas.forEach((c) => {
-      if (!isAncestorCollapsed(c)) result.push(c);
-    });
+    let skipUntilNivel = -1;
+
+    for (let i = 0; i < orderedContas.length; i++) {
+      const c = orderedContas[i];
+
+      // If we're skipping children of a collapsed group
+      if (skipUntilNivel >= 0) {
+        if (c.nivel > skipUntilNivel) continue;
+        else skipUntilNivel = -1;
+      }
+
+      result.push(c);
+
+      // If this item is collapsed, skip its children
+      if (collapsedIds.has(c.id)) {
+        skipUntilNivel = c.nivel;
+      }
+    }
+
     return result;
   };
 
@@ -230,7 +304,6 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     const newOrder = arrayMove(orderedContas, oldIndex, newIndex);
     setOrderedContas(newOrder);
 
-    // Update order in DB
     const updates = newOrder.map((c, i) => ({ id: c.id, ordem: i, cliente_id: c.cliente_id, nome: c.nome, tipo: c.tipo, nivel: c.nivel }));
     for (const u of updates) {
       await supabase.from('plano_de_contas').update({ ordem: u.ordem }).eq('id', u.id);
@@ -268,31 +341,54 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
     onRefresh();
   };
 
+  const handleChangeNivel = async (contaId: string, nivel: number) => {
+    await supabase.from('plano_de_contas').update({ nivel }).eq('id', contaId);
+    onRefresh();
+  };
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={visibleContas.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="rounded-xl border border-border bg-surface">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-xs font-semibold uppercase text-txt-muted">
+          {/* Header */}
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 text-xs font-semibold uppercase text-txt-muted tracking-wider">
             <span className="w-10" />
             <span className="flex-1">Conta</span>
             <span className="w-28 text-right">Meta mensal</span>
-            <span className="w-20">Status</span>
+            <span className="w-[60px]">Status</span>
             <span className="w-16" />
           </div>
-          {visibleContas.map((conta) => (
-            <SortableRow
-              key={conta.id}
-              conta={conta}
-              meta={valoresMetas[conta.id] ?? null}
-              collapsed={collapsedIds.has(conta.id)}
-              hasChildren={childrenMap.has(conta.id) && (childrenMap.get(conta.id)?.length || 0) > 0}
-              onToggle={() => toggleCollapse(conta.id)}
-              onMetaSave={handleMetaSave}
-              onDelete={handleDelete}
-              onRename={handleRename}
-              onChangeTipo={handleChangeTipo}
-            />
-          ))}
+
+          {/* Legend */}
+          <div className="flex items-center gap-3 border-b border-border/50 px-4 py-1.5 bg-muted/30">
+            <span className="text-[10px] text-txt-muted">Legenda:</span>
+            {Object.entries(nivelLabels).map(([n, info]) => (
+              <span key={n} className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${info.color}`}>
+                N{n} — {info.label}
+              </span>
+            ))}
+          </div>
+
+          {visibleContas.map((conta, idx) => {
+            const globalIdx = orderedContas.findIndex((c) => c.id === conta.id);
+            const hasKids = (childrenMap.has(conta.id) && (childrenMap.get(conta.id)?.length || 0) > 0) || hasChildrenByNivel(globalIdx);
+
+            return (
+              <SortableRow
+                key={conta.id}
+                conta={conta}
+                meta={valoresMetas[conta.id] ?? null}
+                collapsed={collapsedIds.has(conta.id)}
+                hasChildren={hasKids}
+                onToggle={() => toggleCollapse(conta.id)}
+                onMetaSave={handleMetaSave}
+                onDelete={handleDelete}
+                onRename={handleRename}
+                onChangeTipo={handleChangeTipo}
+                onChangeNivel={handleChangeNivel}
+              />
+            );
+          })}
         </div>
       </SortableContext>
     </DndContext>
