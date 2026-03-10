@@ -805,13 +805,13 @@ export function TorreControleTab({ clienteId }: Props) {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
                   <thead>
-                    <tr style={{ background: 'rgba(26,60,255,0.04)', borderBottom: '2px solid #DDE4F0' }}>
+                    <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 130 }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
+                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 130 }}>META</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
                       <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 96 }}>STATUS</th>
                     </tr>
                   </thead>
