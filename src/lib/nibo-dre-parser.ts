@@ -34,10 +34,13 @@ function deveIgnorar(nome: string): boolean {
   return LINHAS_IGNORADAS.some((ig) => lower === ig || lower.startsWith(ig));
 }
 
-/** Normalise a name for comparison: remove prefix, trim, lowercase, strip accents */
-function normalizar(nome: string): string {
-  return nome
-    .replace(/^\s*\([+-]\)\s*/, '')
+/** Normalise a name for comparison: trim, lowercase, strip accents. Optionally keep prefix marker. */
+function normalizar(nome: string, manterPrefixo = false): string {
+  let s = nome.trim();
+  if (!manterPrefixo) {
+    s = s.replace(/^\s*\([+-]\)\s*/, '');
+  }
+  return s
     .trim()
     .toLowerCase()
     .normalize('NFD')
@@ -49,11 +52,12 @@ function normalizar(nome: string): string {
  * When contasDoPlano is provided, match against the plan (preferred).
  * Otherwise fall back to case-based heuristic.
  */
-function isCategoriaReal(nome: string | null | undefined, nomesNormalizados?: Set<string>): boolean {
+function isCategoriaReal(nome: string | null | undefined, nomesNormalizados?: Set<string>, nomesComPrefixo?: Set<string>): boolean {
   if (!nome || nome.trim() === '') return false;
 
-  // If we have the plan, use direct matching
+  // If we have the plan, use direct matching: try full name with prefix first, then without
   if (nomesNormalizados) {
+    if (nomesComPrefixo?.has(normalizar(nome, true))) return true;
     return nomesNormalizados.has(normalizar(nome));
   }
 
@@ -90,9 +94,12 @@ export function mesAbrevParaNomeCompleto(abrev: string, ano: number): string {
  *   When provided, only lines matching a plan account are imported (replaces heuristic).
  */
 export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<ResultadoParseValores> {
-  // Pre-build normalised set for fast lookup
+  // Pre-build normalised sets for fast lookup
   const nomesNormalizados = contasDoPlano
     ? new Set(contasDoPlano.map(n => normalizar(n)))
+    : undefined;
+  const nomesComPrefixo = contasDoPlano
+    ? new Set(contasDoPlano.map(n => normalizar(n, true)))
     : undefined;
 
   return new Promise((resolve, reject) => {
@@ -158,7 +165,7 @@ export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<
           if (!nomeOriginal) continue;
           if (deveIgnorar(nomeOriginal)) continue;
           if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix (+) or (-)
-          if (!isCategoriaReal(nomeOriginal, nomesNormalizados)) continue;
+          if (!isCategoriaReal(nomeOriginal, nomesNormalizados, nomesComPrefixo)) continue;
 
           const valoresRow: Record<string, number> = {};
           for (let mi = 0; mi < mesesDisponiveis.length; mi++) {
@@ -198,7 +205,11 @@ export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<
 
         const dedup = new Map<string, ValorParseado>();
         for (const v of valores) {
-          dedup.set(normalizar(v.nomeOriginal), v);
+          // Use prefix-aware key when the plan has the full-name entry, otherwise fallback to stripped key
+          const keyComPrefixo = normalizar(v.nomeOriginal, true);
+          const keySemPrefixo = normalizar(v.nomeOriginal);
+          const key = nomesComPrefixo?.has(keyComPrefixo) ? keyComPrefixo : keySemPrefixo;
+          dedup.set(key, v);
         }
         const valoresFinais = Array.from(dedup.values());
 
