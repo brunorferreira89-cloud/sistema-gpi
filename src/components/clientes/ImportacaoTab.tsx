@@ -288,6 +288,11 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
             <Button variant="outline" onClick={() => setCopyOpen(true)} className="gap-2">
               <Copy className="h-4 w-4" />Copiar de outro cliente
             </Button>
+            {hasContas && (
+              <Button variant="outline" onClick={() => setDeletePlanoOpen(true)} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 className="h-4 w-4" />Apagar plano de contas
+              </Button>
+            )}
           </div>
 
           {hasContas ? (
