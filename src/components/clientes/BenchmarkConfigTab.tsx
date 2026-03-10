@@ -235,6 +235,7 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
   const [limiteVerde, setLimiteVerde] = useState(indicador ? String(indicador.limite_verde) : '');
   const [limiteAmbar, setLimiteAmbar] = useState(indicador ? String(indicador.limite_ambar) : '');
   const [ativo, setAtivo] = useState(indicador?.ativo ?? true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Build hierarchical tree: N1 subgroups with N2 children
   const contasTree = useMemo(() => {
