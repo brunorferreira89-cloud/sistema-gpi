@@ -40,24 +40,9 @@ export default function PlanoDeContasClientePage() {
     enabled: !!clienteId,
   });
 
-  const { data: valoresMetas, refetch: refetchMetas } = useQuery({
-    queryKey: ['valores-mensais', clienteId],
-    queryFn: async () => {
-      if (!contas?.length) return {};
-      const comp = getCompetenciaAtual();
-      const contaIds = contas.map((c) => c.id);
-      const { data, error } = await supabase
-        .from('valores_mensais')
-        .select('conta_id, valor_meta')
-        .in('conta_id', contaIds)
-        .eq('competencia', comp);
-      if (error) throw error;
-      const map: Record<string, number | null> = {};
-      data?.forEach((v) => { map[v.conta_id] = v.valor_meta; });
-      return map;
-    },
-    enabled: !!contas?.length,
-  });
+  const handleRefresh = () => {
+    refetchContas();
+  };
 
   const handleRefresh = () => {
     refetchContas();
