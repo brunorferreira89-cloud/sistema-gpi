@@ -15,7 +15,7 @@ export default function ImportacaoNiboPage() {
   const [clienteId, setClienteId] = useState('');
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [importOpen, setImportOpen] = useState(false);
-  const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string } | null>(null);
+  const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string; clienteId: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: clientes } = useQuery({
@@ -107,7 +107,7 @@ export default function ImportacaoNiboPage() {
             <tbody>
               {historico.map((h: any) => (
                 <tr key={h.id} className="border-b border-border/50 hover:bg-surface-hi/50">
-                  <td className="p-3 text-txt">{new Date(h.competencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</td>
+                  <td className="p-3 text-txt">{(() => { const [y, m] = h.competencia.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); })()}</td>
                   <td className="p-3 text-txt truncate max-w-[200px]">{h.arquivo_nome || '—'}</td>
                   <td className="p-3">{statusBadge(h.status)}</td>
                   <td className="p-3 text-txt">{h.total_contas_importadas}</td>
@@ -119,7 +119,7 @@ export default function ImportacaoNiboPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-txt-muted hover:text-primary"
-                        onClick={() => setActionDialog({ type: 'edit', importId: h.id, currentCompetencia: h.competencia })}
+                        onClick={() => setActionDialog({ type: 'edit', importId: h.id, currentCompetencia: h.competencia, clienteId: h.cliente_id })}
                         title="Alterar competência"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -128,7 +128,7 @@ export default function ImportacaoNiboPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-txt-muted hover:text-destructive"
-                        onClick={() => setActionDialog({ type: 'delete', importId: h.id, currentCompetencia: h.competencia })}
+                        onClick={() => setActionDialog({ type: 'delete', importId: h.id, currentCompetencia: h.competencia, clienteId: h.cliente_id })}
                         title="Excluir importação"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -165,6 +165,7 @@ export default function ImportacaoNiboPage() {
         <ImportActionDialog
           type={actionDialog.type}
           importId={actionDialog.importId}
+          clienteId={actionDialog.clienteId}
           currentCompetencia={actionDialog.currentCompetencia}
           competenciaOptions={competencias}
           onComplete={handleActionComplete}

@@ -17,17 +17,25 @@ import { toast } from 'sonner';
 interface Props {
   type: 'edit' | 'delete';
   importId: string;
+  clienteId: string;
   currentCompetencia: string;
   competenciaOptions: { value: string; label: string }[];
   onComplete: () => void;
   onCancel: () => void;
 }
 
-export function ImportActionDialog({ type, importId, currentCompetencia, competenciaOptions, onComplete, onCancel }: Props) {
+export function ImportActionDialog({ type, importId, clienteId, currentCompetencia, competenciaOptions, onComplete, onCancel }: Props) {
   const [newCompetencia, setNewCompetencia] = useState(currentCompetencia);
   const [loading, setLoading] = useState(false);
 
-  const currentLabel = competenciaOptions.find((c) => c.value === currentCompetencia)?.label || currentCompetencia;
+  const formatCompetenciaLabel = (comp: string) => {
+    const opt = competenciaOptions.find((c) => c.value === comp);
+    if (opt) return opt.label;
+    const [y, m] = comp.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  const currentLabel = formatCompetenciaLabel(currentCompetencia);
 
   const handleEditConfirm = async () => {
     if (newCompetencia === currentCompetencia) {
@@ -36,11 +44,57 @@ export function ImportActionDialog({ type, importId, currentCompetencia, compete
     }
     setLoading(true);
     try {
+      // 1. Get all contas for this client
+      const { data: contas } = await supabase
+        .from('plano_de_contas')
+        .select('id')
+        .eq('cliente_id', clienteId);
+
+      if (contas && contas.length > 0) {
+        const contaIds = contas.map((c) => c.id);
+
+        // 2. Get valores_mensais for old competencia
+        const { data: oldValores } = await supabase
+          .from('valores_mensais')
+          .select('conta_id, valor_realizado')
+          .in('conta_id', contaIds)
+          .eq('competencia', currentCompetencia);
+
+        if (oldValores && oldValores.length > 0) {
+          // 3. Upsert into new competencia
+          const newRows = oldValores
+            .filter((v) => v.valor_realizado !== null)
+            .map((v) => ({
+              conta_id: v.conta_id,
+              competencia: newCompetencia,
+              valor_realizado: v.valor_realizado,
+            }));
+
+          if (newRows.length > 0) {
+            const { error: upsertError } = await supabase
+              .from('valores_mensais')
+              .upsert(newRows, { onConflict: 'conta_id,competencia' });
+            if (upsertError) throw upsertError;
+          }
+
+          // 4. Clear old competencia valores (set realizado to null)
+          for (const v of oldValores) {
+            await supabase
+              .from('valores_mensais')
+              .update({ valor_realizado: null })
+              .eq('conta_id', v.conta_id)
+              .eq('competencia', currentCompetencia);
+          }
+        }
+      }
+
+      // 5. Update import record
       const { error } = await supabase
         .from('importacoes_nibo')
         .update({ competencia: newCompetencia })
         .eq('id', importId);
       if (error) throw error;
+
       toast.success('Competência da importação alterada com sucesso.');
       onComplete();
     } catch (err) {
@@ -137,7 +191,7 @@ export function ImportActionDialog({ type, importId, currentCompetencia, compete
             <div className="flex items-start gap-2 rounded-lg border border-amber/30 bg-amber/5 p-3 text-sm text-amber-700 dark:text-amber">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong>Atenção:</strong> Alterar a competência afeta apenas o registro desta importação. Os valores já inseridos nas contas permanecem na competência original.
+                <strong>Atenção:</strong> Os valores realizados serão movidos da competência atual para a nova competência selecionada. A competência original ficará zerada.
               </span>
             </div>
           </AlertDialogDescription>
