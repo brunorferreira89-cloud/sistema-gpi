@@ -211,6 +211,23 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return valoresAnuais?.some((v) => v.valor_realizado != null) ?? false;
   }, [valoresAnuais]);
 
+  // --- Filter: which leaf contas have at least one value in the year ---
+  const contasComValor = useMemo(() => {
+    const set = new Set<string>();
+    valoresAnuais?.forEach((v) => {
+      if (v.valor_realizado != null) set.add(v.conta_id);
+    });
+    return set;
+  }, [valoresAnuais]);
+
+  const temValorNoAno = (contaId: string) => contasComValor.has(contaId);
+
+  /** Check if a DreNode (or any of its descendants) has values */
+  function nodeHasValues(node: DreNode): boolean {
+    if (node.conta.nivel === 2) return temValorNoAno(node.conta.id);
+    return node.children.some(nodeHasValues);
+  }
+
   const tree = useMemo(() => (contas ? buildDreTree(contas) : []), [contas]);
 
   const sortedRoots = useMemo(() => {
