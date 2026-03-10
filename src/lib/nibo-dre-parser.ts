@@ -94,9 +94,12 @@ export function mesAbrevParaNomeCompleto(abrev: string, ano: number): string {
  *   When provided, only lines matching a plan account are imported (replaces heuristic).
  */
 export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<ResultadoParseValores> {
-  // Pre-build normalised set for fast lookup
+  // Pre-build normalised sets for fast lookup
   const nomesNormalizados = contasDoPlano
     ? new Set(contasDoPlano.map(n => normalizar(n)))
+    : undefined;
+  const nomesComPrefixo = contasDoPlano
+    ? new Set(contasDoPlano.map(n => normalizar(n, true)))
     : undefined;
 
   return new Promise((resolve, reject) => {
