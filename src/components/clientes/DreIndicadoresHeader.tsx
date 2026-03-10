@@ -3,6 +3,7 @@ import { BarChart, Bar, ComposedChart, Line, Area, XAxis, YAxis, ReferenceLine, 
 import { formatCurrency } from '@/lib/plano-contas-utils';
 import type { ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas } from '@/lib/dre-indicadores';
+import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
 
 /* ──────── types ──────── */
 interface Props {
@@ -44,6 +45,29 @@ function calcIndicatorValue(leafs: ContaRow[], valMap: Record<string, number | n
   return total;
 }
 
+function sumByTipo(leafs: ContaRow[], valMap: Record<string, number | null>, tipo: string): number {
+  let total = 0;
+  for (const c of leafs) {
+    if (c.tipo !== tipo) continue;
+    const v = valMap[c.id];
+    if (v != null) total += Math.abs(v);
+  }
+  return total;
+}
+
+function getSubgroups(contas: ContaRow[], tipo: string, valMap: Record<string, number | null>): { nome: string; valor: number }[] {
+  const subs = contas.filter(c => c.tipo === tipo && c.nivel === 1);
+  return subs.map(s => {
+    const children = contas.filter(c => c.conta_pai_id === s.id && c.nivel === 2);
+    let val = 0;
+    for (const ch of children) {
+      const v = valMap[ch.id];
+      if (v != null) val += Math.abs(v);
+    }
+    return { nome: s.nome, valor: val };
+  }).filter(s => s.valor !== 0);
+}
+
 function fmtCurrency(v: number): string {
   return formatCurrency(Math.abs(v)).replace('R$\u00a0', 'R$ ').replace('R$  ', 'R$ ');
 }
@@ -62,6 +86,12 @@ function statusColor(value: number, thresholds: [number, number], direction: 'hi
   if (value < low) return '#00A86B';
   if (value <= high) return '#D97706';
   return '#DC2626';
+}
+
+function statusLabel(color: string): 'verde' | 'ambar' | 'vermelho' {
+  if (color === '#00A86B') return 'verde';
+  if (color === '#D97706') return 'ambar';
+  return 'vermelho';
 }
 
 const BLUE = '#1A3CFF';
@@ -114,11 +144,12 @@ function MiniArcGauge({ value, color, size = 32 }: { value: number; color: strin
 }
 
 /* ──────── card wrapper ──────── */
-function IndicatorCard({ index, color, label, children, hasData }: {
-  index: number; color: string; label: string; hasData: boolean; children: React.ReactNode;
+function IndicatorCard({ index, color, label, children, hasData, onClick }: {
+  index: number; color: string; label: string; hasData: boolean; children: React.ReactNode; onClick?: () => void;
 }) {
   const [visible, setVisible] = useState(false);
   const [lineWidth, setLineWidth] = useState(0);
+  const [hovered, setHovered] = useState(false);
   useEffect(() => {
     const t1 = setTimeout(() => setVisible(true), index * 60);
     const t2 = setTimeout(() => setLineWidth(100), index * 60 + 100);
@@ -126,40 +157,29 @@ function IndicatorCard({ index, color, label, children, hasData }: {
   }, [index]);
 
   return (
-    <div style={{
-      background: '#FFFFFF',
-      border: '1px solid hsl(var(--border))',
-      borderRadius: 16,
-      padding: '16px 20px',
-      position: 'relative',
-      overflow: 'hidden',
-      height: 88,
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(8px)',
-      transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 350ms cubic-bezier(0.16,1,0.3,1)',
-    }}>
-      {/* Radial gradient bg */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: `radial-gradient(circle at 100% 0%, ${color}0F, transparent 70%)`,
-        pointerEvents: 'none',
-      }} />
-      {/* Top line */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        borderRadius: '16px 16px 0 0',
-        background: color,
-        width: `${lineWidth}%`,
-        transition: 'width 400ms cubic-bezier(0.16,1,0.3,1)',
-      }} />
-      {/* Label */}
-      <div style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.08em', color: '#8A9BBC', fontWeight: 600, marginBottom: 4, position: 'relative' }}>
-        {label}
-      </div>
-      {/* Content */}
-      <div style={{ position: 'relative' }}>
-        {children}
-      </div>
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: 16,
+        padding: '16px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+        height: 88,
+        opacity: visible ? 1 : 0,
+        transform: visible ? (hovered ? 'translateY(-1px)' : 'translateY(0)') : 'translateY(8px)',
+        transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 200ms ease, box-shadow 200ms ease',
+        cursor: onClick ? 'pointer' : 'default',
+        boxShadow: hovered && onClick ? '0 4px 16px #1A3CFF14' : 'none',
+      }}
+    >
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 100% 0%, ${color}0F, transparent 70%)`, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '16px 16px 0 0', background: color, width: `${lineWidth}%`, transition: 'width 400ms cubic-bezier(0.16,1,0.3,1)' }} />
+      <div style={{ textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.08em', color: '#8A9BBC', fontWeight: 600, marginBottom: 4, position: 'relative' }}>{label}</div>
+      <div style={{ position: 'relative' }}>{children}</div>
     </div>
   );
 }
@@ -167,8 +187,10 @@ function IndicatorCard({ index, color, label, children, hasData }: {
 /* ──────── main component ──────── */
 export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
   const leafs = useMemo(() => getLeafContas(contas), [contas]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTitulo, setDrawerTitulo] = useState('');
+  const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
 
-  // Build per-month maps
   const valoresMap = useMemo(() => {
     const map: Record<string, Record<string, number | null>> = {};
     valoresAnuais?.forEach((v) => {
@@ -184,11 +206,8 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
     return m;
   };
 
-  // Find months with data
   const monthsWithData = useMemo(() => {
-    return months.filter(m => {
-      return valoresAnuais?.some(v => v.competencia === m.value && v.valor_realizado != null);
-    });
+    return months.filter(m => valoresAnuais?.some(v => v.competencia === m.value && v.valor_realizado != null));
   }, [months, valoresAnuais]);
 
   const hasData = monthsWithData.length > 0;
@@ -196,7 +215,6 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
   const prevMonth = monthsWithData.length >= 2 ? monthsWithData[monthsWithData.length - 2] : null;
   const last6 = monthsWithData.slice(-6);
 
-  // Current month calculations
   const currentMap = latestMonth ? getMonthMap(latestMonth.value) : {};
   const prevMap = prevMonth ? getMonthMap(prevMonth.value) : {};
 
@@ -211,73 +229,147 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
   const gcPct = fat ? (gc / fat) * 100 : 0;
   const tendPct = fatPrev ? ((fat - fatPrev) / Math.abs(fatPrev)) * 100 : 0;
 
-  // History arrays
-  const histFat = last6.map(m => {
-    const mm = getMonthMap(m.value);
-    return calcIndicatorValue(leafs, mm, ['receita']);
-  });
-  const histMC = last6.map(m => {
+  // Additional sums for PE
+  const despesasFixas = hasData ? sumByTipo(leafs, currentMap, 'despesa_fixa') : 0;
+  const investimentos = hasData ? sumByTipo(leafs, currentMap, 'investimento') : 0;
+  const financeiro = hasData ? sumByTipo(leafs, currentMap, 'financeiro') : 0;
+  const mcDecimal = fat ? mc / fat : 0;
+  const peMinimo = mcDecimal ? despesasFixas / mcDecimal : 0;
+  const peIdeal = mcDecimal ? (despesasFixas + investimentos + financeiro) / mcDecimal : 0;
+  const gapMinimo = fat - peMinimo;
+  const gapIdeal = fat - peIdeal;
+
+  const histFat = last6.map(m => calcIndicatorValue(leafs, getMonthMap(m.value), ['receita']));
+  const histMC = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const mcV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel']); return f ? (mcV / f) * 100 : 0; });
+  const histRO = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const roV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa']); return f ? (roV / f) * 100 : 0; });
+  const histGC = last6.map(m => { const mm = getMonthMap(m.value); const f = calcIndicatorValue(leafs, mm, ['receita']); const gcV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']); return f ? (gcV / f) * 100 : 0; });
+  const histPE = last6.map(m => {
     const mm = getMonthMap(m.value);
     const f = calcIndicatorValue(leafs, mm, ['receita']);
     const mcV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel']);
-    return f ? (mcV / f) * 100 : 0;
-  });
-  const histRO = last6.map(m => {
-    const mm = getMonthMap(m.value);
-    const f = calcIndicatorValue(leafs, mm, ['receita']);
-    const roV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa']);
-    return f ? (roV / f) * 100 : 0;
-  });
-  const histGC = last6.map(m => {
-    const mm = getMonthMap(m.value);
-    const f = calcIndicatorValue(leafs, mm, ['receita']);
-    const gcV = calcIndicatorValue(leafs, mm, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
-    return f ? (gcV / f) * 100 : 0;
+    const df = sumByTipo(leafs, mm, 'despesa_fixa');
+    const mcD = f ? mcV / f : 0;
+    return mcD ? df / mcD : 0;
   });
 
-  // Status colors
   const mcColor = statusColor(mcPct, [30, 40], 'higher_better');
   const roColor = statusColor(roPct, [5, 10], 'higher_better');
   const gcColor = statusColor(gcPct, [3, 10], 'higher_better');
   const tendColor = tendPct >= 0 ? '#00A86B' : '#DC2626';
+  const peColor = gapMinimo >= 0 ? '#00A86B' : '#DC2626';
 
-  // Animated values
   const animFat = useAnimatedNumber(hasData ? fat : 0, 600, 0);
   const animMcPct = useAnimatedNumber(hasData ? mcPct : 0, 600, 60);
   const animRoPct = useAnimatedNumber(hasData ? roPct : 0, 600, 120);
   const animGcPct = useAnimatedNumber(hasData ? gcPct : 0, 600, 180);
   const animTend = useAnimatedNumber(hasData ? tendPct : 0, 600, 240);
 
-  // Month label
-  const monthLabel = latestMonth
-    ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '')
-    : '';
-  const prevMonthLabel = prevMonth
-    ? new Date(prevMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '')
-    : '';
+  const monthLabel = latestMonth ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '') : '';
+  const monthLabelFull = latestMonth ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+  const prevMonthLabel = prevMonth ? new Date(prevMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '') : '';
+  const prevMonthLabelFull = prevMonth ? new Date(prevMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
 
-  // Bar chart data
-  const barData = last6.map((m, i) => ({
-    mes: m.shortLabel,
-    valor: histFat[i],
-    isLast: i === last6.length - 1,
-  }));
+  const histLabels = last6.map(m => m.shortLabel);
 
-  // Line chart data
-  const lineData = last6.map((m, i) => ({
-    mes: m.shortLabel,
-    gc: histGC[i],
-  }));
+  const barData = last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i], isLast: i === last6.length - 1 }));
+  const lineData = last6.map((m, i) => ({ mes: m.shortLabel, gc: histGC[i] }));
 
   const [chartsVisible, setChartsVisible] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setChartsVisible(true), 300);
-    return () => clearTimeout(t);
-  }, []);
+  useEffect(() => { const t = setTimeout(() => setChartsVisible(true), 300); return () => clearTimeout(t); }, []);
+
+  const openDrawer = (titulo: string, dados: AnaliseDrawerDados) => {
+    setDrawerTitulo(titulo);
+    setDrawerDados(dados);
+    setDrawerOpen(true);
+  };
+
+  const handleFatClick = () => {
+    if (!hasData) return;
+    openDrawer('Faturamento', {
+      indicador: 'Faturamento', valor_atual: 100, valor_absoluto: fat, faturamento: fat,
+      mes_referencia: monthLabelFull, status: 'verde', limite_verde: 0, limite_ambar: 0,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i] })),
+      formula: 'Faturamento = Soma de todas as Receitas Operacionais',
+      composicao: getSubgroups(contas, 'receita', currentMap),
+    });
+  };
+
+  const handleMcClick = () => {
+    if (!hasData) return;
+    openDrawer('Margem de Contribuição', {
+      indicador: 'Margem de Contribuição', valor_atual: mcPct, valor_absoluto: mc, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(mcColor), limite_verde: 40, limite_ambar: 30,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histMC[i] })),
+      formula: 'MC = Faturamento - Custos Variáveis',
+      composicao: getSubgroups(contas, 'custo_variavel', currentMap),
+    });
+  };
+
+  const handleRoClick = () => {
+    if (!hasData) return;
+    openDrawer('Resultado Operacional', {
+      indicador: 'Resultado Operacional', valor_atual: roPct, valor_absoluto: ro, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(roColor), limite_verde: 10, limite_ambar: 5,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histRO[i] })),
+      formula: 'RO = MC - Despesas Fixas',
+      composicao: getSubgroups(contas, 'despesa_fixa', currentMap),
+    });
+  };
+
+  const handleGcClick = () => {
+    if (!hasData) return;
+    openDrawer('Geração de Caixa', {
+      indicador: 'Geração de Caixa', valor_atual: gcPct, valor_absoluto: gc, faturamento: fat,
+      mes_referencia: monthLabelFull, status: statusLabel(gcColor), limite_verde: 10, limite_ambar: 3,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histGC[i] })),
+      formula: 'GC = RO - Investimentos +/- Financiamentos',
+      composicao: [
+        ...getSubgroups(contas, 'investimento', currentMap),
+        ...getSubgroups(contas, 'financeiro', currentMap),
+      ],
+    });
+  };
+
+  const handleTendClick = () => {
+    if (!hasData || !prevMonth) return;
+    openDrawer('Tendência Faturamento', {
+      indicador: 'Tendência Faturamento', valor_atual: tendPct, valor_absoluto: fat - fatPrev, faturamento: fat,
+      mes_referencia: monthLabelFull, status: tendPct >= 0 ? 'verde' : 'vermelho', limite_verde: 5, limite_ambar: 0,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histFat[i] })),
+      formula: 'Tendência = (Mês Atual - Mês Anterior) / Mês Anterior × 100',
+      composicao: [
+        { nome: prevMonthLabelFull, valor: fatPrev },
+        { nome: monthLabelFull, valor: fat },
+      ],
+    });
+  };
+
+  const handlePeClick = () => {
+    if (!hasData) return;
+    const mcPctVal = mcDecimal * 100;
+    openDrawer('Ponto de Equilíbrio', {
+      indicador: 'Ponto de Equilíbrio', valor_atual: peMinimo ? (fat / peMinimo) * 100 : 0, valor_absoluto: peMinimo, faturamento: fat,
+      mes_referencia: monthLabelFull, status: gapMinimo >= 0 ? 'verde' : 'vermelho', limite_verde: 100, limite_ambar: 90,
+      direcao: 'maior_melhor',
+      historico: last6.map((m, i) => ({ mes: m.shortLabel, valor: histPE[i] })),
+      formula: `PE Mínimo = Despesas Fixas ÷ MC%\n= ${fmtCurrency(despesasFixas)} ÷ ${mcPctVal.toFixed(1)}% = ${fmtCurrency(peMinimo)}\n\nPE Ideal = (Desp. Fixas + Invest. + Financ.) ÷ MC%\n= (${fmtCurrency(despesasFixas)} + ${fmtCurrency(investimentos)} + ${fmtCurrency(financeiro)}) ÷ ${mcPctVal.toFixed(1)}% = ${fmtCurrency(peIdeal)}`,
+      composicao: [
+        { nome: 'Despesas Fixas', valor: despesasFixas },
+        { nome: 'Investimentos', valor: investimentos },
+        { nome: 'Financiamentos', valor: financeiro },
+        { nome: 'MC%', valor: mcPctVal },
+        { nome: 'Faturamento Atual', valor: fat },
+      ],
+    });
+  };
 
   return (
     <div style={{ marginBottom: 24 }}>
-      {/* Month reference */}
       {hasData && (
         <div style={{ fontSize: 11, color: '#8A9BBC', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
           Referência: {monthLabel}
@@ -286,8 +378,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
 
       {/* 5 indicator cards */}
       <div className="grid gap-3 dre-header-cards" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-        {/* FATURAMENTO */}
-        <IndicatorCard index={0} color={BLUE} label="Faturamento" hasData={hasData}>
+        <IndicatorCard index={0} color={BLUE} label="Faturamento" hasData={hasData} onClick={hasData ? handleFatClick : undefined}>
           <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: BLUE }}>
             {hasData ? fmtCurrency(animFat) : '—'}
           </div>
@@ -297,8 +388,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
           </div>
         </IndicatorCard>
 
-        {/* MC */}
-        <IndicatorCard index={1} color={mcColor} label="Margem de Contribuição" hasData={hasData}>
+        <IndicatorCard index={1} color={mcColor} label="Margem de Contribuição" hasData={hasData} onClick={hasData ? handleMcClick : undefined}>
           <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: mcColor }}>
             {hasData ? fmtPct(animMcPct) : '—'}
           </div>
@@ -308,8 +398,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
           </div>
         </IndicatorCard>
 
-        {/* RO */}
-        <IndicatorCard index={2} color={roColor} label="Resultado Operacional" hasData={hasData}>
+        <IndicatorCard index={2} color={roColor} label="Resultado Operacional" hasData={hasData} onClick={hasData ? handleRoClick : undefined}>
           <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: roColor }}>
             {hasData ? fmtPct(animRoPct) : '—'}
           </div>
@@ -319,8 +408,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
           </div>
         </IndicatorCard>
 
-        {/* GC */}
-        <IndicatorCard index={3} color={gcColor} label="Geração de Caixa" hasData={hasData}>
+        <IndicatorCard index={3} color={gcColor} label="Geração de Caixa" hasData={hasData} onClick={hasData ? handleGcClick : undefined}>
           <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: gcColor }}>
             {hasData ? fmtPct(animGcPct) : '—'}
           </div>
@@ -330,8 +418,7 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
           </div>
         </IndicatorCard>
 
-        {/* TENDÊNCIA */}
-        <IndicatorCard index={4} color={tendColor} label="Tendência Faturamento" hasData={hasData}>
+        <IndicatorCard index={4} color={tendColor} label="Tendência Faturamento" hasData={hasData} onClick={hasData ? handleTendClick : undefined}>
           <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Courier New', monospace", color: tendColor }}>
             {hasData ? `${tendPct >= 0 ? '▲' : '▼'} ${tendPct >= 0 ? '+' : ''}${animTend.toFixed(1).replace('.', ',')}%` : '—'}
           </div>
@@ -347,9 +434,40 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
         </IndicatorCard>
       </div>
 
-      {/* 2 mini charts - hidden on mobile */}
+      {/* Ponto de Equilíbrio card */}
+      {hasData && (
+        <div className="grid gap-3 mt-3 dre-pe-card" style={{ gridTemplateColumns: '1fr' }}>
+          <IndicatorCard index={5} color={peColor} label="Ponto de Equilíbrio" hasData={hasData} onClick={handlePeClick}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, height: 44 }}>
+              {/* Mínimo */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 2 }}>Mínimo</div>
+                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#0D1B35' }}>
+                  {fmtCurrency(peMinimo)}
+                </div>
+                <div style={{ fontSize: 11, color: gapMinimo >= 0 ? '#00A86B' : '#DC2626', fontWeight: 500 }}>
+                  {gapMinimo >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(gapMinimo))} {gapMinimo >= 0 ? 'acima' : 'abaixo'}
+                </div>
+              </div>
+              {/* Divider */}
+              <div style={{ width: 1, height: 40, background: '#DDE4F0', margin: '0 16px', alignSelf: 'center' }} />
+              {/* Ideal */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 2 }}>Ideal</div>
+                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#0D1B35' }}>
+                  {fmtCurrency(peIdeal)}
+                </div>
+                <div style={{ fontSize: 11, color: gapIdeal >= 0 ? '#00A86B' : '#DC2626', fontWeight: 500 }}>
+                  {gapIdeal >= 0 ? '▲' : '▼'} {fmtCurrency(Math.abs(gapIdeal))} {gapIdeal >= 0 ? 'acima' : 'abaixo'}
+                </div>
+              </div>
+            </div>
+          </IndicatorCard>
+        </div>
+      )}
+
+      {/* 2 mini charts */}
       <div className="hidden md:grid gap-3 mt-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
-        {/* BAR CHART - Receita Mensal */}
         <div style={{
           background: '#FFFFFF', border: '1px solid hsl(var(--border))', borderRadius: 16,
           padding: '16px 20px', height: 140,
@@ -364,21 +482,15 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
             <ResponsiveContainer width="100%" height={80}>
               <BarChart data={barData} margin={{ top: 12, right: 4, left: 4, bottom: 0 }}>
                 <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#8A9BBC' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  formatter={(v: number) => [fmtCurrency(v), 'Receita']}
-                  contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #DDE4F0' }}
-                />
+                <Tooltip formatter={(v: number) => [fmtCurrency(v), 'Receita']} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #DDE4F0' }} />
                 <Bar dataKey="valor" radius={[4, 4, 0, 0]} animationDuration={500}>
-                  {barData.map((entry, i) => (
-                    <Cell key={i} fill={BLUE} fillOpacity={entry.isLast ? 1 : 0.3} />
-                  ))}
+                  {barData.map((entry, i) => (<Cell key={i} fill={BLUE} fillOpacity={entry.isLast ? 1 : 0.3} />))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        {/* LINE CHART - Geração de Caixa */}
         <div style={{
           background: '#FFFFFF', border: '1px solid hsl(var(--border))', borderRadius: 16,
           padding: '16px 20px', height: 140,
@@ -401,27 +513,16 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
                 <XAxis dataKey="mes" tick={{ fontSize: 9, fill: '#8A9BBC' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: '#8A9BBC' }} axisLine={false} tickLine={false} width={24} domain={['auto', 'auto']} />
                 <ReferenceLine y={10} stroke="#00A86B" strokeDasharray="4 4" strokeOpacity={0.4} label={{ value: 'meta 10%', fontSize: 9, fill: '#00A86B', position: 'right' }} />
-                <Tooltip
-                  formatter={(v: number) => [`${v.toFixed(1)}%`, 'GC']}
-                  contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #DDE4F0' }}
-                />
+                <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, 'GC']} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #DDE4F0' }} />
                 <Area type="monotone" dataKey="gc" stroke="none" fill="url(#gcFill)" />
-                <Line
-                  type="monotone"
-                  dataKey="gc"
-                  stroke={gcColor}
-                  strokeWidth={2}
-                  dot={{ r: 4, stroke: '#fff', strokeWidth: 2, fill: gcColor }}
-                  activeDot={{ r: 6 }}
-                  animationDuration={600}
-                />
+                <Line type="monotone" dataKey="gc" stroke={gcColor} strokeWidth={2} dot={{ r: 4, stroke: '#fff', strokeWidth: 2, fill: gcColor }} activeDot={{ r: 6 }} animationDuration={600} />
               </ComposedChart>
             </ResponsiveContainer>
           )}
         </div>
       </div>
 
-      {/* Responsive overrides for tablet: 3+2 grid */}
+      {/* Responsive overrides */}
       <style>{`
         @media (max-width: 1200px) and (min-width: 768px) {
           .dre-header-cards { grid-template-columns: repeat(3, 1fr) !important; }
@@ -430,6 +531,8 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months }: Props) {
           .dre-header-cards { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
+
+      <AnaliseDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} titulo={drawerTitulo} dados={drawerDados} />
     </div>
   );
 }

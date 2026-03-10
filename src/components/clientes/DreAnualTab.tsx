@@ -7,6 +7,7 @@ import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRigh
 import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { DreIndicadoresHeader } from './DreIndicadoresHeader';
+import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
 
 // --- helpers ---
 
@@ -131,6 +132,9 @@ export function DreAnualTab({ clienteId }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [showAV, setShowAV] = useState(false);
   const [showAH, setShowAH] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTitulo, setDrawerTitulo] = useState('');
+  const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
   const months = getMonthsForYear(ano);
 
   const now = new Date();
@@ -433,9 +437,10 @@ export function DreAnualTab({ clienteId }: Props) {
     isCategoria?: boolean;
     contaId?: string;
     isCurrent?: boolean;
+    monthComp?: string;
   }): React.ReactNode => {
     if (!showAV) return null;
-    const { bg, isGrupo, isReceita, isSubgrupo, isCategoria, contaId, isCurrent } = opts || {};
+    const { bg, isGrupo, isReceita, isSubgrupo, isCategoria, contaId, isCurrent, monthComp } = opts || {};
     const baseBg = isCurrent ? (bg === '#F0F4FA' ? '#E8EEF8' : bg === '#0D1B35' ? undefined : '#FAFCFF') : bg;
 
     if (isGrupo || isReceita) {
@@ -451,12 +456,15 @@ export function DreAnualTab({ clienteId }: Props) {
 
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
+    let hasBenchmark = false;
+    let benchConfig: { limite_verde: number; limite_ambar: number; direcao: string; nome: string } | null = null;
+    let dotColor = '#DC2626';
 
-    // Show dot for both N1 (subgrupo) and N2 (categoria) if in benchmarkMap
     if ((isSubgrupo || isCategoria) && contaId) {
       const config = benchmarkMap.get(contaId);
       if (config) {
-        let dotColor = '#DC2626';
+        hasBenchmark = true;
+        benchConfig = config;
         if (config.direcao === 'menor_melhor') {
           if (avPct < config.limite_verde) dotColor = '#00A86B';
           else if (avPct < config.limite_ambar) dotColor = '#D97706';
@@ -470,8 +478,82 @@ export function DreAnualTab({ clienteId }: Props) {
       }
     }
 
+    const handleDotClick = () => {
+      if (!hasBenchmark || !benchConfig || !contaId) return;
+      const conta = contas?.find(c => c.id === contaId);
+      if (!conta) return;
+
+      const statusStr = dotColor === '#00A86B' ? 'verde' : dotColor === '#D97706' ? 'ambar' : 'vermelho';
+
+      // Build historico: AV% for last 6 months with data
+      const monthsWithDataLocal = months.filter(m => valoresAnuais?.some(v => v.competencia === m.value && v.valor_realizado != null));
+      const last6Local = monthsWithDataLocal.slice(-6);
+      const historico = last6Local.map(m => {
+        const mMap: Record<string, number | null> = {};
+        contas?.forEach(c => { mMap[c.id] = valoresMap[c.id]?.[m.value] ?? null; });
+        let contaVal: number | null = null;
+        if (conta.nivel === 1) {
+          const kids = contas?.filter(c => c.conta_pai_id === contaId && c.nivel === 2) || [];
+          let sum = 0; let hasV = false;
+          kids.forEach(k => { const kv = mMap[k.id]; if (kv != null) { sum += kv; hasV = true; } });
+          contaVal = hasV ? sum : null;
+        } else {
+          contaVal = mMap[contaId] ?? null;
+        }
+        const mFat = faturamentoPorMes[m.value] || 0;
+        const pct = contaVal != null && mFat ? (Math.abs(contaVal) / Math.abs(mFat)) * 100 : 0;
+        return { mes: m.shortLabel, valor: pct };
+      });
+
+      // Build composicao: child categories
+      const composicao: { nome: string; valor: number }[] = [];
+      if (conta.nivel === 1) {
+        const kids = contas?.filter(c => c.conta_pai_id === contaId && c.nivel === 2) || [];
+        const refMap = monthComp ? (() => { const m: Record<string, number | null> = {}; contas?.forEach(c => { m[c.id] = valoresMap[c.id]?.[monthComp] ?? null; }); return m; })() : currentMap();
+        kids.forEach(k => {
+          const kv = refMap[k.id];
+          if (kv != null) composicao.push({ nome: k.nome, valor: Math.abs(kv) });
+        });
+      }
+
+      const latestM = monthsWithDataLocal[monthsWithDataLocal.length - 1];
+      const mesRef = latestM ? new Date(latestM.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+
+      setDrawerTitulo(benchConfig.nome);
+      setDrawerDados({
+        indicador: benchConfig.nome,
+        valor_atual: avPct,
+        valor_absoluto: Math.abs(val!),
+        faturamento: Math.abs(fat),
+        mes_referencia: mesRef,
+        status: statusStr as 'verde' | 'ambar' | 'vermelho',
+        limite_verde: benchConfig.limite_verde,
+        limite_ambar: benchConfig.limite_ambar,
+        direcao: benchConfig.direcao,
+        historico,
+        formula: `AV% = ${conta.nome} / Faturamento × 100`,
+        composicao,
+      });
+      setDrawerOpen(true);
+    };
+
+    const currentMap = (): Record<string, number | null> => {
+      const m: Record<string, number | null> = {};
+      contas?.forEach(c => { m[c.id] = valoresMap[c.id]?.[monthComp || ''] ?? null; });
+      return m;
+    };
+
     return (
-      <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }} title={tooltipText || undefined}>
+      <td
+        style={{
+          width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg,
+          cursor: hasBenchmark ? 'pointer' : undefined,
+          borderRadius: hasBenchmark ? 4 : undefined,
+        }}
+        title={tooltipText || undefined}
+        onClick={hasBenchmark ? handleDotClick : undefined}
+        className={hasBenchmark ? 'hover:bg-[#F6F9FF]' : undefined}
+      >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
           {dot}
           <span style={{ color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace' }}>{avStr}</span>
@@ -538,6 +620,7 @@ export function DreAnualTab({ clienteId }: Props) {
               isCategoria: true,
               contaId: node.conta.id,
               isCurrent: isCurrentMonth(m.value),
+              monthComp: m.value,
             }),
             renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
           ];
@@ -592,6 +675,7 @@ export function DreAnualTab({ clienteId }: Props) {
               isSubgrupo: true,
               contaId: node.conta.id,
               isCurrent: isCurrentMonth(m.value),
+              monthComp: m.value,
             }),
             renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
           ];
@@ -1091,6 +1175,7 @@ export function DreAnualTab({ clienteId }: Props) {
           </div>
         </div>
       )}
+      <AnaliseDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} titulo={drawerTitulo} dados={drawerDados} />
     </div>
   );
 }
