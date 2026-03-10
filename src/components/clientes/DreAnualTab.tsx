@@ -83,7 +83,6 @@ function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | n
     const v = valMap[c.id];
     if (v == null) continue;
     hasAny = true;
-    // Value is already signed correctly from DB; receita adds, others subtract
     total += c.tipo === 'receita' ? v : -Math.abs(v);
   }
   return hasAny ? total : null;
@@ -91,7 +90,6 @@ function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | n
 
 function sumLeafsOfNode(node: DreNode, valMap: Record<string, number | null>): number | null {
   if (node.conta.nivel === 2) {
-    // Value is already signed correctly from DB (negative for deductions like Troco)
     return valMap[node.conta.id] ?? null;
   }
   let total = 0;
@@ -106,7 +104,6 @@ function sumLeafsOfNode(node: DreNode, valMap: Record<string, number | null>): n
 function hasPrefixPlus(nome: string): boolean { return nome.trim().startsWith('(+)'); }
 function hasPrefixMinus(nome: string): boolean { return nome.trim().startsWith('(-)'); }
 
-/** Format value Nibo-style: negatives as (1.234), zero as "0", null as "—" */
 function fmtVal(val: number | null): { text: string; color: string } {
   if (val == null) return { text: '—', color: '#C4CFEA' };
   if (val === 0) return { text: '0', color: '#8A9BBC' };
@@ -127,12 +124,8 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
 
 // --- Benchmark helpers ---
 function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | undefined, benchmarks: BenchmarkThresholds): React.ReactNode | null {
-  // Only custo_variavel has benchmarks
   if (tipo !== 'custo_variavel') return null;
-
-  // Check if this is a PESSOAL (CMO) subgroup
   const isPessoal = subgrupoNome?.toUpperCase().includes('PESSOAL') || subgrupoNome?.toUpperCase().includes('MÃO DE OBRA') || subgrupoNome?.toUpperCase().includes('MAO DE OBRA');
-
   let color: string;
   if (isPessoal) {
     if (avPct < benchmarks.cmo_verde) color = '#00A86B';
@@ -143,7 +136,6 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | und
     else if (avPct <= benchmarks.cmv_amarelo) color = '#D97706';
     else color = '#DC2626';
   }
-
   return (
     <svg width="6" height="6" style={{ flexShrink: 0 }}>
       <circle cx="3" cy="3" r="3" fill={color} />
@@ -151,7 +143,6 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | und
   );
 }
 
-// --- Legend item ---
 function LegendItem({ color, label, sub }: { color: string; label: string; sub: string }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4A5E80' }}>
@@ -162,8 +153,6 @@ function LegendItem({ color, label, sub }: { color: string; label: string; sub: 
   );
 }
 
-// --- component ---
-
 import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
 
 interface Props { clienteId: string; benchmarks?: BenchmarkThresholds; }
@@ -172,9 +161,10 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [showAV, setShowAV] = useState(false);
+  const [showAH, setShowAH] = useState(false);
   const months = getMonthsForYear(ano);
 
-  // Current month detection for highlight
   const now = new Date();
   const currentMonthComp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
@@ -302,7 +292,6 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return valoresAnuais?.some((v) => v.valor_realizado != null) ?? false;
   }, [valoresAnuais]);
 
-  // --- Filter: which contas have at least one non-null value in the year ---
   const contasComValor = useMemo(() => {
     const set = new Set<string>();
     valoresAnuais?.forEach((v) => {
@@ -311,11 +300,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return set;
   }, [valoresAnuais]);
 
-  /** Check if a DreNode (or any of its descendants) has values */
   function nodeHasValues(node: DreNode): boolean {
-    // Leaf node (any nivel): check directly
     if (node.children.length === 0) return contasComValor.has(node.conta.id);
-    // Branch node: visible if any child has values
     return node.children.some(nodeHasValues);
   }
 
@@ -347,9 +333,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
       for (const c of leafContas) {
         if (c.tipo === 'receita') {
           const v = valoresMap[c.id]?.[m.value];
-          if (v != null) {
-            total += v;
-          }
+          if (v != null) total += v;
         }
       }
       map[m.value] = total;
@@ -364,6 +348,11 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
       return next;
     });
   };
+
+  // --- Column count helpers ---
+  const colsPerMonth = 1 + (showAV ? 1 : 0) + (showAH ? 1 : 0);
+  const avColW = 58;
+  const ahColW = 68;
 
   // --- Sticky cell style helper ---
   const stickyTd = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
@@ -392,12 +381,43 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return `${pct.toFixed(1)}%`;
   };
 
-  // Find parent subgroup name for a category (for CMO benchmark detection)
   const getSubgrupoNome = (contaId: string): string | undefined => {
     const conta = contas?.find(c => c.id === contaId);
     if (!conta?.conta_pai_id) return undefined;
     const parent = contas?.find(c => c.id === conta.conta_pai_id);
     return parent?.nome;
+  };
+
+  // --- AH% helper ---
+  const renderAhCell = (
+    val: number | null,
+    prevVal: number | null,
+    isExpense: boolean,
+    bg?: string,
+  ): React.ReactNode => {
+    if (!showAH) return null;
+    if (val == null || prevVal == null || prevVal === 0) {
+      return <td style={{ width: ahColW, minWidth: ahColW, padding: '0 6px', textAlign: 'right', color: '#C4CFEA', fontSize: 11, background: bg }}>—</td>;
+    }
+    const pct = ((val - prevVal) / Math.abs(prevVal)) * 100;
+    // For expenses (costs/despesas): spending less (negative change) is good (green)
+    // For revenue/totals: positive change is good (green)
+    let isGood: boolean;
+    if (isExpense) {
+      isGood = pct < 0; // spent less = good
+    } else {
+      isGood = pct > 0; // earned more = good
+    }
+    const arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '';
+    const color = pct === 0 ? '#8A9BBC' : isGood ? '#00A86B' : '#DC2626';
+    const sign = pct > 0 ? '+' : '';
+    return (
+      <td style={{ width: ahColW, minWidth: ahColW, padding: '0 6px', textAlign: 'right', fontSize: 11, background: bg }}>
+        <span style={{ color, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+          {arrow} {sign}{pct.toFixed(1)}%
+        </span>
+      </td>
+    );
   };
 
   // --- AV% cell renderer ---
@@ -409,37 +429,24 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     contaId?: string;
     isCurrent?: boolean;
   }): React.ReactNode => {
+    if (!showAV) return null;
     const { bg, isGrupo, isReceita, tipo, contaId, isCurrent } = opts || {};
     const baseBg = isCurrent ? (bg === '#F0F4FA' ? '#E8EEF8' : bg === '#0D1B35' ? undefined : '#FAFCFF') : bg;
 
-    // Groups and subgroups: empty AV%
-    if (isGrupo) {
-      return (
-        <td style={{ width: 52, minWidth: 52, padding: '0 6px', background: baseBg }} />
-      );
-    }
-
-    // Receita group (would be 100%): skip
-    if (isReceita) {
-      return (
-        <td style={{ width: 52, minWidth: 52, padding: '0 6px', background: baseBg }} />
-      );
+    if (isGrupo || isReceita) {
+      return <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', background: baseBg }} />;
     }
 
     const avStr = fmtAv(val, fat);
     if (!avStr) {
-      return (
-        <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right', color: '#C4CFEA', fontSize: 11, background: baseBg }}>
-          {val == null ? '' : ''}
-        </td>
-      );
+      return <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', color: '#C4CFEA', fontSize: 11, background: baseBg }} />;
     }
 
     const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
     const dot = tipo && contaId ? getBenchmarkDot(tipo, avPct, getSubgrupoNome(contaId), benchmarks) : null;
 
     return (
-      <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right', background: baseBg }}>
+      <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
           {dot}
           <span style={{ color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace' }}>{avStr}</span>
@@ -450,12 +457,13 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
 
   // --- Indicador AV% cell ---
   const renderIndicadorAvCell = (val: number | null, fat: number, dotColor: string): React.ReactNode => {
+    if (!showAV) return null;
     if (val == null || fat === 0) {
-      return <td style={{ width: 52, minWidth: 52, padding: '0 6px' }} />;
+      return <td style={{ width: avColW, minWidth: avColW, padding: '0 6px' }} />;
     }
     const pct = ((val / fat) * 100).toFixed(1);
     return (
-      <td style={{ width: 52, minWidth: 52, padding: '0 6px', textAlign: 'right' }}>
+      <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right' }}>
         <span style={{ color: dotColor, fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{pct}%</span>
       </td>
     );
@@ -469,6 +477,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     const isMinus = hasPrefixMinus(nome);
     const cleanName = nome.replace(/^\([+-]\)\s*/, '');
     const isReceita = node.conta.tipo === 'receita';
+    const isExpense = ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(node.conta.tipo);
 
     let yearTotal = 0;
     let hasYearVal = false;
@@ -483,12 +492,13 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanName}</span>
           </span>
         </td>
-        {months.map((m) => {
+        {months.map((m, i) => {
           const val = valoresMap[node.conta.id]?.[m.value] ?? null;
           if (val != null) { yearTotal += val; hasYearVal = true; }
           const fat = faturamentoPorMes[m.value] || 0;
           yearFat += fat;
           const f = fmtVal(val);
+          const prevVal = i > 0 ? (valoresMap[node.conta.id]?.[months[i - 1].value] ?? null) : null;
           return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
@@ -504,12 +514,14 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
               contaId: node.conta.nivel === 2 ? node.conta.id : undefined,
               isCurrent: isCurrentMonth(m.value),
             }),
+            renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
           ];
         })}
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
         {renderAvCell(hasYearVal ? yearTotal : null, yearFat, { isReceita, bg: '#F6F9FF', tipo: node.conta.nivel === 2 ? node.conta.tipo : undefined, contaId: node.conta.nivel === 2 ? node.conta.id : undefined })}
+        {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
   };
@@ -517,6 +529,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
   const renderSubgrupoRow = (node: DreNode) => {
     const isExp = !collapsed.has(node.conta.id);
     const hasKids = node.children.length > 0;
+    const isExpense = ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(node.conta.tipo);
     let yearTotal = 0;
     let hasYearVal = false;
 
@@ -532,11 +545,12 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.conta.nome}</span>
           </span>
         </td>
-        {months.map((m) => {
+        {months.map((m, i) => {
           const monthMap = getMonthMap(m.value);
           const val = sumLeafsOfNode(node, monthMap);
           if (val != null) { yearTotal += val; hasYearVal = true; }
           const f = fmtVal(val);
+          const prevVal = i > 0 ? sumLeafsOfNode(node, getMonthMap(months[i - 1].value)) : null;
           return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
@@ -546,13 +560,15 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             }}>
               {f.text}
             </td>,
-            <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52, background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined }} />,
+            showAV ? <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW, background: isCurrentMonth(m.value) ? '#FAFCFF' : undefined }} /> : null,
+            renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
           ];
         })}
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '8px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
-        <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
+        {showAV && <td style={{ width: avColW, minWidth: avColW, background: '#F6F9FF' }} />}
+        {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
   };
@@ -560,6 +576,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
   const renderGrupoRow = (node: DreNode) => {
     const isExp = !collapsed.has(node.conta.id);
     const hasKids = node.children.length > 0;
+    const isExpense = ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(node.conta.tipo);
     let yearTotal = 0;
     let hasYearVal = false;
 
@@ -575,11 +592,12 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             <span>{node.conta.nome}</span>
           </span>
         </td>
-        {months.map((m) => {
+        {months.map((m, i) => {
           const monthMap = getMonthMap(m.value);
           const val = sumLeafsOfNode(node, monthMap);
           if (val != null) { yearTotal += val; hasYearVal = true; }
           const f = fmtVal(val);
+          const prevVal = i > 0 ? sumLeafsOfNode(node, getMonthMap(months[i - 1].value)) : null;
           return [
             <td key={m.value} style={{
               textAlign: val == null ? 'center' : 'right',
@@ -589,13 +607,15 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             }}>
               {f.text}
             </td>,
-            <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52, background: isCurrentMonth(m.value) ? '#E8EEF8' : '#F0F4FA' }} />,
+            showAV ? <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW, background: isCurrentMonth(m.value) ? '#E8EEF8' : '#F0F4FA' }} /> : null,
+            renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#E8EEF8' : '#F0F4FA'),
           ];
         })}
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, padding: '10px 12px', width: 80 }), color: hasYearVal ? fmtVal(yearTotal).color : '#C4CFEA' }}>
           {hasYearVal ? fmtVal(yearTotal).text : '—'}
         </td>
-        <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
+        {showAV && <td style={{ width: avColW, minWidth: avColW, background: '#F6F9FF' }} />}
+        {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
   };
@@ -606,7 +626,6 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     let yearFat = 0;
     const rows: React.ReactNode[] = [];
 
-    // Value row
     rows.push(
       <tr key={ind.key} style={{ background: '#0D1B35' }}>
         <td style={{ ...stickyTd('#0D1B35', { padding: '11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRightColor: '#2A3A5C' }) }}>
@@ -615,24 +634,27 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             {ind.nomeDisplay}
           </span>
         </td>
-        {months.map((m) => {
+        {months.map((m, i) => {
           const monthMap = getMonthMap(m.value);
           const val = calcIndicadorValue(leafContas, monthMap, ind.tipos);
           const fat = faturamentoPorMes[m.value] || 0;
           if (val != null) { yearTotal += val; hasYearVal = true; }
           yearFat += fat;
           const f = fmtIndicadorVal(val);
+          const prevVal = i > 0 ? calcIndicadorValue(leafContas, getMonthMap(months[i - 1].value), ind.tipos) : null;
           return [
             <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px', width: 80, minWidth: 80 }}>
               {f.text}
             </td>,
             renderIndicadorAvCell(val, fat, ind.dotColor),
+            renderAhCell(val, i === 0 ? null : prevVal, false /* totalizadores: positive=green */),
           ];
         })}
         <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, padding: '11px 12px', background: '#0F1F3D', borderLeft: '1px solid #2A3A5C', color: hasYearVal ? fmtIndicadorVal(yearTotal).color : '#8A9BBC', width: 80 }}>
           {hasYearVal ? fmtIndicadorVal(yearTotal).text : '—'}
         </td>
         {renderIndicadorAvCell(hasYearVal ? yearTotal : null, yearFat, ind.dotColor)}
+        {showAH && <td style={{ width: ahColW, minWidth: ahColW }} />}
       </tr>
     );
 
@@ -651,7 +673,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#1A3CFF', padding: '6px 12px', width: 80, minWidth: 80 }}>
               {pct != null ? `${pct} %` : '—'}
             </td>,
-            <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52 }} />,
+            showAV ? <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW }} /> : null,
+            showAH ? <td key={`${m.value}_ah`} style={{ width: ahColW, minWidth: ahColW }} /> : null,
           ];
         })}
         <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#1A3CFF', padding: '6px 12px', width: 80 }) }}>
@@ -661,7 +684,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             return `${((yearTotal / totalFat) * 100).toFixed(0)} %`;
           })()}
         </td>
-        <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
+        {showAV && <td style={{ width: avColW, minWidth: avColW, background: '#F6F9FF' }} />}
+        {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
       </tr>
     );
 
@@ -674,7 +698,6 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     let lastTipo: string | null = null;
 
     for (const root of sortedRoots) {
-      // Skip group if no children have values
       if (!nodeHasValues(root)) continue;
 
       if (lastTipo && lastTipo !== root.conta.tipo) {
@@ -687,7 +710,6 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
       if (grupoExpanded) {
         for (const child of root.children) {
           if (child.conta.nivel === 1) {
-            // Skip subgroup if no children have values
             if (!nodeHasValues(child)) continue;
             output.push(renderSubgrupoRow(child));
             const subExpanded = !collapsed.has(child.conta.id);
@@ -712,27 +734,78 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     return output;
   };
 
-  // colWidth: 80 (value) + 52 (AV%) = 132 per month, + 132 for year col
-  const tableMinWidth = 280 + 12 * 132 + 132;
+  const valColW = 80;
+  const nameColW = 280;
+  const monthBlockW = valColW + (showAV ? avColW : 0) + (showAH ? ahColW : 0);
+  const yearBlockW = valColW + (showAV ? avColW : 0) + (showAH ? ahColW : 0);
+  const tableMinWidth = nameColW + 12 * monthBlockW + yearBlockW;
+
+  // Total columns for saldos colspan
+  const totalCols = 1 + 12 * colsPerMonth + colsPerMonth;
+
+  // --- Toggle button style ---
+  const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? '#1A3CFF' : '#F0F4FA',
+    color: active ? '#FFFFFF' : '#8A9BBC',
+    border: `1px solid ${active ? '#1A3CFF' : '#DDE4F0'}`,
+    borderRadius: 6,
+    padding: '4px 12px',
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  });
 
   return (
     <div className="space-y-4">
-      {/* Title + Filter */}
+      {/* Title + Filter + Toggle Buttons */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#8A9BBC', textTransform: 'uppercase' }}>
           DRE GERENCIAL — BASE MENSAL
         </div>
-        <div className="space-y-1">
-          <label className="text-xs" style={{ color: '#8A9BBC' }}>Ano</label>
-          <Select value={ano} onValueChange={(v) => { setAno(v); }}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
-          </Select>
+        <div className="flex items-end gap-3">
+          {/* Analysis toggle buttons */}
+          <div className="flex items-center gap-1.5">
+            <button
+              style={toggleBtnStyle(showAV)}
+              onClick={() => setShowAV(v => !v)}
+              onMouseEnter={e => { if (!showAV) (e.currentTarget.style.background = '#E8EEF8'); }}
+              onMouseLeave={e => { if (!showAV) (e.currentTarget.style.background = '#F0F4FA'); }}
+            >
+              AV%
+            </button>
+            <button
+              style={toggleBtnStyle(showAH)}
+              onClick={() => setShowAH(v => !v)}
+              onMouseEnter={e => { if (!showAH) (e.currentTarget.style.background = '#E8EEF8'); }}
+              onMouseLeave={e => { if (!showAH) (e.currentTarget.style.background = '#F0F4FA'); }}
+            >
+              AH%
+            </button>
+            <button
+              style={toggleBtnStyle(showAV && showAH)}
+              onClick={() => {
+                if (showAV && showAH) { setShowAV(false); setShowAH(false); }
+                else { setShowAV(true); setShowAH(true); }
+              }}
+              onMouseEnter={e => { if (!(showAV && showAH)) (e.currentTarget.style.background = '#E8EEF8'); }}
+              onMouseLeave={e => { if (!(showAV && showAH)) (e.currentTarget.style.background = '#F0F4FA'); }}
+            >
+              Ambas
+            </button>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={{ color: '#8A9BBC' }}>Ano</label>
+            <Select value={ano} onValueChange={(v) => { setAno(v); }}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
       {/* Benchmark Legend */}
-      {hasContas && hasAnyData && (
+      {hasContas && hasAnyData && showAV && (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5" style={{ borderColor: '#DDE4F0', background: '#F6F9FF' }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Benchmarks AV%
@@ -790,13 +863,24 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
                   }}>
                     {m.shortLabel}
                   </th>,
-                  <th key={`${m.value}_av`} style={{
-                    padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
-                    color: '#8A9BBC', fontStyle: 'italic', width: 52, minWidth: 52,
-                    background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
-                  }}>
-                    AV
-                  </th>,
+                  showAV ? (
+                    <th key={`${m.value}_av`} style={{
+                      padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
+                      color: '#8A9BBC', fontStyle: 'italic', width: avColW, minWidth: avColW,
+                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                    }}>
+                      AV%
+                    </th>
+                  ) : null,
+                  showAH ? (
+                    <th key={`${m.value}_ah`} style={{
+                      padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
+                      color: '#8A9BBC', fontStyle: 'italic', width: ahColW, minWidth: ahColW,
+                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                    }}>
+                      AH%
+                    </th>
+                  ) : null,
                 ])}
                 <th style={{
                   ...yearColStyle({
@@ -807,12 +891,22 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
                 }}>
                   {ano}
                 </th>
-                <th style={{
-                  padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
-                  color: '#8A9BBC', fontStyle: 'italic', width: 52, minWidth: 52, background: '#F6F9FF',
-                }}>
-                  AV
-                </th>
+                {showAV && (
+                  <th style={{
+                    padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
+                    color: '#8A9BBC', fontStyle: 'italic', width: avColW, minWidth: avColW, background: '#F6F9FF',
+                  }}>
+                    AV%
+                  </th>
+                )}
+                {showAH && (
+                  <th style={{
+                    padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
+                    color: '#8A9BBC', fontStyle: 'italic', width: ahColW, minWidth: ahColW, background: '#F6F9FF',
+                  }}>
+                    AH%
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -821,7 +915,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
               {contasBancarias.length > 0 && (
                 <>
                   <tr>
-                    <td colSpan={months.length * 2 + 3} style={{ padding: '16px 12px 8px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.08em', background: '#FAFCFF' }}>
+                    <td colSpan={totalCols} style={{ padding: '16px 12px 8px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.08em', background: '#FAFCFF' }}>
                       SALDOS DE CONTAS
                     </td>
                   </tr>
@@ -902,13 +996,15 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
                                   val != null ? formatCurrency(val).replace('R$\u00a0', '').replace('R$ ', '') : '—'
                                 )}
                               </td>,
-                              <td key={`${m.value}_av_saldo`} style={{ width: 52, minWidth: 52 }} />,
+                              showAV ? <td key={`${m.value}_av_saldo`} style={{ width: avColW, minWidth: avColW }} /> : null,
+                              showAH ? <td key={`${m.value}_ah_saldo`} style={{ width: ahColW, minWidth: ahColW }} /> : null,
                             ];
                           })}
                           <td style={{ ...yearColStyle({ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: 600, padding: '7px 12px', width: 80 }), color: hasYearVal ? '#0D1B35' : '#C4CFEA' }}>
                             {field === 'saldo_final' && hasYearVal ? formatCurrency(yearTotal).replace('R$\u00a0', '').replace('R$ ', '') : '—'}
                           </td>
-                          <td style={{ width: 52, minWidth: 52, background: '#F6F9FF' }} />
+                          {showAV && <td style={{ width: avColW, minWidth: avColW, background: '#F6F9FF' }} />}
+                          {showAH && <td style={{ width: ahColW, minWidth: ahColW, background: '#F6F9FF' }} />}
                         </tr>
                       );
                     });
@@ -933,13 +1029,15 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
                         <td key={m.value} style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px', width: 80, minWidth: 80 }}>
                           {f.text}
                         </td>,
-                        <td key={`${m.value}_av`} style={{ width: 52, minWidth: 52 }} />,
+                        showAV ? <td key={`${m.value}_av`} style={{ width: avColW, minWidth: avColW }} /> : null,
+                        showAH ? <td key={`${m.value}_ah`} style={{ width: ahColW, minWidth: ahColW }} /> : null,
                       ];
                     })}
                     <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, padding: '11px 12px', background: '#0F1F3D', borderLeft: '1px solid #2A3A5C', color: '#8A9BBC', width: 80 }}>
                       —
                     </td>
-                    <td style={{ width: 52, minWidth: 52 }} />
+                    {showAV && <td style={{ width: avColW, minWidth: avColW }} />}
+                    {showAH && <td style={{ width: ahColW, minWidth: ahColW }} />}
                   </tr>
                 </>
               )}
