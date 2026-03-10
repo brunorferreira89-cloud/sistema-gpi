@@ -132,6 +132,9 @@ export function DreAnualTab({ clienteId }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [showAV, setShowAV] = useState(false);
   const [showAH, setShowAH] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTitulo, setDrawerTitulo] = useState('');
+  const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
   const months = getMonthsForYear(ano);
 
   const now = new Date();
