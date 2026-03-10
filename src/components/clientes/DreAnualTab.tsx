@@ -409,16 +409,8 @@ export function DreAnualTab({ clienteId }: Props) {
 
     const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
 
-    // Only show benchmark dot on subgrupos (nivel=1) with a configured benchmark
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
-    if (isSubgrupo && contaId) {
-      const config = benchmarkMap.get(contaId);
-      if (config) {
-        dot = getDynamicBenchmarkDot(avPct, config);
-        tooltipText = getBenchmarkTooltip(config);
-      }
-    }
 
     return (
       <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }} title={tooltipText || undefined}>
