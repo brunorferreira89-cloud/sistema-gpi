@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
-import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2, Loader2, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 
 // --- helpers ---
