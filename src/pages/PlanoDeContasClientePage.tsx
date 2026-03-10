@@ -4,10 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Upload, Copy, ArrowLeft } from 'lucide-react';
-import { ContasTree } from '@/components/plano-contas/ContasTree';
+import { PlanoDeContasDetail } from '@/pages/PlanoDeContasPage';
 import { ImportXlsxDialog } from '@/components/plano-contas/ImportXlsxDialog';
 import { CopyFromClienteDialog } from '@/components/plano-contas/CopyFromClienteDialog';
-import { getCompetenciaAtual, type ContaRow } from '@/lib/plano-contas-utils';
+import { type ContaRow } from '@/lib/plano-contas-utils';
 
 export default function PlanoDeContasClientePage() {
   const { clienteId } = useParams<{ clienteId: string }>();
@@ -40,28 +40,8 @@ export default function PlanoDeContasClientePage() {
     enabled: !!clienteId,
   });
 
-  const { data: valoresMetas, refetch: refetchMetas } = useQuery({
-    queryKey: ['valores-mensais', clienteId],
-    queryFn: async () => {
-      if (!contas?.length) return {};
-      const comp = getCompetenciaAtual();
-      const contaIds = contas.map((c) => c.id);
-      const { data, error } = await supabase
-        .from('valores_mensais')
-        .select('conta_id, valor_meta')
-        .in('conta_id', contaIds)
-        .eq('competencia', comp);
-      if (error) throw error;
-      const map: Record<string, number | null> = {};
-      data?.forEach((v) => { map[v.conta_id] = v.valor_meta; });
-      return map;
-    },
-    enabled: !!contas?.length,
-  });
-
   const handleRefresh = () => {
     refetchContas();
-    refetchMetas();
   };
 
   const hasContas = contas && contas.length > 0;
@@ -89,9 +69,8 @@ export default function PlanoDeContasClientePage() {
       </div>
 
       {hasContas ? (
-        <ContasTree
+        <PlanoDeContasDetail
           contas={contas}
-          valoresMetas={valoresMetas || {}}
           clienteId={clienteId!}
           onRefresh={handleRefresh}
         />
