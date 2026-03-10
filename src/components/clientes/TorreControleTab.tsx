@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { nomeExibido, formatCnpj } from '@/lib/clientes-utils';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
 
@@ -254,30 +253,6 @@ function AnalyzingDots({ color }: { color: string }) {
   return <span style={{ fontSize: 10, fontWeight: 600, color, letterSpacing: '0.08em' }}>EM ANÁLISE{dots}</span>;
 }
 
-// ── Tower SVG ───────────────────────────────────────────────────
-function TowerSvg() {
-  return (
-    <svg viewBox="0 0 220 140" style={{ width: 160, height: 100, opacity: 0.13 }}>
-      <rect x="90" y="110" width="40" height="20" fill={C.primary} />
-      <rect x="98" y="60" width="24" height="52" fill={C.primary} />
-      <rect x="82" y="40" width="56" height="28" fill={C.primary} />
-      <rect x="88" y="46" width="10" height="10" fill={C.cyan} opacity="0.8" />
-      <rect x="102" y="46" width="10" height="10" fill={C.cyan} opacity="0.8" />
-      <rect x="116" y="46" width="10" height="10" fill={C.cyan} opacity="0.8" />
-      <line x1="110" y1="40" x2="110" y2="10" stroke={C.primary} strokeWidth="2" />
-      <circle cx="110" cy="10" r="4" fill={C.cyan} />
-      <circle cx="110" cy="10" r="12" stroke={C.cyan} strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="4 3" />
-      <circle cx="110" cy="10" r="22" stroke={C.primary} strokeWidth="1" fill="none" opacity="0.35" strokeDasharray="4 3" />
-      <circle cx="110" cy="10" r="32" stroke={C.cyan} strokeWidth="1" fill="none" opacity="0.2" strokeDasharray="4 3" />
-      <line x1="10" y1="130" x2="210" y2="130" stroke={C.primary} opacity="0.4" strokeWidth="1" />
-      {[50, 90, 130, 170].map(x => <line key={x} x1={x} y1="128" x2={x} y2="132" stroke={C.primary} opacity="0.4" strokeWidth="1" />)}
-      <g transform="translate(28,85) rotate(-20)">
-        <path d="M0,5 L18,0 L18,10 Z" fill={C.cyan} opacity="0.7" />
-      </g>
-    </svg>
-  );
-}
-
 // ── Keyframes style tag ─────────────────────────────────────────
 const keyframesCSS = `
 @keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
@@ -285,19 +260,6 @@ const keyframesCSS = `
 @keyframes scanLine { 0%{top:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:100%;opacity:0} }
 @keyframes fadeUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 `;
-
-// ── Toggle button style (copied from DRE) ───────────────────────
-const toggleBtnStyle = (active: boolean): React.CSSProperties => ({
-  background: active ? '#1A3CFF' : '#F0F4FA',
-  color: active ? '#FFFFFF' : '#8A9BBC',
-  border: `1px solid ${active ? '#1A3CFF' : '#DDE4F0'}`,
-  borderRadius: 6,
-  padding: '4px 12px',
-  fontSize: 12,
-  fontWeight: 500,
-  cursor: 'pointer',
-  transition: 'all 0.15s',
-});
 
 // ══════════════════════════════════════════════════════════════════
 interface Props { clienteId: string }
@@ -876,52 +838,154 @@ export function TorreControleTab({ clienteId }: Props) {
       }} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Header card */}
+        {/* Header banner — cockpit theme */}
         <div style={{
-          background: 'linear-gradient(135deg, #FFFFFF 0%, #EEF4FF 60%, #E6F0FF 100%)',
-          border: `1px solid ${C.borderStr}`, borderRadius: 14, padding: '20px 24px',
-          boxShadow: '0 2px 20px rgba(26,60,255,0.06)', position: 'relative', overflow: 'hidden',
+          width: '100%', height: 120, position: 'relative', overflow: 'hidden',
+          borderRadius: 12, marginBottom: 0,
+          background: 'linear-gradient(135deg, #0A1628 0%, #0D1B35 50%, #0A1628 100%)',
         }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(0,153,230,0.06), transparent 60%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: 8, right: 16, pointerEvents: 'none' }}><TowerSvg /></div>
+          {/* Layer 1 — HUD grid */}
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.08, pointerEvents: 'none' }}>
+            <svg width="100%" height="100%">
+              <defs><pattern id="hud-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="40" y2="0" stroke="#1A3CFF" strokeWidth="0.5" />
+                <line x1="0" y1="0" x2="0" y2="40" stroke="#1A3CFF" strokeWidth="0.5" />
+              </pattern></defs>
+              <rect width="100%" height="100%" fill="url(#hud-grid)" />
+            </svg>
+          </div>
+          {/* Layer 2 — blue glow */}
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 80% at 30% 50%, rgba(26,60,255,0.18) 0%, rgba(0,153,230,0.08) 40%, transparent 70%)', pointerEvents: 'none' }} />
+          {/* Layer 3 — tower SVG */}
+          <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.12 }}>
+            <svg viewBox="0 0 220 140" style={{ width: 160, height: 100 }}>
+              <rect x="90" y="110" width="40" height="20" fill="#1A3CFF" />
+              <rect x="98" y="60" width="24" height="52" fill="#1A3CFF" />
+              <rect x="82" y="40" width="56" height="28" fill="#1A3CFF" />
+              <rect x="88" y="46" width="10" height="10" fill="#0099E6" opacity="0.8" />
+              <rect x="102" y="46" width="10" height="10" fill="#0099E6" opacity="0.8" />
+              <rect x="116" y="46" width="10" height="10" fill="#0099E6" opacity="0.8" />
+              <line x1="110" y1="40" x2="110" y2="10" stroke="#1A3CFF" strokeWidth="2" />
+              <circle cx="110" cy="10" r="4" fill="#0099E6" />
+              <circle cx="110" cy="10" r="12" stroke="#0099E6" strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="4 3" />
+              <circle cx="110" cy="10" r="22" stroke="#1A3CFF" strokeWidth="1" fill="none" opacity="0.35" strokeDasharray="4 3" />
+              <circle cx="110" cy="10" r="32" stroke="#0099E6" strokeWidth="1" fill="none" opacity="0.2" strokeDasharray="4 3" />
+              <g transform="translate(170,25) rotate(-20)"><path d="M0,5 L18,0 L18,10 Z" fill="#0099E6" opacity="0.7" /></g>
+            </svg>
+          </div>
 
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            {/* Eyebrow */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '14px 24px 12px' }}>
+            {/* Top row: eyebrow + badge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.cyan, animation: 'pulse 2s infinite' }} />
-                <span style={{ fontSize: 9, fontWeight: 700, color: C.cyan, letterSpacing: '0.22em' }}>TORRE DE CONTROLE · GPI INTELIGÊNCIA FINANCEIRA</span>
+                <span style={{ color: '#0099E6', fontSize: 14 }}>◈</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#0099E6', letterSpacing: '0.22em' }}>TORRE DE CONTROLE · GPI INTELIGÊNCIA FINANCEIRA</span>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 600, color: C.green, background: C.cyanLo, border: `1px solid ${C.cyanBd}`, borderRadius: 6, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: 9, fontWeight: 600, color: '#00A86B', background: 'rgba(0,168,107,0.12)', border: '1px solid rgba(0,168,107,0.25)', borderRadius: 6, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00A86B', animation: 'pulse 2s infinite', boxShadow: '0 0 6px rgba(0,168,107,0.8)' }} />
                 OPERACIONAL
               </span>
             </div>
 
-            {/* Nome & CNPJ */}
-            <div style={{ marginBottom: 12 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: C.txt, margin: 0 }}>{cliente ? nomeExibido(cliente) : ''}</h2>
-              {cliente?.cnpj && <p style={{ fontSize: 11, color: C.txtMuted, margin: '2px 0 0' }}>{formatCnpj(cliente.cnpj)}</p>}
+            {/* Middle row: title + subtitle */}
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', margin: 0, letterSpacing: '-0.01em' }}>Torre de Controle</h2>
+              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '1px 0 0', letterSpacing: '0.04em' }}>Monitoramento · Metas · Projeções</p>
             </div>
 
-            {/* Year selector */}
+            {/* Bottom row: controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: C.txtMuted, letterSpacing: '0.06em' }}>ANO:</span>
-              {years.map(y => (
-                <button
-                  key={y}
-                  onClick={() => { setAno(y); setMesSelecionado(null); }}
-                  style={{
-                    padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: ano === y ? 700 : 500,
-                    color: ano === y ? C.primary : C.txtSec,
-                    background: ano === y ? C.pLo : 'transparent',
-                    border: `1px solid ${ano === y ? C.pMd : 'transparent'}`,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {y}
-                </button>
-              ))}
+              {/* Toggle: CRIAÇÃO DE METAS */}
+              <button
+                onClick={() => { setModoMeta(v => { if (!v) setModoAnaliseMeta(false); return !v; }); }}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: modoMeta ? 700 : 500, cursor: 'pointer',
+                  background: modoMeta ? 'rgba(26,60,255,0.6)' : 'transparent',
+                  border: `1px solid ${modoMeta ? '#1A3CFF' : 'rgba(255,255,255,0.15)'}`,
+                  color: modoMeta ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                CRIAÇÃO DE METAS
+              </button>
+              {/* Toggle: ANÁLISE META */}
+              <button
+                onClick={() => { setModoAnaliseMeta(v => { if (!v) setModoMeta(false); return !v; }); }}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: modoAnaliseMeta ? 700 : 500, cursor: 'pointer',
+                  background: modoAnaliseMeta ? 'rgba(26,60,255,0.6)' : 'transparent',
+                  border: `1px solid ${modoAnaliseMeta ? '#1A3CFF' : 'rgba(255,255,255,0.15)'}`,
+                  color: modoAnaliseMeta ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                ANÁLISE META
+              </button>
+
+              {/* Separator */}
+              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+
+              {/* Month selector */}
+              {monthsWithData.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    onClick={() => navMesSel(-1)}
+                    disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0}
+                    style={{ background: 'none', border: 'none', color: 'rgba(138,155,188,0.6)', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? 0.3 : 1 }}
+                  >
+                    <ChevronLeft style={{ width: 14, height: 14 }} />
+                  </button>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FFFFFF', minWidth: 80, textAlign: 'center' }}>
+                    {mesEfetivo ? fmtCompetencia(mesEfetivo) : '—'}
+                  </span>
+                  <button
+                    onClick={() => navMesSel(1)}
+                    disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1}
+                    style={{ background: 'none', border: 'none', color: 'rgba(138,155,188,0.6)', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? 0.3 : 1 }}
+                  >
+                    <ChevronRight style={{ width: 14, height: 14 }} />
+                  </button>
+                </div>
+              )}
+
+              {/* Separator */}
+              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+
+              {/* Comandante GPI */}
+              <button
+                onClick={() => handleSugerirMetas()}
+                disabled={loadingSugestao}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 6, cursor: loadingSugestao ? 'wait' : 'pointer',
+                  background: 'rgba(26,60,255,0.15)', border: '1px solid rgba(26,60,255,0.3)',
+                  color: '#7B9AFF', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  transition: 'all 0.15s',
+                }}
+              >
+                👨🏻‍✈️ Comandante GPI
+              </button>
+
+              {/* Spacer + Year selector pushed right */}
+              <div style={{ flex: 1 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {years.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => { setAno(y); setMesSelecionado(null); }}
+                    style={{
+                      padding: '3px 10px', borderRadius: 5, fontSize: 11, fontWeight: ano === y ? 700 : 500,
+                      color: ano === y ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                      background: ano === y ? 'rgba(26,60,255,0.4)' : 'transparent',
+                      border: `1px solid ${ano === y ? 'rgba(26,60,255,0.5)' : 'transparent'}`,
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -953,70 +1017,6 @@ export function TorreControleTab({ clienteId }: Props) {
             {/* Summary cards (only when META mode is on) */}
             {modoMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
 
-            {/* Control bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Toggle buttons */}
-                <button
-                  style={toggleBtnStyle(modoMeta)}
-                  onClick={() => { setModoMeta(v => { if (!v) setModoAnaliseMeta(false); return !v; }); }}
-                  onMouseEnter={e => { if (!modoMeta) e.currentTarget.style.background = '#E8EEF8'; }}
-                  onMouseLeave={e => { if (!modoMeta) e.currentTarget.style.background = '#F0F4FA'; }}
-                >
-                  CRIAÇÃO DE METAS
-                </button>
-                <button
-                  style={toggleBtnStyle(modoAnaliseMeta)}
-                  onClick={() => { setModoAnaliseMeta(v => { if (!v) setModoMeta(false); return !v; }); }}
-                  onMouseEnter={e => { if (!modoAnaliseMeta) e.currentTarget.style.background = '#E8EEF8'; }}
-                  onMouseLeave={e => { if (!modoAnaliseMeta) e.currentTarget.style.background = '#F0F4FA'; }}
-                >
-                  ANÁLISE META
-                </button>
-
-                {/* Month selector (visible when META or ANÁLISE META active) */}
-                {(modoMeta || modoAnaliseMeta) && monthsWithData.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: C.txtMuted, letterSpacing: '0.06em' }}>Mês de referência:</span>
-                    <button
-                      onClick={() => navMesSel(-1)}
-                      disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0}
-                      style={{ background: 'none', border: 'none', color: C.txtMuted, cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? 0.3 : 1 }}
-                    >
-                      <ChevronLeft style={{ width: 16, height: 16 }} />
-                    </button>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: C.txt, minWidth: 80, textAlign: 'center' }}>
-                      {mesEfetivo ? fmtCompetencia(mesEfetivo) : '—'}
-                    </span>
-                    <button
-                      onClick={() => navMesSel(1)}
-                      disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1}
-                      style={{ background: 'none', border: 'none', color: C.txtMuted, cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? 0.3 : 1 }}
-                    >
-                      <ChevronRight style={{ width: 16, height: 16 }} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Comandante GPI button */}
-              <button
-                onClick={() => handleSugerirMetas()}
-                disabled={loadingSugestao}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '6px 14px', borderRadius: 6, cursor: loadingSugestao ? 'wait' : 'pointer',
-                  background: 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))',
-                  border: '1px solid rgba(26,60,255,0.18)',
-                  color: '#1A3CFF', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-                  fontFamily: "'DM Sans', system-ui", transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { if (!loadingSugestao) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.14), rgba(0,153,230,0.10))'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))'; }}
-              >
-                👨🏻‍✈️ Comandante GPI
-              </button>
-            </div>
 
             {/* Table */}
             <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
