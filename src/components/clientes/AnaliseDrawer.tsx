@@ -81,7 +81,7 @@ function formatGeradoEm(d: string): string {
 
 export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
   const { id: clienteId } = useParams<{ id: string }>();
-  const [analysis, setAnalysis] = useState<{ titulo: string; analise: string; acao: string } | null>(null);
+  const [analysis, setAnalysis] = useState<{ titulo: string; contexto?: string; analise: string; alerta?: string | null; acao: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [geradoEm, setGeradoEm] = useState<string | null>(null);
 
@@ -312,13 +312,26 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
             ) : analysis ? (
               <div>
                 {analysis.titulo && (
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#0D1B35', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#0D1B35', marginBottom: 4 }}>
                     {analysis.titulo}
                   </div>
                 )}
+                {analysis.contexto && (
+                  <div style={{ fontSize: 12, color: '#8A9BBC', fontStyle: 'italic', marginBottom: 8 }}>
+                    {analysis.contexto}
+                  </div>
+                )}
                 {analysis.analise && (
-                  <div style={{ fontSize: 13, color: '#4A5E80', lineHeight: 1.6, marginBottom: 10 }}>
+                  <div style={{ fontSize: 13, color: '#4A5E80', lineHeight: 1.7, marginBottom: 10 }}>
                     {analysis.analise}
+                  </div>
+                )}
+                {analysis.alerta && (
+                  <div style={{
+                    background: '#DC26260A', borderLeft: '3px solid #DC2626',
+                    padding: '8px 12px', fontSize: 12, color: '#DC2626', marginBottom: 10,
+                  }}>
+                    ⚠ Risco: {analysis.alerta}
                   </div>
                 )}
                 {analysis.acao && (
