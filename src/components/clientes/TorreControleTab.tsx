@@ -50,6 +50,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  const anoSelecionado = useMemo(() => competencia ? competencia.split('-')[0] : String(new Date().getFullYear()), [competencia]);
+
   const mesAnterior = useMemo(() => {
     if (!competencia) return '';
     const [y, m] = competencia.split('-').map(Number);
