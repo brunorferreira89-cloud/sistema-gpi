@@ -707,6 +707,7 @@ export type Database = {
           competencia: string
           gerado_em: string | null
           id: string
+          narrativa: string | null
           sugestoes: Json
         }
         Insert: {
@@ -714,6 +715,7 @@ export type Database = {
           competencia: string
           gerado_em?: string | null
           id?: string
+          narrativa?: string | null
           sugestoes: Json
         }
         Update: {
@@ -721,6 +723,7 @@ export type Database = {
           competencia?: string
           gerado_em?: string | null
           id?: string
+          narrativa?: string | null
           sugestoes?: Json
         }
         Relationships: [

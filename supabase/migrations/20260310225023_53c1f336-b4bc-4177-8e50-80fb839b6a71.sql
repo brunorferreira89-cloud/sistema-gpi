@@ -1,0 +1,1 @@
+ALTER TABLE sugestoes_metas_ia ADD COLUMN IF NOT EXISTS narrativa text;
