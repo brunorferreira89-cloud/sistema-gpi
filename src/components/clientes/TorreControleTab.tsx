@@ -744,7 +744,26 @@ export function TorreControleTab({ clienteId }: Props) {
             {/* Summary cards */}
             <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />
 
-            {/* Table */}
+            {/* AI suggest button + Table */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: -8 }}>
+              <button
+                onClick={handleSugerirMetas}
+                disabled={loadingSugestao}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 6, cursor: loadingSugestao ? 'wait' : 'pointer',
+                  background: 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))',
+                  border: '1px solid rgba(26,60,255,0.18)',
+                  color: '#1A3CFF', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  fontFamily: "'DM Sans', system-ui", transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!loadingSugestao) e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.14), rgba(0,153,230,0.10))'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(26,60,255,0.08), rgba(0,153,230,0.06))'; }}
+              >
+                ✨ Sugerir Metas com IA
+              </button>
+            </div>
+
             <div style={{ borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', background: C.surface }}>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
