@@ -100,51 +100,6 @@ export type Database = {
           },
         ]
       }
-      benchmark_configuracoes: {
-        Row: {
-          cliente_id: string
-          conta_id: string
-          created_at: string | null
-          direcao: string
-          id: string
-          limite_ambar: number
-          limite_verde: number
-        }
-        Insert: {
-          cliente_id: string
-          conta_id: string
-          created_at?: string | null
-          direcao?: string
-          id?: string
-          limite_ambar: number
-          limite_verde: number
-        }
-        Update: {
-          cliente_id?: string
-          conta_id?: string
-          created_at?: string | null
-          direcao?: string
-          id?: string
-          limite_ambar?: number
-          limite_verde?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "benchmark_configuracoes_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "benchmark_configuracoes_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "plano_de_contas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clientes: {
         Row: {
           administrador_cpf: string | null
@@ -297,6 +252,69 @@ export type Database = {
             columns: ["importado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpi_indicadores: {
+        Row: {
+          ativo: boolean
+          cliente_id: string | null
+          conta_id: string | null
+          created_at: string | null
+          descricao: string | null
+          direcao: string
+          id: string
+          limite_ambar: number
+          limite_verde: number
+          nome: string
+          ordem: number | null
+          tipo_fonte: string
+          totalizador_key: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          direcao?: string
+          id?: string
+          limite_ambar: number
+          limite_verde: number
+          nome: string
+          ordem?: number | null
+          tipo_fonte: string
+          totalizador_key?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string | null
+          conta_id?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          direcao?: string
+          id?: string
+          limite_ambar?: number
+          limite_verde?: number
+          nome?: string
+          ordem?: number | null
+          tipo_fonte?: string
+          totalizador_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_indicadores_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpi_indicadores_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_de_contas"
             referencedColumns: ["id"]
           },
         ]

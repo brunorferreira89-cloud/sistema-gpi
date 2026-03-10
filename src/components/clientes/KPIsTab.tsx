@@ -1,14 +1,29 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Target } from 'lucide-react';
 import { ArcGauge } from '@/components/ui/arc-gauge';
 import { SparkLine } from '@/components/ui/spark-line';
-import { LiveDeltaBadge } from '@/components/ui/live-delta-badge';
-import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
-import { fetchKpiData, KpiData } from '@/lib/kpi-utils';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { ChevronDown, Pencil, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import { type ContaRow } from '@/lib/plano-contas-utils';
+import { getLeafContas, sumLeafByTipo } from '@/lib/dre-indicadores';
+import {
+  fetchMergedIndicadores,
+  calcularIndicadores,
+  calcScore,
+  getLast6Months,
+  getFormula,
+  type KpiIndicador,
+  type IndicadorCalculado,
+} from '@/lib/kpi-indicadores-utils';
 
 function getLast12Months() {
   const months: { value: string; label: string }[] = [];
@@ -26,245 +41,560 @@ function getLast12Months() {
 const fmtCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
-function gaugeColor(value: number, benchmark: number, inverted = false) {
-  const diff = inverted ? benchmark - value : value - benchmark;
-  if (diff >= 0) return '#00A86B';
-  if (diff >= -5) return '#D97706';
-  return '#DC2626';
-}
+const STATUS_CONFIG = {
+  verde: { bg: '#00A86B1A', color: '#00A86B', label: '✓ No esperado' },
+  ambar: { bg: '#D977061A', color: '#D97706', label: '⚠ Atenção' },
+  vermelho: { bg: '#DC26261A', color: '#DC2626', label: '✗ Crítico' },
+};
 
-function getPenalties(kpi: KpiData): string[] {
-  const p: string[] = [];
-  if (kpi.mc_pct < 30) p.push('MC < 30%');
-  else if (kpi.mc_pct < 40) p.push('MC < 40%');
-  if (kpi.cmv_pct > 42) p.push('CMV > 42%');
-  else if (kpi.cmv_pct > 38) p.push('CMV > 38%');
-  if (kpi.cmo_pct > 30) p.push('CMO > 30%');
-  else if (kpi.cmo_pct > 25) p.push('CMO > 25%');
-  if (kpi.gc_pct < 0) p.push('GC negativa');
-  else if (kpi.gc_pct < 7) p.push('GC < 7%');
-  if (!kpi.hasData) p.push('Sem dados importados');
-  return p;
-}
-
-interface Props {
-  clienteId: string;
-}
+interface Props { clienteId: string; }
 
 export function KPIsTab({ clienteId }: Props) {
   const currentMonth = new Date();
   currentMonth.setDate(1);
   const [competencia, setCompetencia] = useState(currentMonth.toISOString().split('T')[0]);
   const months = getLast12Months();
+  const queryClient = useQueryClient();
 
-  const { data: kpi, isLoading } = useQuery({
-    queryKey: ['kpi-data', clienteId, competencia],
-    queryFn: () => fetchKpiData(clienteId, competencia),
+  const [drawerItem, setDrawerItem] = useState<IndicadorCalculado | null>(null);
+  const [editItem, setEditItem] = useState<KpiIndicador | null>(null);
+  const [showDisabled, setShowDisabled] = useState(false);
+
+  // Fetch indicadores
+  const { data: indicadores } = useQuery({
+    queryKey: ['kpi-indicadores', clienteId],
+    queryFn: () => fetchMergedIndicadores(clienteId),
     enabled: !!clienteId,
   });
 
-  const { data: lastImport } = useQuery({
-    queryKey: ['last-import', clienteId],
+  // Fetch contas
+  const { data: contas } = useQuery({
+    queryKey: ['plano-contas-kpis', clienteId],
+    enabled: !!clienteId,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('importacoes_nibo')
-        .select('created_at')
-        .eq('cliente_id', clienteId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data?.created_at ? new Date(data.created_at).toLocaleDateString('pt-BR') : null;
+      const { data } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
+      return (data || []) as ContaRow[];
     },
-    enabled: !!clienteId,
   });
 
-  const score = kpi ? calcHealthScore({
-    mc_pct: kpi.mc_pct, cmv_pct: kpi.cmv_pct,
-    cmo_pct: kpi.cmo_pct, gc_pct: kpi.gc_pct, hasData: kpi.hasData,
-  }) : 0;
+  // Fetch valores for selected month
+  const { data: valoresData } = useQuery({
+    queryKey: ['valores-kpis', clienteId, competencia],
+    enabled: !!clienteId && !!contas?.length,
+    queryFn: async () => {
+      const contaIds = contas!.map(c => c.id);
+      const { data } = await supabase.from('valores_mensais').select('conta_id, valor_realizado').in('conta_id', contaIds).eq('competencia', competencia);
+      return data || [];
+    },
+  });
 
-  const penalties = kpi ? getPenalties(kpi) : [];
-  const scoreLabel = score >= 70
-    ? { text: 'Saúde Financeira Adequada', className: 'text-green' }
-    : score >= 40
-      ? { text: 'Atenção — Pontos Críticos', className: 'text-amber' }
-      : { text: 'Risco Elevado — Ação Urgente', className: 'text-red' };
+  // Fetch spark history (6 months)
+  const sparkMonths = useMemo(() => getLast6Months(competencia), [competencia]);
+  const { data: sparkData } = useQuery({
+    queryKey: ['valores-spark-kpis', clienteId, competencia],
+    enabled: !!clienteId && !!contas?.length,
+    queryFn: async () => {
+      const contaIds = contas!.map(c => c.id);
+      const { data } = await supabase.from('valores_mensais').select('conta_id, competencia, valor_realizado').in('conta_id', contaIds).in('competencia', sparkMonths);
+      return data || [];
+    },
+  });
 
-  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
-  const toggleFlip = (key: string) => setFlipped((prev) => ({ ...prev, [key]: !prev[key] }));
+  const valoresMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    valoresData?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
+    return map;
+  }, [valoresData]);
+
+  const calculados = useMemo(() => {
+    if (!indicadores || !contas) return [];
+    return calcularIndicadores(indicadores, contas, valoresMap);
+  }, [indicadores, contas, valoresMap]);
+
+  const ativos = calculados.filter(c => c.indicador.ativo);
+  const inativos = useMemo(() => {
+    if (!indicadores) return [];
+    return indicadores.filter(i => !i.ativo);
+  }, [indicadores]);
+
+  const score = calcScore(ativos);
+  const verdeCount = ativos.filter(c => c.status === 'verde').length;
+
+  // Spark history per indicator
+  const sparkHistories = useMemo(() => {
+    if (!sparkData || !contas || !indicadores) return new Map<string, number[]>();
+    const map = new Map<string, number[]>();
+    for (const ind of indicadores.filter(i => i.ativo)) {
+      const history = sparkMonths.map(m => {
+        const monthMap: Record<string, number | null> = {};
+        sparkData.filter(v => v.competencia === m).forEach(v => { monthMap[v.conta_id] = v.valor_realizado; });
+        const results = calcularIndicadores([ind], contas, monthMap);
+        return results[0]?.pct ?? 0;
+      });
+      map.set(ind.id, history);
+    }
+    return map;
+  }, [sparkData, contas, indicadores, sparkMonths]);
+
+  const scoreColor = score >= 75 ? '#00A86B' : score >= 50 ? '#D97706' : '#DC2626';
+
+  // Reactivate mutation
+  const reactivateMutation = useMutation({
+    mutationFn: async (ind: KpiIndicador) => {
+      if (ind.cliente_id) {
+        await supabase.from('kpi_indicadores' as any).update({ ativo: true }).eq('id', ind.id);
+      } else {
+        await supabase.from('kpi_indicadores' as any).insert({
+          cliente_id: clienteId, nome: ind.nome, descricao: ind.descricao,
+          tipo_fonte: ind.tipo_fonte, conta_id: ind.conta_id, totalizador_key: ind.totalizador_key,
+          limite_verde: ind.limite_verde, limite_ambar: ind.limite_ambar, direcao: ind.direcao,
+          ativo: true, ordem: ind.ordem,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kpi-indicadores', clienteId] });
+      toast.success('Indicador reativado');
+    },
+  });
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={competencia} onValueChange={setCompetencia}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {months.map((m) => <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>)}
+            {months.map(m => <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        {lastImport && (
-          <Badge variant="outline" className="text-xs text-txt-muted">
-            Última atualização: {lastImport}
-          </Badge>
-        )}
       </div>
 
-      {isLoading && (
-        <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      {/* Score Card */}
+      <div className="flex flex-col items-center justify-center rounded-xl border p-8" style={{ borderColor: '#DDE4F0', background: '#FFFFFF' }}>
+        <div className="relative flex items-center justify-center" style={{ width: 140, height: 140 }}>
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="60" fill="none" stroke="#F0F4FA" strokeWidth="10" />
+            <circle
+              cx="70" cy="70" r="60" fill="none"
+              stroke={scoreColor} strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={`${(score / 100) * 377} 377`}
+              transform="rotate(-90 70 70)"
+              style={{ transition: 'stroke-dasharray 0.8s ease' }}
+            />
+          </svg>
+          <span className="absolute font-extrabold" style={{ fontSize: 48, color: scoreColor, lineHeight: 1 }}>{score}</span>
+        </div>
+        <p className="mt-3 text-sm font-medium" style={{ color: '#4A5E80' }}>Saúde Financeira</p>
+        <p className="text-xs" style={{ color: '#8A9BBC' }}>{verdeCount} de {ativos.length} indicadores no verde</p>
+      </div>
+
+      {/* Grid Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ativos.map(item => {
+          const cfg = STATUS_CONFIG[item.status];
+          const spark = sparkHistories.get(item.indicador.id) || [];
+          return (
+            <div
+              key={item.indicador.id}
+              className="rounded-xl border p-5 cursor-pointer transition-all hover:shadow-md"
+              style={{ borderColor: '#DDE4F0', background: '#FFFFFF' }}
+              onMouseEnter={e => { (e.currentTarget.style.borderColor = '#1A3CFF'); }}
+              onMouseLeave={e => { (e.currentTarget.style.borderColor = '#DDE4F0'); }}
+              onClick={() => setDrawerItem(item)}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{item.indicador.nome}</span>
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
+                  {cfg.label}
+                </span>
+              </div>
+              <div className="flex items-center justify-center my-2">
+                <ArcGauge
+                  value={item.pct ?? 0}
+                  benchmark={item.indicador.limite_verde}
+                  color={cfg.color}
+                  label=""
+                  size={120}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <div>
+                  <span className="text-xs" style={{ color: '#4A5E80' }}>{fmtCurrency(Math.abs(item.valor ?? 0))}</span>
+                  <span className="text-[11px] ml-1" style={{ color: '#8A9BBC' }}>/ {fmtCurrency(item.faturamento)} fat.</span>
+                </div>
+                <SparkLine data={spark} color={cfg.color} width={50} height={18} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Disabled indicators */}
+      {inativos.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowDisabled(v => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium"
+            style={{ color: '#8A9BBC' }}
+          >
+            <ChevronDown className="h-3.5 w-3.5" style={{ transform: showDisabled ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
+            Indicadores desativados ({inativos.length})
+          </button>
+          {showDisabled && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-3">
+              {inativos.map(ind => (
+                <div key={ind.id} className="rounded-xl border p-4" style={{ borderColor: '#DDE4F0', background: '#F8F9FB', opacity: 0.7 }}>
+                  <span className="text-[13px] font-medium" style={{ color: '#8A9BBC' }}>{ind.nome}</span>
+                  <div className="mt-2">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => reactivateMutation.mutate(ind)}>
+                      Reativar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {kpi && !isLoading && (
-        <>
-          {/* Score + Arc Gauges */}
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-6">
-              <ScoreRing score={score} />
-              <p className={`mt-3 text-sm font-bold ${scoreLabel.className}`}>{scoreLabel.text}</p>
-              {penalties.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
-                  {penalties.map((p, i) => (
-                    <span key={i} className="rounded-full border border-red/30 bg-red/10 px-2 py-0.5 text-[10px] font-medium text-red">{p}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="col-span-2 grid grid-cols-2 gap-4 rounded-xl border border-border bg-surface p-6">
-              <ArcGauge value={kpi.mc_pct} benchmark={40} color={gaugeColor(kpi.mc_pct, 40)} label="Margem Contribuição" />
-              <ArcGauge value={kpi.cmv_pct} benchmark={38} color={gaugeColor(kpi.cmv_pct, 38, true)} label="CMV" />
-              <ArcGauge value={kpi.cmo_pct} benchmark={25} color={gaugeColor(kpi.cmo_pct, 25, true)} label="CMO" />
-              <ArcGauge value={kpi.gc_pct} benchmark={10} color={gaugeColor(kpi.gc_pct, 10)} label="Geração de Caixa" />
-            </div>
-          </div>
+      {/* Drawer */}
+      <Sheet open={!!drawerItem} onOpenChange={open => { if (!open) setDrawerItem(null); }}>
+        <SheetContent className="w-[420px] overflow-y-auto">
+          {drawerItem && (
+            <DrawerContent
+              item={drawerItem}
+              sparkData={sparkHistories.get(drawerItem.indicador.id) || []}
+              sparkMonths={sparkMonths}
+              onEdit={() => { setEditItem(drawerItem.indicador); setDrawerItem(null); }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
 
-          {/* Flip Cards */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FlipCard flipped={!!flipped.mc} onFlip={() => toggleFlip('mc')} label="MARGEM DE CONTRIBUIÇÃO" value={`${kpi.mc_pct.toFixed(1)}%`} subValue={fmtCurrency(kpi.mc_valor)} color={gaugeColor(kpi.mc_pct, 40)} sparkData={kpi.sparkHistory.mc} realizado={kpi.mc_valor} meta={kpi.mc_meta} backText={`Cada R$100 faturado gera R$${kpi.mc_pct.toFixed(0)} de contribuição.\nBenchmark GPI: manter acima de 40%.`} formula="MC% = (Faturamento - Custos Variáveis) / Faturamento × 100" />
-            <FlipCard flipped={!!flipped.cmv} onFlip={() => toggleFlip('cmv')} label="CMV" value={`${kpi.cmv_pct.toFixed(1)}%`} subValue={fmtCurrency(kpi.cmv_valor)} color={gaugeColor(kpi.cmv_pct, 38, true)} sparkData={kpi.sparkHistory.cmv} realizado={kpi.cmv_valor} meta={kpi.cmv_meta} backText="Custo de mercadoria ou insumos por real faturado.\nAcima de 38% comprime a margem." formula="CMV% = Custos Variáveis / Faturamento × 100" />
-            <FlipCard flipped={!!flipped.cmo} onFlip={() => toggleFlip('cmo')} label="CMO" value={`${kpi.cmo_pct.toFixed(1)}%`} subValue={fmtCurrency(kpi.cmo_valor)} color={gaugeColor(kpi.cmo_pct, 25, true)} sparkData={kpi.sparkHistory.cmo} realizado={kpi.cmo_valor} meta={kpi.cmo_meta} backText="Custo total de pessoal sobre o faturamento.\nAcima de 25% sinaliza folha desproporcional." formula="CMO% = Custos de Pessoal / Faturamento × 100" />
-            <FlipCard flipped={!!flipped.gc} onFlip={() => toggleFlip('gc')} label="GERAÇÃO DE CAIXA" value={`${kpi.gc_pct.toFixed(1)}%`} subValue={fmtCurrency(kpi.gc_valor)} color={gaugeColor(kpi.gc_pct, 10)} sparkData={kpi.sparkHistory.gc} realizado={kpi.gc_valor} meta={kpi.gc_meta} backText="O que sobra de caixa após todas as saídas.\nAbaixo de 10% não cobre imprevistos." formula="GC% = Resultado Final / Faturamento × 100" />
-          </div>
-
-          {/* Ponto de Equilíbrio */}
-          <div className="cursor-pointer rounded-xl border border-border bg-surface overflow-hidden" style={{ perspective: '900px' }} onClick={() => toggleFlip('pe')}>
-            <div className="transition-transform duration-[550ms]" style={{ transformStyle: 'preserve-3d', transform: flipped.pe ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
-              {!flipped.pe ? (
-                <div className="p-6 space-y-4">
-                  <div className="h-[3px] w-full rounded-full" style={{ background: `linear-gradient(90deg, hsl(var(--primary)), transparent)` }} />
-                  <p className="text-[9px] uppercase tracking-wider text-txt-muted font-bold">Ponto de Equilíbrio Financeiro</p>
-                  <p className="font-mono-data text-2xl font-extrabold text-txt">{fmtCurrency(kpi.pe_valor)}</p>
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-txt-muted">
-                      <span>Faturamento: {fmtCurrency(kpi.faturamento)}</span>
-                      <span>PE: {fmtCurrency(kpi.pe_valor)}</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-border overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, kpi.pe_valor > 0 ? (kpi.faturamento / kpi.pe_valor) * 100 : 0)}%`, background: kpi.margem_seguranca > 20 ? '#00A86B' : kpi.margem_seguranca > 5 ? '#D97706' : '#DC2626' }} />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-txt">Margem de Segurança: {kpi.margem_seguranca.toFixed(1)}%</span>
-                    <Badge variant="outline" className={`text-[10px] ${kpi.margem_seguranca > 20 ? 'text-green border-green/30' : kpi.margem_seguranca > 5 ? 'text-amber border-amber/30' : 'text-red border-red/30'}`}>
-                      {kpi.margem_seguranca > 20 ? 'Seguro' : kpi.margem_seguranca > 5 ? 'Atenção' : 'Risco'}
-                    </Badge>
-                  </div>
-                  <p className="text-[9px] text-txt-muted">toque para detalhes →</p>
-                </div>
-              ) : (
-                <div className="p-6 space-y-3" style={{ transform: 'rotateY(180deg)' }}>
-                  <p className="text-[9px] uppercase tracking-wider text-txt-muted font-bold">O que significa</p>
-                  <p className="text-sm text-txt">PE = Custos Fixos ÷ MC%</p>
-                  <p className="text-xs text-txt-sec">Custos Fixos: {fmtCurrency(kpi.despesas_fixas)} · MC%: {kpi.mc_pct.toFixed(1)}%</p>
-                  <p className="text-sm text-txt">O negócio precisa faturar pelo menos {fmtCurrency(kpi.pe_valor)} para não ter prejuízo.</p>
-                  <p className="text-[9px] text-txt-muted">↩ toque para voltar</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Retiradas dos Sócios */}
-          <div className="cursor-pointer rounded-xl border border-border bg-surface overflow-hidden" style={{ perspective: '900px' }} onClick={() => toggleFlip('ret')}>
-            <div className="transition-transform duration-[550ms]" style={{ transformStyle: 'preserve-3d', transform: flipped.ret ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
-              {!flipped.ret ? (
-                <div className="p-6 space-y-4">
-                  <div className="h-[3px] w-full rounded-full" style={{ background: `linear-gradient(90deg, #9333EA, transparent)` }} />
-                  <p className="text-[9px] uppercase tracking-wider text-txt-muted font-bold">Retiradas dos Sócios</p>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-[10px] text-txt-muted mb-1">Valor mensal</p>
-                      <p className="font-mono-data text-lg font-extrabold text-txt">{fmtCurrency(kpi.retiradas)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-txt-muted mb-1">% Faturamento</p>
-                      <p className={`font-mono-data text-lg font-extrabold ${kpi.retiradas_pct_fat > 5 ? 'text-red' : 'text-txt'}`}>{kpi.retiradas_pct_fat.toFixed(1)}%</p>
-                      <span className="text-[9px] text-txt-muted">ref: ≤ 5%</span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-txt-muted mb-1">% Geração de Caixa</p>
-                      <p className={`font-mono-data text-lg font-extrabold ${kpi.retiradas_pct_gc > 50 ? 'text-red' : 'text-txt'}`}>{kpi.retiradas_pct_gc.toFixed(1)}%</p>
-                      <span className="text-[9px] text-txt-muted">ref: ≤ 50%</span>
-                    </div>
-                  </div>
-                  <p className="text-[9px] text-txt-muted">toque para detalhes →</p>
-                </div>
-              ) : (
-                <div className="p-6 space-y-3" style={{ transform: 'rotateY(180deg)' }}>
-                  <p className="text-[9px] uppercase tracking-wider text-txt-muted font-bold">Diagnóstico</p>
-                  {kpi.retiradas_pct_gc > 50 ? (
-                    <>
-                      <p className="text-sm font-bold text-red">Retirada insustentável</p>
-                      <p className="text-xs text-txt-sec">A retirada consome {kpi.retiradas_pct_gc.toFixed(0)}% da geração de caixa.</p>
-                      <p className="text-sm text-txt">Retirada máxima segura: {fmtCurrency(Math.abs(kpi.gc_valor) * 0.5)}</p>
-                    </>
-                  ) : (
-                    <p className="text-sm font-bold text-green">Retirada dentro do limite saudável ✓</p>
-                  )}
-                  <p className="text-[9px] text-txt-muted">↩ toque para voltar</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+      {/* Edit Modal */}
+      {editItem && (
+        <EditIndicadorModal
+          indicador={editItem}
+          clienteId={clienteId}
+          contas={contas || []}
+          onClose={() => setEditItem(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['kpi-indicadores', clienteId] });
+            setEditItem(null);
+          }}
+        />
       )}
     </div>
   );
 }
 
-function FlipCard({
-  flipped, onFlip, label, value, subValue, color, sparkData, realizado, meta, backText, formula,
-}: {
-  flipped: boolean; onFlip: () => void; label: string; value: string; subValue: string;
-  color: string; sparkData: number[]; realizado: number; meta: number; backText: string; formula: string;
+// --- Drawer Content ---
+function DrawerContent({ item, sparkData, sparkMonths, onEdit }: {
+  item: IndicadorCalculado;
+  sparkData: number[];
+  sparkMonths: string[];
+  onEdit: () => void;
 }) {
+  const cfg = STATUS_CONFIG[item.status];
+  const formula = getFormula(item.indicador);
+  const formulaValues = item.pct != null
+    ? `${item.indicador.nome} = ${fmtCurrency(Math.abs(item.valor ?? 0))} / ${fmtCurrency(item.faturamento)} × 100 = ${item.pct.toFixed(1)}%`
+    : '';
+
   return (
-    <div className="cursor-pointer rounded-xl border border-border bg-surface overflow-hidden" style={{ perspective: '900px' }} onClick={onFlip}>
-      <div className="transition-transform duration-[550ms]" style={{ transformStyle: 'preserve-3d', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
-        {!flipped ? (
-          <div className="p-5 space-y-3">
-            <div className="h-[3px] w-full rounded-full" style={{ background: `linear-gradient(90deg, ${color}, transparent)` }} />
-            <p className="text-[9px] uppercase tracking-wider text-txt-muted font-bold">{label}</p>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="font-mono-data text-2xl font-extrabold" style={{ color }}>{value}</p>
-                <p className="text-xs text-txt-muted">{subValue}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <SparkLine data={sparkData} color={color} />
-                <LiveDeltaBadge realizado={realizado} meta={meta} />
-              </div>
+    <div className="space-y-5 pt-2">
+      <SheetHeader className="p-0">
+        <div className="flex items-center justify-between">
+          <SheetTitle className="text-base">{item.indicador.nome}</SheetTitle>
+          <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-muted" title="Editar indicador">
+            <Pencil className="h-4 w-4" style={{ color: '#4A5E80' }} />
+          </button>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+          <span className="text-xs" style={{ color: '#8A9BBC' }}>{item.pontos} pts</span>
+        </div>
+      </SheetHeader>
+
+      {/* Formula */}
+      <div className="rounded-lg p-4" style={{ background: '#F0F4FA' }}>
+        <p className="text-xs font-mono" style={{ color: '#4A5E80' }}>{formula}</p>
+        {formulaValues && <p className="text-xs font-mono mt-1" style={{ color: '#0D1B35' }}>{formulaValues}</p>}
+      </div>
+
+      {/* Composição */}
+      <div>
+        <p className="text-[11px] uppercase font-semibold tracking-wider mb-2" style={{ color: '#8A9BBC' }}>Composição</p>
+        <div className="rounded-lg border" style={{ borderColor: '#DDE4F0' }}>
+          <table className="w-full text-xs">
+            <thead>
+              <tr style={{ background: '#F0F4FA', borderBottom: '1px solid #DDE4F0' }}>
+                <th className="text-left p-2 font-medium" style={{ color: '#4A5E80' }}>Conta</th>
+                <th className="text-right p-2 font-medium" style={{ color: '#4A5E80' }}>Valor</th>
+                <th className="text-right p-2 font-medium" style={{ color: '#4A5E80' }}>% Fat.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {item.detalhe.map((d, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #F0F4FA' }}>
+                  <td className="p-2" style={{ color: '#0D1B35' }}>{d.nome}</td>
+                  <td className="p-2 text-right font-mono" style={{ color: '#0D1B35' }}>{fmtCurrency(Math.abs(d.valor))}</td>
+                  <td className="p-2 text-right font-mono" style={{ color: '#8A9BBC' }}>{d.pct.toFixed(1)}%</td>
+                </tr>
+              ))}
+              <tr style={{ background: '#F0F4FA' }}>
+                <td className="p-2 font-semibold" style={{ color: '#0D1B35' }}>Total</td>
+                <td className="p-2 text-right font-mono font-semibold" style={{ color: '#0D1B35' }}>{fmtCurrency(Math.abs(item.valor ?? 0))}</td>
+                <td className="p-2 text-right font-mono font-semibold" style={{ color: '#0D1B35' }}>{item.pct?.toFixed(1)}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Benchmarks */}
+      <div>
+        <p className="text-[11px] uppercase font-semibold tracking-wider mb-2" style={{ color: '#8A9BBC' }}>Benchmarks</p>
+        <div className="flex gap-2">
+          {[
+            { label: item.indicador.direcao === 'menor_melhor' ? `< ${item.indicador.limite_verde}%` : `> ${item.indicador.limite_verde}%`, color: '#00A86B', active: item.status === 'verde' },
+            { label: item.indicador.direcao === 'menor_melhor' ? `${item.indicador.limite_verde}–${item.indicador.limite_ambar}%` : `${item.indicador.limite_ambar}–${item.indicador.limite_verde}%`, color: '#D97706', active: item.status === 'ambar' },
+            { label: item.indicador.direcao === 'menor_melhor' ? `> ${item.indicador.limite_ambar}%` : `< ${item.indicador.limite_ambar}%`, color: '#DC2626', active: item.status === 'vermelho' },
+          ].map((b, i) => (
+            <div key={i} className="flex-1 rounded-lg p-2 text-center" style={{
+              border: b.active ? `2px solid ${b.color}` : '1px solid #DDE4F0',
+              background: b.active ? `${b.color}11` : '#FFFFFF',
+            }}>
+              <svg width="8" height="8" className="mx-auto mb-1"><circle cx="4" cy="4" r="4" fill={b.color} /></svg>
+              <span className="text-[10px] font-mono" style={{ color: b.color }}>{b.label}</span>
             </div>
-            <p className="text-[9px] text-txt-muted">toque para detalhes →</p>
-          </div>
-        ) : (
-          <div className="p-5 space-y-3" style={{ transform: 'rotateY(180deg)', background: `linear-gradient(135deg, ${color}22, ${color}08)` }}>
-            <p className="text-[9px] uppercase tracking-wider text-txt-muted font-bold">O que significa</p>
-            <p className="text-sm text-txt whitespace-pre-line">{backText}</p>
-            <p className="text-[10px] text-txt-sec font-mono-data">{formula}</p>
-            <p className="text-[9px] text-txt-muted">↩ toque para voltar</p>
-          </div>
-        )}
+          ))}
+        </div>
+      </div>
+
+      {/* Histórico */}
+      <div>
+        <p className="text-[11px] uppercase font-semibold tracking-wider mb-2" style={{ color: '#8A9BBC' }}>Histórico (6 meses)</p>
+        <SparkLine data={sparkData} color={cfg.color} width={340} height={40} />
+        <div className="mt-2 space-y-1">
+          {sparkMonths.map((m, i) => {
+            const val = sparkData[i];
+            const mLabel = new Date(m + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+            const dotColor = val != null
+              ? (item.indicador.direcao === 'menor_melhor'
+                ? (val < item.indicador.limite_verde ? '#00A86B' : val < item.indicador.limite_ambar ? '#D97706' : '#DC2626')
+                : (val > item.indicador.limite_verde ? '#00A86B' : val > item.indicador.limite_ambar ? '#D97706' : '#DC2626'))
+              : '#C4CFEA';
+            return (
+              <div key={m} className="flex items-center justify-between text-[11px]">
+                <span style={{ color: '#4A5E80' }}>{mLabel}</span>
+                <span className="font-mono" style={{ color: '#0D1B35' }}>{val?.toFixed(1) ?? '—'}%</span>
+                <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill={dotColor} /></svg>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
+  );
+}
+
+// --- Edit Modal ---
+function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: {
+  indicador: KpiIndicador;
+  clienteId: string;
+  contas: ContaRow[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isOverride = indicador.cliente_id === clienteId;
+  const isDefault = indicador.cliente_id === null;
+
+  const [nome, setNome] = useState(indicador.nome);
+  const [descricao, setDescricao] = useState(indicador.descricao || '');
+  const [tipoFonte, setTipoFonte] = useState(indicador.tipo_fonte);
+  const [contaId, setContaId] = useState(indicador.conta_id || '');
+  const [totalizadorKey, setTotalizadorKey] = useState(indicador.totalizador_key || 'MC');
+  const [direcao, setDirecao] = useState(indicador.direcao);
+  const [limiteVerde, setLimiteVerde] = useState(String(indicador.limite_verde));
+  const [limiteAmbar, setLimiteAmbar] = useState(String(indicador.limite_ambar));
+  const [ativo, setAtivo] = useState(indicador.ativo);
+
+  const subgrupos = contas.filter(c => c.nivel === 1 && ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(c.tipo));
+
+  const verde = Number(limiteVerde);
+  const ambar = Number(limiteAmbar);
+  const hasValid = !isNaN(verde) && !isNaN(ambar) && limiteVerde !== '' && limiteAmbar !== '';
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload: any = {
+        cliente_id: clienteId,
+        nome,
+        descricao: descricao || null,
+        tipo_fonte: tipoFonte,
+        conta_id: tipoFonte === 'subgrupo' && contaId ? contaId : null,
+        totalizador_key: tipoFonte === 'totalizador' ? totalizadorKey : null,
+        limite_verde: verde,
+        limite_ambar: ambar,
+        direcao,
+        ativo,
+        ordem: indicador.ordem,
+      };
+      if (isOverride) {
+        const { error } = await supabase.from('kpi_indicadores' as any).update(payload).eq('id', indicador.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('kpi_indicadores' as any).insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success('Indicador salvo'); onSaved(); },
+    onError: () => toast.error('Erro ao salvar'),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async () => {
+      if (isOverride) {
+        await supabase.from('kpi_indicadores' as any).delete().eq('id', indicador.id);
+      }
+    },
+    onSuccess: () => { toast.success('Restaurado para padrão GPI'); onSaved(); },
+    onError: () => toast.error('Erro ao restaurar'),
+  });
+
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Configurar {indicador.nome}</DialogTitle>
+          <p className="text-xs" style={{ color: '#8A9BBC' }}>
+            {isOverride ? 'Este cliente usa configuração personalizada' : 'Este cliente usa o padrão GPI'}
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div>
+            <Label className="text-xs">Nome</Label>
+            <Input value={nome} onChange={e => setNome(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs">Descrição</Label>
+            <Input value={descricao} onChange={e => setDescricao(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">Tipo de fonte</Label>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="radio" checked={tipoFonte === 'subgrupo'} onChange={() => setTipoFonte('subgrupo')} />
+                Conta do plano (subgrupo)
+              </label>
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="radio" checked={tipoFonte === 'totalizador'} onChange={() => setTipoFonte('totalizador')} />
+                Totalizador da DRE
+              </label>
+            </div>
+          </div>
+
+          {tipoFonte === 'subgrupo' && (
+            <div>
+              <Label className="text-xs">Subgrupo</Label>
+              <Select value={contaId} onValueChange={setContaId}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {subgrupos.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.nome.replace(/^\([+-]\)\s*/, '')} ({s.tipo})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {tipoFonte === 'totalizador' && (
+            <div>
+              <Label className="text-xs">Totalizador</Label>
+              <Select value={totalizadorKey} onValueChange={setTotalizadorKey}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MC">Margem de Contribuição</SelectItem>
+                  <SelectItem value="RO">Resultado Operacional</SelectItem>
+                  <SelectItem value="RAI">Resultado após Investimentos</SelectItem>
+                  <SelectItem value="GC">Geração de Caixa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-xs mb-2 block">Direção</Label>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="radio" checked={direcao === 'menor_melhor'} onChange={() => setDirecao('menor_melhor')} />
+                Menor é melhor
+              </label>
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="radio" checked={direcao === 'maior_melhor'} onChange={() => setDirecao('maior_melhor')} />
+                Maior é melhor
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Limite Verde</Label>
+              <div className="flex items-center gap-1 mt-1">
+                <Input type="number" value={limiteVerde} onChange={e => setLimiteVerde(e.target.value)} placeholder="ex: 38" />
+                <span className="text-xs" style={{ color: '#8A9BBC' }}>%</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Limite Âmbar</Label>
+              <div className="flex items-center gap-1 mt-1">
+                <Input type="number" value={limiteAmbar} onChange={e => setLimiteAmbar(e.target.value)} placeholder="ex: 50" />
+                <span className="text-xs" style={{ color: '#8A9BBC' }}>%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          {hasValid && (
+            <div className="flex items-center gap-3" style={{ fontSize: 11 }}>
+              <span className="inline-flex items-center gap-1">
+                <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#00A86B" /></svg>
+                {direcao === 'menor_melhor' ? `< ${verde}%` : `> ${verde}%`}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#D97706" /></svg>
+                {direcao === 'menor_melhor' ? `${verde}–${ambar}%` : `${ambar}–${verde}%`}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#DC2626" /></svg>
+                {direcao === 'menor_melhor' ? `> ${ambar}%` : `< ${ambar}%`}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Switch checked={ativo} onCheckedChange={setAtivo} />
+            <Label className="text-xs">Ativo</Label>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          {isOverride && (
+            <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              Restaurar padrão GPI
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
+          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            Salvar para este cliente
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

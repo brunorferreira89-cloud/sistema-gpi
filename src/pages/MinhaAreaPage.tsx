@@ -1,60 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
 import { SparkLine } from '@/components/ui/spark-line';
-import { FileText, ChevronDown, Video, MapPin, Calendar } from 'lucide-react';
-import { fetchKpiData, KpiData } from '@/lib/kpi-utils';
+import { FileText, ChevronDown } from 'lucide-react';
+import { type ContaRow } from '@/lib/plano-contas-utils';
+import { getLeafContas, sumLeafByTipo } from '@/lib/dre-indicadores';
+import {
+  fetchMergedIndicadores,
+  calcularIndicadores,
+  calcScore,
+  type IndicadorCalculado,
+} from '@/lib/kpi-indicadores-utils';
 
-const flipTexts: Record<string, { label: string; ref: string; back: string }> = {
-  mc: {
-    label: 'Margem de Contribuição',
-    ref: 'ref: > 40%',
-    back: 'Cada R$100 faturado gera contribuição para pagar custos fixos. Benchmark GPI: manter acima de 40%.',
-  },
-  cmo: {
-    label: 'CMO — Mão de Obra',
-    ref: 'ref: < 25%',
-    back: 'Custo total de pessoal sobre o faturamento. Acima de 25% sinaliza folha desproporcional à receita gerada.',
-  },
-  gc: {
-    label: 'Geração de Caixa',
-    ref: 'ref: > 10%',
-    back: 'O que sobra de caixa após todas as saídas do mês. Abaixo de 10% não cobre imprevistos nem crescimento.',
-  },
+const STATUS_CONFIG = {
+  verde: { bg: '#00A86B1A', color: '#00A86B', label: '✓ ok' },
+  ambar: { bg: '#D977061A', color: '#D97706', label: '⚠ atenção' },
+  vermelho: { bg: '#DC26261A', color: '#DC2626', label: '✗ crítico' },
 };
 
-function getStatusColor(key: string, value: number) {
-  if (key === 'mc') return value >= 40 ? '#00A86B' : value >= 35 ? '#D97706' : '#DC2626';
-  if (key === 'cmo') return value <= 25 ? '#00A86B' : value <= 30 ? '#D97706' : '#DC2626';
-  if (key === 'gc') return value >= 10 ? '#00A86B' : value >= 7 ? '#D97706' : '#DC2626';
-  return '#1A3CFF';
-}
-
-function getStatusLabel(key: string, value: number) {
-  const color = getStatusColor(key, value);
-  return color === '#00A86B' ? '✓ ok' : '⚠ atenção';
-}
-
-function getPenalties(kpi: KpiData) {
-  const p: { text: string; cor: string }[] = [];
-  if (kpi.mc_pct < 30) p.push({ text: 'MC% < 30%', cor: 'red' });
-  else if (kpi.mc_pct < 40) p.push({ text: 'MC% < 40%', cor: 'amber' });
-  if (kpi.cmv_pct > 42) p.push({ text: 'CMV% > 42%', cor: 'red' });
-  else if (kpi.cmv_pct > 38) p.push({ text: 'CMV% > 38%', cor: 'amber' });
-  if (kpi.cmo_pct > 30) p.push({ text: 'CMO% > 30%', cor: 'red' });
-  else if (kpi.cmo_pct > 25) p.push({ text: 'CMO% > 25%', cor: 'amber' });
-  if (kpi.gc_pct < 0) p.push({ text: 'GC% negativa', cor: 'red' });
-  else if (kpi.gc_pct < 7) p.push({ text: 'GC% < 7%', cor: 'amber' });
-  return p.slice(0, 3);
-}
-
 export default function MinhaAreaPage() {
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
 
   const { data: cliente } = useQuery({
     queryKey: ['minha-area-cliente', profile?.cliente_id],
@@ -79,25 +48,64 @@ export default function MinhaAreaPage() {
     enabled: !!profile?.cliente_id,
   });
 
-  const { data: kpi } = useQuery({
-    queryKey: ['minha-area-kpi', profile?.cliente_id, latestComp],
-    queryFn: () => fetchKpiData(profile!.cliente_id!, latestComp!),
-    enabled: !!profile?.cliente_id && !!latestComp,
+  // Fetch indicadores
+  const { data: indicadores } = useQuery({
+    queryKey: ['minha-area-indicadores', profile?.cliente_id],
+    queryFn: () => fetchMergedIndicadores(profile!.cliente_id!),
+    enabled: !!profile?.cliente_id,
   });
+
+  // Fetch contas
+  const { data: contas } = useQuery({
+    queryKey: ['minha-area-contas', profile?.cliente_id],
+    enabled: !!profile?.cliente_id,
+    queryFn: async () => {
+      const { data } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', profile!.cliente_id!).order('ordem');
+      return (data || []) as ContaRow[];
+    },
+  });
+
+  // Fetch valores for latest comp
+  const { data: valoresData } = useQuery({
+    queryKey: ['minha-area-valores', profile?.cliente_id, latestComp],
+    enabled: !!profile?.cliente_id && !!contas?.length && !!latestComp,
+    queryFn: async () => {
+      const contaIds = contas!.map(c => c.id);
+      const { data } = await supabase.from('valores_mensais').select('conta_id, valor_realizado').in('conta_id', contaIds).eq('competencia', latestComp!);
+      return data || [];
+    },
+  });
+
+  const valoresMap: Record<string, number | null> = {};
+  valoresData?.forEach(v => { valoresMap[v.conta_id] = v.valor_realizado; });
+
+  const calculados = indicadores && contas
+    ? calcularIndicadores(indicadores, contas, valoresMap).filter(c => c.indicador.ativo)
+    : [];
+
+  const score = calcScore(calculados);
+  const scoreColor = score >= 75 ? '#00A86B' : score >= 50 ? '#D97706' : '#DC2626';
+  const scoreMsg = score >= 75
+    ? 'Seus indicadores estão saudáveis este mês.'
+    : score >= 50
+      ? 'Alguns indicadores merecem atenção.'
+      : 'Indicadores precisam de ação imediata.';
+
+  const primeiroNome = cliente?.responsavel_nome?.split(' ')[0] || profile?.nome?.split(' ')[0] || 'Cliente';
+  const hasCurrentData = !!latestComp;
+  const compLabel = latestComp
+    ? new Date(latestComp + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    : '';
+
+  const [expandedAta, setExpandedAta] = useState<string | null>(null);
+  const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
 
   const { data: proximaReuniao } = useQuery({
     queryKey: ['minha-area-reuniao', profile?.cliente_id],
     queryFn: async () => {
       if (!profile?.cliente_id) return null;
       const hoje = new Date().toISOString().split('T')[0];
-      const { data } = await supabase
-        .from('reunioes')
-        .select('*')
-        .eq('cliente_id', profile.cliente_id)
-        .eq('status', 'agendada')
-        .gte('data_reuniao', hoje)
-        .order('data_reuniao', { ascending: true })
-        .limit(1);
+      const { data } = await supabase.from('reunioes').select('*').eq('cliente_id', profile.cliente_id).eq('status', 'agendada').gte('data_reuniao', hoje).order('data_reuniao', { ascending: true }).limit(1);
       return data?.[0] || null;
     },
     enabled: !!profile?.cliente_id,
@@ -113,13 +121,7 @@ export default function MinhaAreaPage() {
       const monday = new Date(now);
       monday.setDate(now.getDate() + diff);
       const seg = monday.toISOString().split('T')[0];
-      const { data } = await supabase
-        .from('alertas_semanais')
-        .select('*')
-        .eq('cliente_id', profile.cliente_id)
-        .eq('semana_inicio', seg)
-        .eq('status', 'enviado')
-        .limit(1);
+      const { data } = await supabase.from('alertas_semanais').select('*').eq('cliente_id', profile.cliente_id).eq('semana_inicio', seg).eq('status', 'enviado').limit(1);
       return data?.[0] || null;
     },
     enabled: !!profile?.cliente_id,
@@ -129,42 +131,11 @@ export default function MinhaAreaPage() {
     queryKey: ['minha-area-atas', profile?.cliente_id],
     queryFn: async () => {
       if (!profile?.cliente_id) return [];
-      const { data } = await supabase
-        .from('reunioes')
-        .select('*')
-        .eq('cliente_id', profile.cliente_id)
-        .eq('status', 'realizada')
-        .order('data_reuniao', { ascending: false })
-        .limit(3);
+      const { data } = await supabase.from('reunioes').select('*').eq('cliente_id', profile.cliente_id).eq('status', 'realizada').order('data_reuniao', { ascending: false }).limit(3);
       return data || [];
     },
     enabled: !!profile?.cliente_id,
   });
-
-  const score = kpi ? calcHealthScore({
-    mc_pct: kpi.mc_pct, cmv_pct: kpi.cmv_pct, cmo_pct: kpi.cmo_pct, gc_pct: kpi.gc_pct, hasData: kpi.hasData,
-  }) : 0;
-
-  const penalties = kpi ? getPenalties(kpi) : [];
-  const primeiroNome = cliente?.responsavel_nome?.split(' ')[0] || profile?.nome?.split(' ')[0] || 'Cliente';
-
-  const hasCurrentData = !!latestComp;
-  const compLabel = latestComp
-    ? new Date(latestComp + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-    : '';
-
-  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
-  const toggle = (k: string) => setFlipped(p => ({ ...p, [k]: !p[k] }));
-
-  const [expandedAta, setExpandedAta] = useState<string | null>(null);
-
-  const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
-
-  const kpiCards = kpi ? [
-    { key: 'mc', value: kpi.mc_pct, spark: kpi.sparkHistory.mc },
-    { key: 'cmo', value: kpi.cmo_pct, spark: kpi.sparkHistory.cmo },
-    { key: 'gc', value: kpi.gc_pct, spark: kpi.sparkHistory.gc },
-  ] : [];
 
   return (
     <div className="space-y-5 pb-8">
@@ -188,19 +159,55 @@ export default function MinhaAreaPage() {
         </p>
       </div>
 
-      {/* Score Ring */}
-      <div className="relative flex items-center justify-center">
-        <ScoreRing score={score} size={170} />
-        {penalties.length > 0 && (
-          <div className="absolute right-0 top-4 space-y-1.5">
-            <p className="text-[9px] uppercase text-txt-muted font-semibold tracking-wide">Pontos críticos</p>
-            {penalties.map((p, i) => (
-              <Badge key={i} variant="outline" className={`text-[9px] block ${p.cor === 'red' ? 'border-red/40 bg-red/10 text-red' : 'border-amber/40 bg-amber/10 text-amber'}`}>
-                {p.text}
-              </Badge>
-            ))}
+      {/* Saúde do Negócio Card */}
+      <div className="rounded-xl border p-6" style={{ borderColor: '#DDE4F0', background: '#FFFFFF' }}>
+        <div className="flex flex-col items-center">
+          <div className="relative" style={{ width: 120, height: 120 }}>
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#F0F4FA" strokeWidth="8" />
+              <circle
+                cx="60" cy="60" r="50" fill="none"
+                stroke={scoreColor} strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={`${(score / 100) * 314} 314`}
+                transform="rotate(-90 60 60)"
+                style={{ transition: 'stroke-dasharray 0.8s ease' }}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center font-extrabold" style={{ fontSize: 36, color: scoreColor }}>{score}</span>
+          </div>
+          <p className="mt-2 text-sm font-medium" style={{ color: '#4A5E80' }}>
+            Saúde Financeira{compLabel ? ` — ${compLabel}` : ''}
+          </p>
+        </div>
+
+        {/* Indicator list */}
+        {calculados.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {calculados.map(item => {
+              const cfg = STATUS_CONFIG[item.status];
+              return (
+                <div key={item.indicador.id} className="flex items-center justify-between py-1.5" style={{ borderBottom: '1px solid #F0F4FA' }}>
+                  <div className="flex items-center gap-2">
+                    <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill={cfg.color} /></svg>
+                    <span className="text-xs" style={{ color: '#0D1B35' }}>{item.indicador.nome}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-medium" style={{ color: '#0D1B35' }}>
+                      {item.pct != null ? `${item.pct.toFixed(1)}%` : '—'}
+                    </span>
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
+
+        {/* Context message */}
+        <p className="mt-3 text-xs text-center" style={{ color: '#8A9BBC' }}>{scoreMsg}</p>
       </div>
 
       {/* Próxima reunião — glassmorphism */}
@@ -239,81 +246,6 @@ export default function MinhaAreaPage() {
           </Button>
         )}
       </div>
-
-      {/* KPI Flip Cards */}
-      {kpiCards.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase text-txt-muted font-semibold tracking-wide">
-            Indicadores do mês · toque para detalhes
-          </p>
-          {kpiCards.map(({ key, value, spark }) => {
-            const info = flipTexts[key];
-            const color = getStatusColor(key, value);
-            const isFlipped = flipped[key];
-            return (
-              <div
-                key={key}
-                className="cursor-pointer"
-                style={{ perspective: 900, height: 96 }}
-                onClick={() => toggle(key)}
-              >
-                <div
-                  className="relative w-full h-full transition-transform duration-[550ms]"
-                  style={{
-                    transformStyle: 'preserve-3d',
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)',
-                    transitionTimingFunction: 'cubic-bezier(0.4,0,0.2,1)',
-                  }}
-                >
-                  {/* Front */}
-                  <div
-                    className="absolute inset-0 rounded-xl p-4 flex items-center justify-between"
-                    style={{
-                      backfaceVisibility: 'hidden',
-                      borderLeft: `4px solid ${color}`,
-                      border: `1px solid ${color}88`,
-                      borderLeftWidth: 4,
-                      background: 'hsl(var(--surface))',
-                    }}
-                  >
-                    <div>
-                      <p className="text-[10px] uppercase text-txt-muted font-semibold">{info.label}</p>
-                      <p className="text-[26px] font-bold font-mono-data" style={{ color, lineHeight: 1.1 }}>
-                        {value.toFixed(1)}%
-                      </p>
-                      <p className="text-[10px] text-txt-muted">{info.ref}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <SparkLine data={spark} color={color} width={60} height={22} />
-                      <Badge
-                        variant="outline"
-                        className="text-[9px]"
-                        style={{ color, borderColor: `${color}55` }}
-                      >
-                        {getStatusLabel(key, value)}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Back */}
-                  <div
-                    className="absolute inset-0 rounded-xl p-4 flex flex-col justify-center"
-                    style={{
-                      backfaceVisibility: 'hidden',
-                      transform: 'rotateY(180deg)',
-                      background: `linear-gradient(135deg, ${color}dd, ${color}99)`,
-                    }}
-                  >
-                    <p className="text-[9px] uppercase text-white/70 font-semibold">O que significa</p>
-                    <p className="text-xs text-white mt-1 leading-relaxed">{info.back}</p>
-                    <p className="text-[9px] text-white/50 mt-2">↩ toque para voltar</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Alertas da semana */}
       <div className="space-y-2">

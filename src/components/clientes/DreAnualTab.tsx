@@ -122,46 +122,9 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
   return { text: abs, color: '#00A86B' };
 }
 
-// --- Dynamic Benchmark from benchmark_configuracoes ---
-interface BenchmarkConfigRow {
-  id: string;
-  cliente_id: string;
-  conta_id: string;
-  limite_verde: number;
-  limite_ambar: number;
-  direcao: string;
-}
+interface Props { clienteId: string; }
 
-function getDynamicBenchmarkDot(avPct: number, config: BenchmarkConfigRow): React.ReactNode {
-  let color: string;
-  if (config.direcao === 'menor_melhor') {
-    if (avPct < config.limite_verde) color = '#00A86B';
-    else if (avPct < config.limite_ambar) color = '#D97706';
-    else color = '#DC2626';
-  } else {
-    if (avPct > config.limite_verde) color = '#00A86B';
-    else if (avPct > config.limite_ambar) color = '#D97706';
-    else color = '#DC2626';
-  }
-  return (
-    <svg width="6" height="6" style={{ flexShrink: 0 }}>
-      <circle cx="3" cy="3" r="3" fill={color} />
-    </svg>
-  );
-}
-
-function getBenchmarkTooltip(config: BenchmarkConfigRow): string {
-  if (config.direcao === 'menor_melhor') {
-    return `Benchmark: verde <${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho >${config.limite_ambar}%`;
-  }
-  return `Benchmark: verde >${config.limite_verde}% · âmbar ${config.limite_ambar}–${config.limite_verde}% · vermelho <${config.limite_ambar}%`;
-}
-
-import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
-
-interface Props { clienteId: string; benchmarks?: BenchmarkThresholds; }
-
-export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Props) {
+export function DreAnualTab({ clienteId }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -193,24 +156,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     },
   });
 
-  // --- Benchmark configuracoes (per-subgroup) ---
-  const { data: benchmarkConfigsData } = useQuery({
-    queryKey: ['benchmark-configuracoes-dre', clienteId],
-    enabled: !!clienteId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('benchmark_configuracoes' as any)
-        .select('*')
-        .eq('cliente_id', clienteId);
-      return (data || []) as unknown as BenchmarkConfigRow[];
-    },
-  });
 
-  const benchmarkMap = useMemo(() => {
-    const map = new Map<string, BenchmarkConfigRow>();
-    benchmarkConfigsData?.forEach(c => map.set(c.conta_id, c));
-    return map;
-  }, [benchmarkConfigsData]);
+
 
   // --- Saldos de contas bancárias ---
   const queryClient = useQueryClient();
@@ -462,16 +409,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
 
     const avPct = (Math.abs(val!) / Math.abs(fat)) * 100;
 
-    // Only show benchmark dot on subgrupos (nivel=1) with a configured benchmark
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
-    if (isSubgrupo && contaId) {
-      const config = benchmarkMap.get(contaId);
-      if (config) {
-        dot = getDynamicBenchmarkDot(avPct, config);
-        tooltipText = getBenchmarkTooltip(config);
-      }
-    }
 
     return (
       <td style={{ width: avColW, minWidth: avColW, padding: '0 6px', textAlign: 'right', background: baseBg }} title={tooltipText || undefined}>
@@ -837,37 +776,8 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
         </div>
       </div>
 
-      {/* Benchmark Legend — dynamic from benchmark_configuracoes */}
-      {hasContas && hasAnyData && showAV && benchmarkConfigsData && benchmarkConfigsData.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border px-4 py-2.5" style={{ borderColor: '#DDE4F0', background: '#F6F9FF' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Benchmarks AV%
-          </span>
-          {benchmarkConfigsData.map(cfg => {
-            const conta = contas?.find(c => c.id === cfg.conta_id);
-            if (!conta) return null;
-            const name = conta.nome.replace(/^\([+-]\)\s*/, '');
-            const isMenor = cfg.direcao === 'menor_melhor';
-            return (
-              <span key={cfg.id} className="flex items-center gap-3" style={{ fontSize: 11 }}>
-                <span className="inline-flex items-center gap-1">
-                  <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#00A86B" /></svg>
-                  <span style={{ fontWeight: 500, color: '#4A5E80' }}>{name} {isMenor ? '<' : '>'} {cfg.limite_verde}%</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#D97706" /></svg>
-                  <span style={{ color: '#8A9BBC' }}>{isMenor ? `${cfg.limite_verde}–${cfg.limite_ambar}%` : `${cfg.limite_ambar}–${cfg.limite_verde}%`}</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill="#DC2626" /></svg>
-                  <span style={{ color: '#8A9BBC' }}>{isMenor ? '>' : '<'} {cfg.limite_ambar}%</span>
-                </span>
-                <span style={{ width: 1, height: 14, background: '#DDE4F0' }} />
-              </span>
-            );
-          })}
-        </div>
-      )}
+
+
 
       {/* Empty states */}
       {!hasContas && (
