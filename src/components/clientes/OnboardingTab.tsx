@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Award } from 'lucide-react';
+import { ChevronDown, ChevronRight, Award, ExternalLink } from 'lucide-react';
 import { SEMANA_TITULOS } from '@/lib/onboarding-defaults';
 import { toast } from '@/hooks/use-toast';
 
