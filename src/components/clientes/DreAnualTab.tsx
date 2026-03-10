@@ -63,13 +63,15 @@ interface Indicador {
 const INDICADORES: Indicador[] = [
   { key: 'mc', nomeDisplay: 'Margem de contribuição (A+B)', pctLabel: '% ((A+B)÷A)', tipos: ['receita', 'custo_variavel'], dotColor: '#00A86B' },
   { key: 'ro', nomeDisplay: 'Resultado Operacional', pctLabel: '% (RO÷A)', tipos: ['receita', 'custo_variavel', 'despesa_fixa'], dotColor: '#D97706' },
-  { key: 'gc', nomeDisplay: 'Geração de Caixa', pctLabel: '% (GC÷A)', tipos: ['receita', 'custo_variavel', 'despesa_fixa', 'investimento'], dotColor: '#1A3CFF' },
+  { key: 'rai', nomeDisplay: 'Resultado após Investimentos', pctLabel: '% (RAI÷A)', tipos: ['receita', 'custo_variavel', 'despesa_fixa', 'investimento'], dotColor: '#0099E6' },
+  { key: 'gc', nomeDisplay: 'Geração de Caixa', pctLabel: '% (GC÷A)', tipos: ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'], dotColor: '#1A3CFF' },
 ];
 
 const INDICADOR_AFTER_TIPO: Record<string, Indicador> = {
   custo_variavel: INDICADORES[0],
   despesa_fixa: INDICADORES[1],
   investimento: INDICADORES[2],
+  financeiro: INDICADORES[3],
 };
 
 function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | null>, tipos: string[]): number | null {
