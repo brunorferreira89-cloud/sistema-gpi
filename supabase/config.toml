@@ -2,3 +2,6 @@ project_id = "euvmzwkdiixnmyxuwodg"
 
 [functions.analisar-indicador]
 verify_jwt = false
+
+[functions.sugerir-metas]
+verify_jwt = false
