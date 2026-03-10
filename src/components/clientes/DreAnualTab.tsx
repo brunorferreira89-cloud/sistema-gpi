@@ -900,7 +900,7 @@ export function DreAnualTab({ clienteId }: Props) {
     <div className="space-y-4">
       {/* Indicadores Header */}
       {hasContas && contas && valoresAnuais && (
-        <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} />
+        <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} clienteId={clienteId} />
       )}
 
       {/* Month selector */}
