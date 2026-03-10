@@ -18,46 +18,42 @@ export default function DebugTributosPage() {
   const [deleting, setDeleting] = useState(false);
 
   const loadData = async () => {
+    setLoading(true);
+    const { data: contas } = await supabase
+      .from('plano_de_contas')
+      .select('id, nome, nivel')
+      .eq('cliente_id', CLIENTE_ID);
+    if (!contas?.length) { setLoading(false); return; }
+    const contaMap = new Map(contas.map(c => [c.id, c]));
+    const contaIds = contas.map(c => c.id);
+    const { data: valores } = await supabase
+      .from('valores_mensais')
+      .select('conta_id, competencia, valor_realizado')
+      .in('conta_id', contaIds)
+      .not('valor_realizado', 'is', null)
+      .order('competencia');
+    const joined: Row[] = (valores || []).map(v => {
+      const c = contaMap.get(v.conta_id);
+      return { conta_id: v.conta_id, competencia: v.competencia, valor_realizado: v.valor_realizado, nome: c?.nome ?? '???', nivel: c?.nivel ?? -1 };
+    }).sort((a, b) => a.nivel - b.nivel || a.nome.localeCompare(b.nome) || a.competencia.localeCompare(b.competencia));
+    setRows(joined);
+    setLoading(false);
+  };
 
-  useEffect(() => {
-    async function run() {
-      setLoading(true);
+  const handleDeleteAll = async () => {
+    if (!window.confirm('⚠️ ATENÇÃO: Isso vai apagar TODOS os valores_mensais do cliente Regalo. Tem certeza?')) return;
+    if (!window.confirm('ÚLTIMA CONFIRMAÇÃO: Esta ação é irreversível. Continuar?')) return;
+    setDeleting(true);
+    const { data: contas } = await supabase.from('plano_de_contas').select('id').eq('cliente_id', CLIENTE_ID);
+    const contaIds = contas?.map(c => c.id) || [];
+    if (contaIds.length === 0) { setDeleteResult('Nenhuma conta encontrada.'); setDeleting(false); return; }
+    const { data: deleted, error } = await supabase.from('valores_mensais').delete().in('conta_id', contaIds).select('id');
+    if (error) { setDeleteResult(`ERRO: ${error.message}`); } else { setDeleteResult(`✅ ${deleted?.length ?? 0} registros removidos.`); }
+    setDeleting(false);
+    await loadData();
+  };
 
-      // Get all contas for this client
-      const { data: contas } = await supabase
-        .from('plano_de_contas')
-        .select('id, nome, nivel')
-        .eq('cliente_id', CLIENTE_ID);
-
-      if (!contas?.length) { setLoading(false); return; }
-
-      const contaMap = new Map(contas.map(c => [c.id, c]));
-      const contaIds = contas.map(c => c.id);
-
-      // Get all valores_mensais with non-null valor
-      const { data: valores } = await supabase
-        .from('valores_mensais')
-        .select('conta_id, competencia, valor_realizado')
-        .in('conta_id', contaIds)
-        .not('valor_realizado', 'is', null)
-        .order('competencia');
-
-      const joined: Row[] = (valores || []).map(v => {
-        const c = contaMap.get(v.conta_id);
-        return {
-          conta_id: v.conta_id,
-          competencia: v.competencia,
-          valor_realizado: v.valor_realizado,
-          nome: c?.nome ?? '???',
-          nivel: c?.nivel ?? -1,
-        };
-      }).sort((a, b) => a.nivel - b.nivel || a.nome.localeCompare(b.nome) || a.competencia.localeCompare(b.competencia));
-
-      setRows(joined);
-      setLoading(false);
-    }
-    run();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   if (loading) return <div style={{ padding: 32 }}>Carregando...</div>;
 
