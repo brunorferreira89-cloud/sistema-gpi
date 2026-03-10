@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
-import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2, Loader2, Plus } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, ChevronLeft, Trash2, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { DreIndicadoresHeader } from './DreIndicadoresHeader';
@@ -136,6 +136,7 @@ export function DreAnualTab({ clienteId }: Props) {
   const [drawerTitulo, setDrawerTitulo] = useState('');
   const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
   const months = getMonthsForYear(ano);
+  const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
 
   const now = new Date();
   const currentMonthComp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -301,6 +302,15 @@ export function DreAnualTab({ clienteId }: Props) {
     return map;
   }, [valoresAnuais]);
 
+  const monthsWithData = useMemo(() => {
+    return months.filter(m => valoresAnuais?.some(v => v.competencia === m.value && v.valor_realizado != null));
+  }, [months, valoresAnuais]);
+
+  // Effective selected month: mesSelecionado or last month with data
+  const mesEfetivo = mesSelecionado && monthsWithData.some(m => m.value === mesSelecionado)
+    ? mesSelecionado
+    : (monthsWithData.length > 0 ? monthsWithData[monthsWithData.length - 1].value : null);
+
   const hasAnyData = useMemo(() => {
     return valoresAnuais?.some((v) => v.valor_realizado != null) ?? false;
   }, [valoresAnuais]);
@@ -385,7 +395,7 @@ export function DreAnualTab({ clienteId }: Props) {
     ...extra,
   });
 
-  const isCurrentMonth = (comp: string) => comp === currentMonthComp;
+  const isCurrentMonth = (comp: string) => comp === mesEfetivo;
 
   // --- AV% helper ---
   const fmtAv = (val: number | null, fat: number): string | null => {
@@ -890,7 +900,49 @@ export function DreAnualTab({ clienteId }: Props) {
     <div className="space-y-4">
       {/* Indicadores Header */}
       {hasContas && contas && valoresAnuais && (
-        <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} />
+        <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} />
+      )}
+
+      {/* Month selector */}
+      {monthsWithData.length > 0 && (
+        <div className="flex items-center gap-2" style={{ marginBottom: -8 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8A9BBC' }}>
+            Referência:
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                const idx = monthsWithData.findIndex(m => m.value === mesEfetivo);
+                if (idx > 0) setMesSelecionado(monthsWithData[idx - 1].value);
+              }}
+              disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0}
+              style={{
+                padding: '2px 4px', borderRadius: 4, cursor: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? 'default' : 'pointer',
+                color: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? '#C4CFEA' : '#4A5E80',
+                background: 'transparent', border: 'none', lineHeight: 0,
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#0D1B35', minWidth: 120, textAlign: 'center', display: 'inline-block' }}>
+              {mesEfetivo ? new Date(mesEfetivo + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').toUpperCase() : '—'}
+            </span>
+            <button
+              onClick={() => {
+                const idx = monthsWithData.findIndex(m => m.value === mesEfetivo);
+                if (idx < monthsWithData.length - 1) setMesSelecionado(monthsWithData[idx + 1].value);
+              }}
+              disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1}
+              style={{
+                padding: '2px 4px', borderRadius: 4, cursor: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? 'default' : 'pointer',
+                color: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? '#C4CFEA' : '#4A5E80',
+                background: 'transparent', border: 'none', lineHeight: 0,
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
       {/* Title + Filter + Toggle Buttons */}
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -930,7 +982,7 @@ export function DreAnualTab({ clienteId }: Props) {
           </div>
           <div className="space-y-1">
             <label className="text-xs" style={{ color: '#8A9BBC' }}>Ano</label>
-            <Select value={ano} onValueChange={(v) => { setAno(v); }}>
+            <Select value={ano} onValueChange={(v) => { setAno(v); setMesSelecionado(null); }}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
             </Select>
