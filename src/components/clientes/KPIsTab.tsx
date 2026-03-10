@@ -149,6 +149,7 @@ export function KPIsTab({ clienteId }: Props) {
           tipo_fonte: ind.tipo_fonte, conta_id: ind.conta_id, totalizador_key: ind.totalizador_key,
           limite_verde: ind.limite_verde, limite_ambar: ind.limite_ambar, direcao: ind.direcao,
           ativo: true, ordem: ind.ordem,
+          conta_ids: (ind as any).conta_ids || [],
         });
       }
     },
