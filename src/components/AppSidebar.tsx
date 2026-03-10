@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, BookOpen, BarChart3, Target, Calendar, ClipboardList, KanbanSquare, FileSpreadsheet, Bell, CalendarCheck, Users2, Stethoscope, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -8,11 +8,6 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
   { icon: Users, label: 'Clientes', to: '/clientes' },
   { icon: KanbanSquare, label: 'Kanban', to: '/kanban' },
-  { icon: BookOpen, label: 'Plano de Contas', to: '/plano-de-contas' },
-  { icon: BarChart3, label: 'Torre / DRE', to: '/torre-de-controle' },
-  { icon: FileSpreadsheet, label: 'Importação Nibo', to: '/importacao-nibo' },
-  { icon: Bell, label: 'Alertas', to: '/alertas' },
-  { icon: Target, label: 'KPIs', to: '/kpis' },
   { icon: CalendarCheck, label: 'Reuniões', to: '/reunioes' },
   { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },
   { icon: Stethoscope, label: 'Diagnósticos', to: '/diagnostico' },
