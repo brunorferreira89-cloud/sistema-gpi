@@ -280,6 +280,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [drawerSugestaoOpen, setDrawerSugestaoOpen] = useState(false);
   const [sugestoes, setSugestoes] = useState<SugestaoMeta[]>([]);
   const [loadingSugestao, setLoadingSugestao] = useState(false);
+  const [sugestaoGeradaEm, setSugestaoGeradaEm] = useState<string | null>(null);
+  const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
 
   const mesAnt = useMemo(() => competencia ? getMesAnterior(competencia) : '', [competencia]);
   const mesSeg = useMemo(() => competencia ? getMesSeguinte(competencia) : '', [competencia]);
@@ -445,17 +447,24 @@ export function TorreControleTab({ clienteId }: Props) {
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMap]);
 
-  const handleSugerirMetas = async (force = false) => {
+  const handleSugerirMetas = async (forcarRegeneracao = false) => {
     if (!cliente) return;
     setLoadingSugestao(true);
     setDrawerSugestaoOpen(true);
-    setSugestoes([]);
+    if (forcarRegeneracao) setSugestoes([]); // limpa para mostrar spinner
     try {
       const { data, error } = await supabase.functions.invoke('sugerir-metas', {
-        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt, force },
+        body: {
+          cliente_id: cliente.id,
+          competencia,
+          competencia_anterior: mesAnt,
+          force: forcarRegeneracao,
+        },
       });
       if (error) throw error;
       setSugestoes(data?.sugestoes || []);
+      setSugestaoGeradaEm(data?.gerado_em || null);
+      setSugestaoFromCache(data?.cached || false);
     } catch (err) {
       console.error('Erro ao sugerir metas:', err);
       toast.error('Erro ao obter sugestões de metas');
@@ -803,6 +812,8 @@ export function TorreControleTab({ clienteId }: Props) {
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
         onRegenerar={() => handleSugerirMetas(true)}
+        geradoEm={sugestaoGeradaEm}
+        fromCache={sugestaoFromCache}
       />
     </div>
   );

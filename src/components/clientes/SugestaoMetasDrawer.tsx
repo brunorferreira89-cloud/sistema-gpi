@@ -37,6 +37,8 @@ interface SugestaoMetasDrawerProps {
   onAplicar: (selecionadas: SugestaoMeta[]) => Promise<void>;
   loading: boolean;
   onRegenerar?: () => void;
+  geradoEm?: string | null;
+  fromCache?: boolean;
 }
 
 // ── Colors ───────────────────────────────────────────────────────
