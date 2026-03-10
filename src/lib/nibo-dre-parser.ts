@@ -183,11 +183,30 @@ export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<
           });
         }
 
+        // Deduplicate: when multiple lines normalise to the same name,
+        // keep the mixed-case one (real category) over the all-caps one (totalizer).
+        // Sort so all-caps come first, mixed-case last → "last wins" in the Map.
+        valores.sort((a, b) => {
+          const aLetters = a.nomeOriginal.replace(/^\s*\([+-]\)\s*/, '').replace(/[^a-zA-ZÀ-ú]/g, '');
+          const bLetters = b.nomeOriginal.replace(/^\s*\([+-]\)\s*/, '').replace(/[^a-zA-ZÀ-ú]/g, '');
+          const aMixed = aLetters !== aLetters.toUpperCase();
+          const bMixed = bLetters !== bLetters.toUpperCase();
+          if (aMixed && !bMixed) return 1;  // a (mixed) goes last
+          if (!aMixed && bMixed) return -1; // b (mixed) goes last
+          return 0;
+        });
+
+        const dedup = new Map<string, ValorParseado>();
+        for (const v of valores) {
+          dedup.set(normalizar(v.nomeOriginal), v);
+        }
+        const valoresFinais = Array.from(dedup.values());
+
         resolve({
           valido: true,
           mesesDisponiveis,
           anoReferencia,
-          valores,
+          valores: valoresFinais,
         });
       } catch (err) {
         reject(err);
