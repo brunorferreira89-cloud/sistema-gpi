@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
 import { BookOpen, FileSpreadsheet, TrendingUp, TrendingDown } from 'lucide-react';
+import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
 
 const competencias = getCompetenciaOptions();
 
@@ -47,7 +48,6 @@ interface Props {
 export function TorreControleTab({ clienteId }: Props) {
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
 
-  // Get previous month
   const mesAnterior = useMemo(() => {
     if (!competencia) return '';
     const [y, m] = competencia.split('-').map(Number);
@@ -90,6 +90,18 @@ export function TorreControleTab({ clienteId }: Props) {
     return map;
   }, [valores]);
 
+  const realizadoMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    valores?.forEach((v) => { map[v.conta_id] = v.valor_realizado; });
+    return map;
+  }, [valores]);
+
+  const metaMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    valores?.forEach((v) => { map[v.conta_id] = v.valor_meta; });
+    return map;
+  }, [valores]);
+
   const valoresAntMap = useMemo(() => {
     const map: Record<string, number | null> = {};
     valoresAnterior?.forEach((v) => { map[v.conta_id] = v.valor_realizado; });
@@ -112,13 +124,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const hasValores = valores && valores.some((v) => v.valor_realizado != null);
   const hasAnterior = valoresAnterior && valoresAnterior.some((v) => v.valor_realizado != null);
   const compLabel = competencias.find((c) => c.value === competencia)?.label || '';
-  const mesAntLabel = (() => {
-    const opt = competencias.find((c) => c.value === mesAnterior);
-    if (opt) return opt.label;
-    if (!mesAnterior) return '';
-    const [y, m] = mesAnterior.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  })();
+
+  const dreRows = useMemo(() => (contas ? buildDreRows(contas) : []), [contas]);
 
   return (
     <div className="space-y-4">
@@ -167,7 +174,42 @@ export function TorreControleTab({ clienteId }: Props) {
               </tr>
             </thead>
             <tbody>
-              {contas?.map((conta) => {
+              {dreRows.map((row) => {
+                if (row.type === 'indicador') {
+                  const ind = row.indicador;
+                  const realVal = calcIndicador(contas!, realizadoMap, ind.acumula);
+                  const metaVal = calcIndicador(contas!, metaMap, ind.acumula);
+                  const antVal = hasAnterior ? calcIndicador(contas!, valoresAntMap, ind.acumula) : null;
+                  const av = faturamento.real ? ((realVal / faturamento.real) * 100).toFixed(1) : null;
+
+                  return (
+                    <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
+                      <td className="p-3 text-txt">{ind.nome}</td>
+                      <td className="p-3 text-right font-mono text-xs">
+                        <span className={realVal >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(realVal)}</span>
+                      </td>
+                      <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
+                      <td className="p-3 text-right font-mono text-xs text-txt-sec">
+                        {metaVal !== 0 ? formatCurrency(metaVal) : '—'}
+                      </td>
+                      <td className="p-3 text-right">
+                        <DeltaBadge realizado={realVal} meta={metaVal !== 0 ? metaVal : null} />
+                      </td>
+                      {hasAnterior && (
+                        <>
+                          <td className="p-3 text-right font-mono text-xs text-txt-sec border-l border-border/50">
+                            {antVal != null ? formatCurrency(antVal) : '—'}
+                          </td>
+                          <td className="p-3 text-right">
+                            <VariacaoBadge atual={realVal} anterior={antVal} />
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                }
+
+                const conta = row.conta;
                 const v = valoresMap[conta.id];
                 const real = v?.valor_realizado;
                 const meta = v?.valor_meta;

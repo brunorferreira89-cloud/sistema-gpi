@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet } from 'lucide-react';
+import { buildDreRows, calcIndicador } from '@/lib/dre-indicadores';
 
 const tipoBorderColors: Record<string, string> = {
   receita: 'border-l-primary',
@@ -80,7 +81,6 @@ export function DreAnualTab({ clienteId }: Props) {
     return map;
   }, [valoresAnuais]);
 
-  // Which months have data
   const mesesComDados = useMemo(() => {
     const set = new Set<string>();
     valoresAnuais?.forEach((v) => {
@@ -92,12 +92,22 @@ export function DreAnualTab({ clienteId }: Props) {
   const hasContas = contas && contas.length > 0;
   const hasData = mesesComDados.length > 0;
 
-  // Filter columns: if a specific month is selected, show only that; otherwise show all with data
   const displayMonths = mesSelecionado
     ? months.filter((m) => m.value === mesSelecionado)
     : mesesComDados;
 
-  // Calculate faturamento for AV%
+  const dreRows = useMemo(() => (contas ? buildDreRows(contas) : []), [contas]);
+
+  // Helper: get flat values map for a specific month (conta_id -> value)
+  const getMonthValuesMap = (comp: string): Record<string, number | null> => {
+    const map: Record<string, number | null> = {};
+    contas?.forEach((c) => {
+      map[c.id] = valoresMap[c.id]?.[comp] ?? null;
+    });
+    return map;
+  };
+
+  // Faturamento per month for AV%
   const faturamentoPorMes = useMemo(() => {
     const map: Record<string, number> = {};
     if (!contas) return map;
@@ -166,7 +176,37 @@ export function DreAnualTab({ clienteId }: Props) {
               </tr>
             </thead>
             <tbody>
-              {contas?.map((conta) => {
+              {dreRows.map((row, idx) => {
+                if (row.type === 'indicador') {
+                  const ind = row.indicador;
+                  let acumuladoTotal = 0;
+                  return (
+                    <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
+                      <td className="p-3 text-txt sticky left-0 bg-primary/5 z-10">{ind.nome}</td>
+                      {displayMonths.map((m) => {
+                        const monthMap = getMonthValuesMap(m.value);
+                        const val = calcIndicador(contas!, monthMap, ind.acumula);
+                        acumuladoTotal += val;
+                        const fat = faturamentoPorMes[m.value] || 0;
+                        return (
+                          <td key={m.value} className="p-3 text-right font-mono text-xs">
+                            <span className={val >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(val)}</span>
+                            {fat !== 0 && (
+                              <span className="block text-[10px] text-txt-muted">{((val / fat) * 100).toFixed(1)}%</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {displayMonths.length > 1 && (
+                        <td className="p-3 text-right font-mono text-xs font-bold">
+                          <span className={acumuladoTotal >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(acumuladoTotal)}</span>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                }
+
+                const conta = row.conta;
                 const isHighlight = conta.is_total || conta.nivel === 1;
                 const borderColor = tipoBorderColors[conta.tipo] || 'border-l-transparent';
                 let acumulado = 0;
