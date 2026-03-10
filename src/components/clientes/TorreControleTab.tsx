@@ -4,43 +4,47 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
-import { BookOpen, FileSpreadsheet, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { calcIndicador, getLeafContas, sumChildrenOfGroup, sumChildrenOfSection, indicadorAfterType, type IndicadorDRE } from '@/lib/dre-indicadores';
-import { IndicadorDetalhe } from '@/components/clientes/IndicadorDetalhe';
 
 const competencias = getCompetenciaOptions();
 
-const tipoBorderColors: Record<string, string> = {
-  receita: 'border-l-primary',
-  custo_variavel: 'border-l-red',
-  despesa_fixa: 'border-l-amber',
-  investimento: 'border-l-[#9333EA]',
-  financeiro: 'border-l-txt-muted',
+// --- Format helpers (same as DRE) ---
+function fmtVal(val: number | null): { text: string; color: string } {
+  if (val == null) return { text: '—', color: '#C4CFEA' };
+  if (val === 0) return { text: '0', color: '#8A9BBC' };
+  if (val < 0) {
+    const abs = formatCurrency(Math.abs(val)).replace('R$\u00a0', '').replace('R$ ', '');
+    return { text: `(${abs})`, color: '#DC2626' };
+  }
+  return { text: formatCurrency(val).replace('R$\u00a0', '').replace('R$ ', ''), color: '#0D1B35' };
+}
+
+function fmtIndicadorVal(val: number | null): { text: string; color: string } {
+  if (val == null) return { text: '—', color: '#8A9BBC' };
+  if (val === 0) return { text: '0', color: '#8A9BBC' };
+  const abs = formatCurrency(Math.abs(val)).replace('R$\u00a0', '').replace('R$ ', '');
+  if (val < 0) return { text: `(${abs})`, color: '#DC2626' };
+  return { text: abs, color: '#00A86B' };
+}
+
+function hasPrefixPlus(nome: string): boolean { return nome.trim().startsWith('(+)'); }
+function hasPrefixMinus(nome: string): boolean { return nome.trim().startsWith('(-)'); }
+
+// --- Indicador dot colors (matching DRE) ---
+const indicadorDotColors: Record<string, string> = {
+  margem_contribuicao: '#00A86B',
+  resultado_operacional: '#D97706',
+  resultado_apos_investimentos: '#0099E6',
+  resultado_caixa: '#1A3CFF',
 };
 
-function DeltaBadge({ realizado, meta }: { realizado: number | null; meta: number | null }) {
-  if (realizado == null || meta == null || meta === 0) return null;
-  const delta = ((realizado - meta) / Math.abs(meta)) * 100;
-  const positive = delta >= 0;
-  return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? 'bg-green/10 text-green' : 'bg-red/10 text-red'}`}>
-      {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {positive ? '+' : ''}{delta.toFixed(1)}%
-    </span>
-  );
-}
-
-function VariacaoBadge({ atual, anterior }: { atual: number | null; anterior: number | null }) {
-  if (atual == null || anterior == null || anterior === 0) return null;
-  const delta = ((atual - anterior) / Math.abs(anterior)) * 100;
-  const positive = delta >= 0;
-  return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? 'bg-primary/10 text-primary' : 'bg-red/10 text-red'}`}>
-      {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {positive ? '+' : ''}{delta.toFixed(1)}%
-    </span>
-  );
-}
+const indicadorAvColors: Record<string, string> = {
+  margem_contribuicao: '#00A86B',
+  resultado_operacional: '#D97706',
+  resultado_apos_investimentos: '#0099E6',
+  resultado_caixa: '#1A3CFF',
+};
 
 interface Props { clienteId: string; }
 
@@ -88,7 +92,6 @@ export function TorreControleTab({ clienteId }: Props) {
     },
   });
 
-  // --- Full year query for visibility filter ---
   const { data: valoresAnoCompleto } = useQuery({
     queryKey: ['valores-ano-completo-torre', clienteId, anoSelecionado, contas?.length ?? 0],
     enabled: !!clienteId && !!contas?.length,
@@ -123,17 +126,27 @@ export function TorreControleTab({ clienteId }: Props) {
     return map;
   }, [valoresAnterior]);
 
+  const leafContas = useMemo(() => (contas ? getLeafContas(contas) : []), [contas]);
+
   const faturamento = useMemo(() => {
     if (!contas) return { real: 0, meta: 0 };
-    const leafs = getLeafContas(contas);
-    const receitaLeafs = leafs.filter((c) => c.tipo === 'receita');
+    const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
     let real = 0, meta = 0;
     receitaLeafs.forEach((c) => {
       const r = realizadoMap[c.id]; if (r != null) real += r;
       const m = metaMap[c.id]; if (m != null) meta += m;
     });
     return { real, meta };
-  }, [contas, realizadoMap, metaMap]);
+  }, [leafContas, realizadoMap, metaMap]);
+
+  const faturamentoAnt = useMemo(() => {
+    if (!leafContas.length) return 0;
+    let total = 0;
+    leafContas.filter((c) => c.tipo === 'receita').forEach((c) => {
+      const v = valoresAntMap[c.id]; if (v != null) total += v;
+    });
+    return total;
+  }, [leafContas, valoresAntMap]);
 
   const hasContas = contas && contas.length > 0;
   const hasValores = valores && valores.some((v) => v.valor_realizado != null);
@@ -148,16 +161,13 @@ export function TorreControleTab({ clienteId }: Props) {
     });
   };
 
-  // --- Filter: contas with value in ANY month of the year ---
+  // --- Filter ---
   const contasComValor = useMemo(() => {
     const set = new Set<string>();
-    valoresAnoCompleto?.forEach((v) => {
-      set.add(v.conta_id);
-    });
+    valoresAnoCompleto?.forEach((v) => { set.add(v.conta_id); });
     return set;
   }, [valoresAnoCompleto]);
 
-  /** Check if a conta (or any descendant) has values in the year */
   const contaHasValues = useCallback((contaId: string, nivel: number): boolean => {
     if (nivel === 2) return contasComValor.has(contaId);
     return contas?.some((c) => c.conta_pai_id === contaId && contaHasValues(c.id, c.nivel)) ?? false;
@@ -169,10 +179,7 @@ export function TorreControleTab({ clienteId }: Props) {
     let lastTipo = '';
 
     for (const conta of contas) {
-      // Filter: skip contas without values
       if (!contaHasValues(conta.id, conta.nivel)) continue;
-
-      // Check visibility (collapsed parents)
       if (conta.nivel === 2 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) continue;
       if (conta.nivel === 1 && conta.conta_pai_id && collapsed.has(conta.conta_pai_id)) continue;
       if (conta.nivel === 2 && conta.conta_pai_id) {
@@ -195,11 +202,44 @@ export function TorreControleTab({ clienteId }: Props) {
     return rows;
   }, [contas, collapsed, contaHasValues]);
 
+  // --- Sticky cell style helper (same as DRE) ---
+  const stickyTd = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
+    position: 'sticky',
+    left: 0,
+    zIndex: 10,
+    background: bg,
+    borderRight: '1px solid #DDE4F0',
+    minWidth: 280,
+    maxWidth: 360,
+    ...extra,
+  });
+
+  // --- Delta badge ---
+  const renderDelta = (val: number | null, ref: number | null) => {
+    if (val == null || ref == null || ref === 0) return null;
+    const delta = ((val - ref) / Math.abs(ref)) * 100;
+    const positive = delta >= 0;
+    const color = positive ? '#00A86B' : '#DC2626';
+    const bg = positive ? 'rgba(0,168,107,0.08)' : 'rgba(220,38,38,0.08)';
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 600, color, background: bg }}>
+        {positive ? '▲' : '▼'} {positive ? '+' : ''}{delta.toFixed(1)}%
+      </span>
+    );
+  };
+
+  // Number of data columns
+  const colCount = hasAnterior ? 6 : 4;
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+      {/* Title + Filter */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#8A9BBC', textTransform: 'uppercase' }}>
+          TORRE DE CONTROLE — DRE MENSAL
+        </div>
         <div className="space-y-1">
-          <label className="text-xs text-txt-muted">Competência</label>
+          <label className="text-xs" style={{ color: '#8A9BBC' }}>Competência</label>
           <Select value={competencia} onValueChange={setCompetencia}>
             <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -211,32 +251,52 @@ export function TorreControleTab({ clienteId }: Props) {
 
       {!hasContas && (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <BookOpen className="h-12 w-12 text-txt-muted/40" />
-          <p className="text-sm text-txt-sec">Plano de contas não configurado.</p>
+          <BookOpen className="h-12 w-12" style={{ color: '#8A9BBC', opacity: 0.4 }} />
+          <p className="text-sm" style={{ color: '#4A5E80' }}>Plano de contas não configurado.</p>
         </div>
       )}
 
       {hasContas && !hasValores && (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <FileSpreadsheet className="h-12 w-12 text-txt-muted/40" />
-          <p className="text-sm text-txt-sec">Nenhum valor importado para {compLabel}</p>
+          <FileSpreadsheet className="h-12 w-12" style={{ color: '#8A9BBC', opacity: 0.4 }} />
+          <p className="text-sm" style={{ color: '#4A5E80' }}>Nenhum valor importado para {compLabel}</p>
         </div>
       )}
 
       {hasContas && hasValores && (
-        <div className="rounded-xl border border-border bg-surface overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
+        <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 700 }}>
             <thead>
-              <tr className="border-b border-border bg-surface-hi text-left text-xs text-txt-muted">
-                <th className="p-3">Conta DRE</th>
-                <th className="p-3 text-right">Realizado</th>
-                <th className="p-3 text-right">A.V.%</th>
-                <th className="p-3 text-right">Meta</th>
-                <th className="p-3 text-right">Δ vs Meta</th>
+              <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
+                <th style={{
+                  ...stickyTd('#F0F4FA', {
+                    padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
+                    color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }),
+                  width: 280,
+                }}>
+                  CONTA DRE
+                </th>
+                <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: 120 }}>
+                  REALIZADO
+                </th>
+                <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 10, fontWeight: 400, color: '#8A9BBC', fontStyle: 'italic', width: 60 }}>
+                  AV%
+                </th>
+                <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: 120 }}>
+                  META
+                </th>
+                <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: 100 }}>
+                  Δ VS META
+                </th>
                 {hasAnterior && (
                   <>
-                    <th className="p-3 text-right border-l border-border">Mês anterior</th>
-                    <th className="p-3 text-right">Δ vs Ant.</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: 120, borderLeft: '1px solid #DDE4F0' }}>
+                      MÊS ANT.
+                    </th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: 100 }}>
+                      Δ VS ANT.
+                    </th>
                   </>
                 )}
               </tr>
@@ -249,26 +309,67 @@ export function TorreControleTab({ clienteId }: Props) {
                   const metaVal = calcIndicador(contas!, metaMap, ind.acumula);
                   const antVal = hasAnterior ? calcIndicador(contas!, valoresAntMap, ind.acumula) : null;
                   const av = faturamento.real ? ((realVal / faturamento.real) * 100).toFixed(1) : null;
+                  const dotColor = indicadorDotColors[ind.key] || '#1A3CFF';
+                  const avColor = indicadorAvColors[ind.key] || '#1A3CFF';
+                  const f = fmtIndicadorVal(realVal);
 
-                  return (
-                    <tr key={ind.key} className={`border-b-2 border-border border-l-[3px] ${ind.borderColor} bg-primary/5 font-bold`}>
-                      <td className="p-3 text-txt">
-                        <IndicadorDetalhe indicador={ind} contas={contas!} valoresMap={realizadoMap}>{ind.nome}</IndicadorDetalhe>
+                  return [
+                    // Value row
+                    <tr key={ind.key} style={{ background: '#0D1B35' }}>
+                      <td style={{ ...stickyTd('#0D1B35', { padding: '11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRightColor: '#2A3A5C' }) }}>
+                        <span className="flex items-center gap-2">
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0, display: 'inline-block' }} />
+                          {ind.nome}
+                        </span>
                       </td>
-                      <td className="p-3 text-right font-mono text-xs">
-                        <span className={realVal >= 0 ? 'text-green' : 'text-destructive'}>{formatCurrency(realVal)}</span>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: f.color, padding: '11px 12px' }}>
+                        {f.text}
                       </td>
-                      <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
-                      <td className="p-3 text-right font-mono text-xs text-txt-sec">{metaVal !== 0 ? formatCurrency(metaVal) : '—'}</td>
-                      <td className="p-3 text-right"><DeltaBadge realizado={realVal} meta={metaVal !== 0 ? metaVal : null} /></td>
+                      <td style={{ textAlign: 'right', padding: '11px 6px' }}>
+                        {av != null && (
+                          <span style={{ color: avColor, fontSize: 11, fontFamily: 'monospace', fontWeight: 600 }}>{av}%</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: '#8A9BBC', padding: '11px 12px' }}>
+                        {metaVal !== 0 ? fmtIndicadorVal(metaVal).text : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '11px 12px' }}>
+                        {renderDelta(realVal, metaVal !== 0 ? metaVal : null)}
+                      </td>
                       {hasAnterior && (
                         <>
-                          <td className="p-3 text-right font-mono text-xs text-txt-sec border-l border-border/50">{antVal != null ? formatCurrency(antVal) : '—'}</td>
-                          <td className="p-3 text-right"><VariacaoBadge atual={realVal} anterior={antVal} /></td>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, fontSize: 13, color: '#8A9BBC', padding: '11px 12px', borderLeft: '1px solid #2A3A5C' }}>
+                            {antVal != null ? fmtIndicadorVal(antVal).text : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '11px 12px' }}>
+                            {renderDelta(realVal, antVal)}
+                          </td>
                         </>
                       )}
-                    </tr>
-                  );
+                    </tr>,
+                    // Percentage row
+                    <tr key={`${ind.key}_pct`} style={{ background: '#1A3CFF0F' }}>
+                      <td style={{ ...stickyTd('#F5F7FF', { padding: '6px 12px', fontSize: 11, color: '#4A5E80', fontStyle: 'italic' }) }}>
+                        % sobre Faturamento
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: avColor, padding: '6px 12px' }}>
+                        {av != null ? `${av} %` : '—'}
+                      </td>
+                      <td />
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#8A9BBC', padding: '6px 12px' }}>
+                        {faturamento.meta ? `${((metaVal / faturamento.meta) * 100).toFixed(1)} %` : '—'}
+                      </td>
+                      <td />
+                      {hasAnterior && (
+                        <>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#8A9BBC', padding: '6px 12px', borderLeft: '1px solid #DDE4F0' }}>
+                            {faturamentoAnt ? `${((antVal! / faturamentoAnt) * 100).toFixed(1)} %` : '—'}
+                          </td>
+                          <td />
+                        </>
+                      )}
+                    </tr>,
+                  ];
                 }
 
                 const conta = row.conta;
@@ -294,33 +395,127 @@ export function TorreControleTab({ clienteId }: Props) {
                   displayAnt = hasAnterior ? sumChildrenOfSection(contas!, valoresAntMap, conta.id) : null;
                 }
 
-                const av = displayReal != null && faturamento.real ? ((displayReal / faturamento.real) * 100).toFixed(1) : null;
-                const borderColor = tipoBorderColors[conta.tipo] || 'border-l-transparent';
+                const av = displayReal != null && faturamento.real ? ((Math.abs(displayReal) / Math.abs(faturamento.real)) * 100).toFixed(1) : null;
                 const hasChildren = contas!.some((c) => c.conta_pai_id === conta.id);
                 const isCollapsedItem = collapsed.has(conta.id);
 
+                const nome = conta.nome;
+                const isPlus = hasPrefixPlus(nome);
+                const isMinus = hasPrefixMinus(nome);
+                const cleanName = nome.replace(/^\([+-]\)\s*/, '');
+
+                // --- Grupo (nivel=0) ---
+                if (isSecao) {
+                  const f = fmtVal(displayReal);
+                  return (
+                    <tr key={conta.id} style={{ background: '#F0F4FA', borderTop: '1px solid #C4CFEA', borderBottom: '1px solid #C4CFEA' }}>
+                      <td style={stickyTd('#F0F4FA', { padding: '10px 12px', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', color: '#0D1B35', letterSpacing: '0.04em' })}>
+                        <span className="flex items-center gap-1.5">
+                          {hasChildren && (
+                            <button onClick={() => toggleCollapse(conta.id)} className="p-0.5 rounded hover:bg-[#DDE4F0]" style={{ lineHeight: 0 }}>
+                              {isCollapsedItem ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          <span>{conta.nome}</span>
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, color: f.color, padding: '10px 12px' }}>
+                        {f.text}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '10px 6px', color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace' }}>
+                        {av ? `${av}%` : ''}
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, color: displayMeta != null ? fmtVal(displayMeta).color : '#C4CFEA', padding: '10px 12px' }}>
+                        {displayMeta != null ? fmtVal(displayMeta).text : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '10px 12px' }}>
+                        {renderDelta(displayReal, displayMeta)}
+                      </td>
+                      {hasAnterior && (
+                        <>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 12, color: displayAnt != null ? fmtVal(displayAnt).color : '#C4CFEA', padding: '10px 12px', borderLeft: '1px solid #DDE4F0' }}>
+                            {displayAnt != null ? fmtVal(displayAnt).text : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '10px 12px' }}>
+                            {renderDelta(displayReal, displayAnt)}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                }
+
+                // --- Subgrupo (nivel=1) ---
+                if (isGrupo) {
+                  const f = fmtVal(displayReal);
+                  return (
+                    <tr key={conta.id} className="hover:bg-[#F6F9FF]" style={{ background: '#FFFFFF', borderBottom: '1px solid #F0F4FA' }}>
+                      <td style={stickyTd('#FFFFFF', { padding: '8px 12px 8px 24px', fontWeight: 600, fontSize: 12, color: '#0D1B35' })}>
+                        <span className="flex items-center gap-1.5">
+                          {hasChildren && (
+                            <button onClick={() => toggleCollapse(conta.id)} className="p-0.5 rounded hover:bg-[#E8EEF8]" style={{ lineHeight: 0 }}>
+                              {isCollapsedItem ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </button>
+                          )}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conta.nome}</span>
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, fontSize: 12, color: f.color, padding: '8px 12px' }}>
+                        {f.text}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '8px 6px' }} />
+                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, fontSize: 12, color: displayMeta != null ? fmtVal(displayMeta).color : '#C4CFEA', padding: '8px 12px' }}>
+                        {displayMeta != null ? fmtVal(displayMeta).text : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '8px 12px' }}>
+                        {renderDelta(displayReal, displayMeta)}
+                      </td>
+                      {hasAnterior && (
+                        <>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, fontSize: 12, color: displayAnt != null ? fmtVal(displayAnt).color : '#C4CFEA', padding: '8px 12px', borderLeft: '1px solid #DDE4F0' }}>
+                            {displayAnt != null ? fmtVal(displayAnt).text : '—'}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '8px 12px' }}>
+                            {renderDelta(displayReal, displayAnt)}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                }
+
+                // --- Categoria (nivel=2) ---
+                const f = fmtVal(displayReal);
+                const isReceita = conta.tipo === 'receita';
                 return (
-                  <tr key={conta.id} className={`border-b border-border/50 border-l-[3px] ${borderColor} ${
-                    isSecao ? 'bg-muted font-bold uppercase text-xs' : isGrupo ? 'bg-muted/50 font-semibold' : ''
-                  }`}>
-                    <td className="p-3 text-txt" style={{ paddingLeft: `${12 + conta.nivel * 20}px` }}>
-                      <div className="flex items-center gap-1.5">
-                        {hasChildren && (isSecao || isGrupo) && (
-                          <button onClick={() => toggleCollapse(conta.id)} className="p-0.5 rounded hover:bg-surface-hi">
-                            {isCollapsedItem ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                          </button>
-                        )}
-                        {conta.nome}
-                      </div>
+                  <tr key={conta.id} className="hover:bg-[#F6F9FF]" style={{ borderBottom: '1px solid #F8F9FB' }}>
+                    <td style={stickyTd('#FFFFFF', { padding: '7px 12px 7px 48px', fontWeight: 400, fontSize: 12, color: '#4A5E80' })}>
+                      <span className="flex items-center gap-1.5">
+                        {isPlus && <ArrowUp className="h-3 w-3 flex-shrink-0" style={{ color: '#00A86B' }} />}
+                        {isMinus && <ArrowDown className="h-3 w-3 flex-shrink-0" style={{ color: '#DC2626' }} />}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanName}</span>
+                      </span>
                     </td>
-                    <td className="p-3 text-right font-mono text-txt text-xs">{displayReal != null ? formatCurrency(displayReal) : '—'}</td>
-                    <td className="p-3 text-right text-xs text-txt-sec">{av ? `${av}%` : '—'}</td>
-                    <td className="p-3 text-right font-mono text-txt-sec text-xs">{displayMeta != null ? formatCurrency(displayMeta) : '—'}</td>
-                    <td className="p-3 text-right"><DeltaBadge realizado={displayReal} meta={displayMeta} /></td>
+                    <td style={{ textAlign: displayReal == null ? 'center' : 'right', fontFamily: 'monospace', fontSize: 12, color: f.color, padding: '7px 12px' }}>
+                      {f.text}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '7px 6px', color: '#8A9BBC', fontSize: 11, fontFamily: 'monospace' }}>
+                      {!isReceita && av ? `${av}%` : ''}
+                    </td>
+                    <td style={{ textAlign: displayMeta == null ? 'center' : 'right', fontFamily: 'monospace', fontSize: 12, color: displayMeta != null ? fmtVal(displayMeta).color : '#C4CFEA', padding: '7px 12px' }}>
+                      {displayMeta != null ? fmtVal(displayMeta).text : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '7px 12px' }}>
+                      {renderDelta(displayReal, displayMeta)}
+                    </td>
                     {hasAnterior && (
                       <>
-                        <td className="p-3 text-right font-mono text-txt-sec text-xs border-l border-border/50">{displayAnt != null ? formatCurrency(displayAnt) : '—'}</td>
-                        <td className="p-3 text-right"><VariacaoBadge atual={displayReal} anterior={displayAnt} /></td>
+                        <td style={{ textAlign: displayAnt == null ? 'center' : 'right', fontFamily: 'monospace', fontSize: 12, color: displayAnt != null ? fmtVal(displayAnt).color : '#C4CFEA', padding: '7px 12px', borderLeft: '1px solid #DDE4F0' }}>
+                          {displayAnt != null ? fmtVal(displayAnt).text : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '7px 12px' }}>
+                          {renderDelta(displayReal, displayAnt)}
+                        </td>
                       </>
                     )}
                   </tr>
