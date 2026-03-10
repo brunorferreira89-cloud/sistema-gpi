@@ -127,7 +127,6 @@ export default function DashboardPage() {
             cmo_pct: (Math.abs(despFixa) / fat) * 100,
             gc_pct: ((receita + custoVar + despFixa + financeiro) / fat) * 100,
             hasData: monthVals.length > 0,
-            hasData: monthVals.length > 0,
           });
           scoresByMonth.push(s);
         });
