@@ -520,6 +520,26 @@ export function TorreControleTab({ clienteId }: Props) {
   const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
   const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
 
+  // ── Variation (R$) helper ──────────────────────────────────────
+  const calcVariacao = (node: DreNode): number | null => {
+    const conta = node.conta;
+    if (conta.nivel === 2) {
+      const meta = metaMap[conta.id] || null;
+      const real = realizadoMap[conta.id] ?? null;
+      if (!meta || meta.meta_valor === null || real == null) return null;
+      if (meta.meta_tipo === 'pct') return Math.abs(real) * (meta.meta_valor / 100);
+      return meta.meta_valor - real;
+    }
+    // For groups: sum children variations
+    let total = 0;
+    let hasAny = false;
+    for (const child of node.children) {
+      const v = calcVariacao(child);
+      if (v != null) { total += v; hasAny = true; }
+    }
+    return hasAny ? total : null;
+  };
+
   // ── Render row helpers ────────────────────────────────────────
   const renderRow = (node: DreNode, depth: number) => {
     const conta = node.conta;
@@ -624,7 +644,7 @@ export function TorreControleTab({ clienteId }: Props) {
           <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(displayReal)}
           </td>
-          {/* Meta */}
+          {/* Ajuste */}
           <td style={{ textAlign: 'right', padding: '8px 10px' }}>
             <EditableMetaCell
               meta={meta}
@@ -635,7 +655,18 @@ export function TorreControleTab({ clienteId }: Props) {
               onSaved={invalidateMetas}
             />
           </td>
-          {/* Projetado */}
+          {/* R$ (variação) */}
+          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px' }}>
+            {(() => {
+              const variacao = calcVariacao(node);
+              if (variacao == null) return <span style={{ color: C.txtMuted }}>—</span>;
+              const positive = variacao >= 0;
+              const abs = Math.abs(variacao);
+              const formatted = abs >= 1000 ? abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) : abs.toFixed(0);
+              return <span style={{ color: positive ? '#00A86B' : '#DC2626', fontWeight: isTotal ? 800 : 400 }}>{positive ? '+' : '−'} {formatted}</span>;
+            })()}
+          </td>
+          {/* Meta (projetado) */}
           <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px' }}>
             {fmtTorre(projetado)}
           </td>
@@ -669,6 +700,7 @@ export function TorreControleTab({ clienteId }: Props) {
         <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px' }}>
           {fmtTorre(realVal)}
         </td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td />
@@ -806,9 +838,10 @@ export function TorreControleTab({ clienteId }: Props) {
                   <colgroup>
                     <col style={{ width: 24 }} />
                     <col style={{ width: 280 }} />
-                    <col style={{ width: 80, minWidth: 80 }} />
-                    <col style={{ width: 80, minWidth: 80 }} />
-                    <col style={{ width: 100, minWidth: 100 }} />
+                    <col style={{ width: 85, minWidth: 85 }} />
+                    <col style={{ width: 85, minWidth: 85 }} />
+                    <col style={{ width: 90, minWidth: 90 }} />
+                    <col style={{ width: 90, minWidth: 90 }} />
                     <col style={{ width: 110, minWidth: 110 }} />
                     <col style={{ width: 90, minWidth: 90 }} />
                   </colgroup>
@@ -816,10 +849,11 @@ export function TorreControleTab({ clienteId }: Props) {
                     <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
                       <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid #DDE4F0' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntLabel || 'MÊS ANT.'}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>REALIZADO</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>PROJETADO {mesSegLabel}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntLabel}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{compLabel}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>AJUSTE</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>R$</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>META {mesSegLabel}</th>
                       <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>STATUS</th>
                     </tr>
                   </thead>
