@@ -354,6 +354,9 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
             ))}
           </SortableContext>
         </div>
+        <DragOverlay dropAnimation={null}>
+          {activeDragId ? <DragOverlayContent conta={contas.find(c => c.id === activeDragId)} /> : null}
+        </DragOverlay>
       </DndContext>
 
       <EditContaDialog
