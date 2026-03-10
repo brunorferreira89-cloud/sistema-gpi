@@ -150,6 +150,17 @@ function getBenchmarkDot(tipo: string, avPct: number, subgrupoNome: string | und
   );
 }
 
+// --- Legend item ---
+function LegendItem({ color, label, sub }: { color: string; label: string; sub: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4A5E80' }}>
+      <svg width="6" height="6"><circle cx="3" cy="3" r="3" fill={color} /></svg>
+      <span style={{ fontWeight: 500 }}>{label}</span>
+      <span style={{ color: '#8A9BBC', fontSize: 10 }}>({sub})</span>
+    </span>
+  );
+}
+
 // --- component ---
 
 import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
