@@ -101,7 +101,7 @@ export function ContatoTab({ clienteId, cliente }: ContatoTabProps) {
       <div className="rounded-xl border border-border bg-surface p-5">
         <div className="flex items-center justify-between mb-3">
           <SectionTitle>Dados Cadastrais</SectionTitle>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setEditOpen(true)}>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => { setEditOpen(true); }}>
             <Pencil className="h-3.5 w-3.5" /> Editar
           </Button>
         </div>
@@ -254,25 +254,28 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
 }) {
   const [form, setForm] = useState<Record<string, string>>({});
 
+  // Initialize form data whenever dialog opens or cliente changes
+  const initForm = () => {
+    setForm({
+      razao_social: cliente.razao_social || '',
+      cnpj: cliente.cnpj || '',
+      nome_empresa: cliente.nome_empresa || '',
+      segmento: cliente.segmento || '',
+      faturamento_faixa: cliente.faturamento_faixa || '',
+      endereco_completo: cliente.endereco_completo || '',
+      cep: cliente.cep || '',
+      status: cliente.status || 'ativo',
+      responsavel_nome: cliente.responsavel_nome || '',
+      responsavel_email: cliente.responsavel_email || '',
+      responsavel_whatsapp: cliente.responsavel_whatsapp || '',
+      administrador_nome: cliente.administrador_nome || '',
+      administrador_cpf: cliente.administrador_cpf || '',
+      observacoes: cliente.observacoes || '',
+    });
+  };
+
   const handleOpen = (v: boolean) => {
-    if (v) {
-      setForm({
-        razao_social: cliente.razao_social || '',
-        cnpj: cliente.cnpj || '',
-        nome_empresa: cliente.nome_empresa || '',
-        segmento: cliente.segmento || '',
-        faturamento_faixa: cliente.faturamento_faixa || '',
-        endereco_completo: cliente.endereco_completo || '',
-        cep: cliente.cep || '',
-        status: cliente.status || 'ativo',
-        responsavel_nome: cliente.responsavel_nome || '',
-        responsavel_email: cliente.responsavel_email || '',
-        responsavel_whatsapp: cliente.responsavel_whatsapp || '',
-        administrador_nome: cliente.administrador_nome || '',
-        administrador_cpf: cliente.administrador_cpf || '',
-        observacoes: cliente.observacoes || '',
-      });
-    }
+    if (v) initForm();
     onOpenChange(v);
   };
 
