@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookOpen, FileSpreadsheet, Upload, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency, type ContaTipo, tipoBadgeColors, tipoLabels } from '@/lib/plano-contas-utils';
 import { getCompetenciaOptions } from '@/lib/nibo-import-utils';
+import { getLeafContas } from '@/lib/dre-indicadores';
 import { ImportNiboDialog } from '@/components/importacao/ImportNiboDialog';
 
 const competencias = getCompetenciaOptions();
