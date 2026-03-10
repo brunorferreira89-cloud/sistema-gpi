@@ -657,7 +657,7 @@ export function TorreControleTab({ clienteId }: Props) {
     return (
       <tr key={key} style={{ background: '#0D1B35' }}>
         <td style={{ width: 24 }} />
-        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF' }}>
+        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', borderRight: '1px solid #DDE4F0' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
             {config.nome}
