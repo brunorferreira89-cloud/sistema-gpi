@@ -259,6 +259,9 @@ const keyframesCSS = `
 @keyframes spin     { to{transform:rotate(360deg)} }
 @keyframes scanLine { 0%{top:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:100%;opacity:0} }
 @keyframes fadeUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes radarSweep { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+@keyframes dataPulse { 0%,100%{opacity:0.05} 50%{opacity:0.15} }
+@keyframes scanHorizontal { 0%{left:-30%;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:110%;opacity:0} }
 `;
 
 // ══════════════════════════════════════════════════════════════════
