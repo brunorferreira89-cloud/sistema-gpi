@@ -519,6 +519,14 @@ export function TorreControleTab({ clienteId }: Props) {
   const compLabel = competencia ? fmtCompetencia(competencia) : '';
   const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
   const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
+  // Month-only labels (no year) for column headers
+  const fmtMesOnly = (comp: string) => {
+    const d = new Date(comp + 'T12:00:00Z');
+    return d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
+  };
+  const mesAntShort = mesAnt ? fmtMesOnly(mesAnt) : '';
+  const compShort = competencia ? fmtMesOnly(competencia) : '';
+  const mesSegShort = mesSeg ? fmtMesOnly(mesSeg) : '';
 
   // ── Variation (R$) helper ──────────────────────────────────────
   const calcVariacao = (node: DreNode): number | null => {
@@ -849,11 +857,11 @@ export function TorreControleTab({ clienteId }: Props) {
                     <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
                       <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', borderRight: '1px solid #DDE4F0' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntLabel}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{compLabel}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{mesAntShort}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{compShort}</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>AJUSTE</th>
                       <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>R$</th>
-                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>META {mesSegLabel}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>META {mesSegShort}</th>
                       <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em' }}>STATUS</th>
                     </tr>
                   </thead>
