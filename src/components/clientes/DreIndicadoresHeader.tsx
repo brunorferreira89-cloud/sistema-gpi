@@ -199,11 +199,13 @@ function IndicatorCard({ index, color, label, children, hasData, onClick }: {
 }
 
 /* ──────── main component ──────── */
-export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecionado }: Props) {
+export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecionado, clienteId }: Props) {
   const leafs = useMemo(() => getLeafContas(contas), [contas]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTitulo, setDrawerTitulo] = useState('');
   const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
+  const [analiseCompletaOpen, setAnaliseCompletaOpen] = useState(false);
+  const [indicadorInicialModal, setIndicadorInicialModal] = useState<string | undefined>();
 
   const valoresMap = useMemo(() => {
     const map: Record<string, Record<string, number | null>> = {};
