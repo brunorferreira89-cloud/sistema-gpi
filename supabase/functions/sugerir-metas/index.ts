@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { cliente_id, competencia, competencia_anterior } = await req.json();
+    const { cliente_id, competencia, competencia_anterior, force } = await req.json();
     if (!cliente_id || !competencia || !competencia_anterior) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -18,6 +18,23 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Check cache first (unless force=true)
+    if (!force) {
+      const { data: cached } = await supabase
+        .from("sugestoes_metas_ia")
+        .select("sugestoes, gerado_em")
+        .eq("cliente_id", cliente_id)
+        .eq("competencia", competencia)
+        .maybeSingle();
+
+      if (cached) {
+        const sugestoes = cached.sugestoes as any[];
+        return new Response(JSON.stringify({ sugestoes, competencia, total: sugestoes.length, cached: true, gerado_em: cached.gerado_em }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Fetch client
     const { data: cliente } = await supabase.from("clientes").select("razao_social, nome_empresa, segmento, faturamento_faixa").eq("id", cliente_id).single();
@@ -173,12 +190,32 @@ Sugira metas para TODOS os níveis (grupos, subgrupos e categorias) que tiverem 
     const rawText = aiData.content?.[0]?.text || "";
     const cleanedText = rawText.replace(/```json|```/g, "").trim();
 
+    let parsed: any[];
     try {
-      const parsed = JSON.parse(cleanedText);
-      return new Response(JSON.stringify({ sugestoes: parsed, competencia, total: parsed.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      parsed = JSON.parse(cleanedText);
     } catch {
-      return new Response(JSON.stringify({ error: "Erro ao processar resposta da IA", raw: cleanedText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Attempt to repair truncated JSON array
+      const lastBrace = cleanedText.lastIndexOf("}");
+      if (lastBrace > 0) {
+        const repairedJson = cleanedText.substring(0, lastBrace + 1) + "]";
+        try {
+          parsed = JSON.parse(repairedJson);
+          console.warn(`Recovered ${parsed.length} items from truncated LLM response`);
+        } catch {
+          return new Response(JSON.stringify({ error: "Erro ao processar resposta da IA", raw: cleanedText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      } else {
+        return new Response(JSON.stringify({ error: "Erro ao processar resposta da IA", raw: cleanedText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
+
+    // Save to cache
+    await supabase.from("sugestoes_metas_ia").upsert(
+      { cliente_id, competencia, sugestoes: parsed, gerado_em: new Date().toISOString() },
+      { onConflict: "cliente_id,competencia" }
+    );
+
+    return new Response(JSON.stringify({ sugestoes: parsed, competencia, total: parsed.length, cached: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("sugerir-metas error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
