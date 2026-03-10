@@ -275,12 +275,16 @@ export function SugestaoMetasDrawer({ open, onClose, cliente, competencia, suges
                       opacity: isSelected ? 1 : 0.5, transition: 'all 0.15s',
                     }}>
                       {/* Top row */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 8, fontWeight: 700, background: nb.bg, color: nb.color, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.06em' }}>{nb.label}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: C.txt }}>{s.conta_nome}</span>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 8, fontWeight: 700, background: nb.bg, color: nb.color, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.06em' }}>{nb.label}</span>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#0D1B35', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                            {s.conta_nome}
+                          </span>
                         </div>
-                        <span style={{ fontSize: 8, fontWeight: 700, background: cb.bg, color: cb.color, padding: '2px 8px', borderRadius: 4 }}>{cb.label}</span>
+                        <span style={{ fontSize: 8, fontWeight: 700, background: cb.bg, color: cb.color, padding: '2px 8px', borderRadius: 4, flexShrink: 0 }}>{cb.label}</span>
                       </div>
 
                       {/* Meta row */}
