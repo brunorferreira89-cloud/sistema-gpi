@@ -302,6 +302,15 @@ export function DreAnualTab({ clienteId }: Props) {
     return map;
   }, [valoresAnuais]);
 
+  const monthsWithData = useMemo(() => {
+    return months.filter(m => valoresAnuais?.some(v => v.competencia === m.value && v.valor_realizado != null));
+  }, [months, valoresAnuais]);
+
+  // Effective selected month: mesSelecionado or last month with data
+  const mesEfetivo = mesSelecionado && monthsWithData.some(m => m.value === mesSelecionado)
+    ? mesSelecionado
+    : (monthsWithData.length > 0 ? monthsWithData[monthsWithData.length - 1].value : null);
+
   const hasAnyData = useMemo(() => {
     return valoresAnuais?.some((v) => v.valor_realizado != null) ?? false;
   }, [valoresAnuais]);
