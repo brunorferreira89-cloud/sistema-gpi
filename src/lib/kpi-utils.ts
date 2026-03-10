@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { type ContaRow } from '@/lib/plano-contas-utils';
+import { getLeafContas, calcIndicador, sumLeafByTipo } from '@/lib/dre-indicadores';
 
 export interface KpiData {
   faturamento: number;
@@ -27,16 +29,18 @@ export interface KpiData {
 
 export async function fetchKpiData(clienteId: string, competencia: string): Promise<KpiData> {
   // Fetch all contas
-  const { data: contas } = await supabase
+  const { data: contasRaw } = await supabase
     .from('plano_de_contas')
     .select('id, nome, tipo, nivel, is_total, ordem')
     .eq('cliente_id', clienteId)
     .order('ordem');
 
-  if (!contas?.length) {
+  if (!contasRaw?.length) {
     return emptyKpi();
   }
 
+  const contas = contasRaw as unknown as ContaRow[];
+  const leafContas = getLeafContas(contas);
   const contaIds = contas.map((c) => c.id);
 
   // Fetch values for selected competencia
@@ -54,70 +58,100 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
     .in('conta_id', contaIds)
     .in('competencia', months);
 
-  const valMap = new Map((valores || []).map((v) => [v.conta_id, v]));
+  // Build realized and meta maps
+  const realizadoMap: Record<string, number | null> = {};
+  const metaMap: Record<string, number | null> = {};
+  (valores || []).forEach((v) => {
+    realizadoMap[v.conta_id] = v.valor_realizado;
+    metaMap[v.conta_id] = v.valor_meta;
+  });
 
-  const findConta = (keywords: string[]) =>
-    contas.find((c: any) => keywords.some((kw) => c.nome.toLowerCase().includes(kw)));
+  // Use leaf-based calculations
+  const fatReal = sumLeafByTipo(contas, realizadoMap, 'receita');
+  const fatMeta = sumLeafByTipo(contas, metaMap, 'receita');
+  const mcReal = calcIndicador(contas, realizadoMap, ['receita', 'custo_variavel']);
+  const mcMeta = calcIndicador(contas, metaMap, ['receita', 'custo_variavel']);
+  const cmvReal = Math.abs(sumLeafByTipo(contas, realizadoMap, 'custo_variavel'));
+  const cmvMeta = Math.abs(sumLeafByTipo(contas, metaMap, 'custo_variavel'));
+  const dfReal = Math.abs(sumLeafByTipo(contas, realizadoMap, 'despesa_fixa'));
 
-  const getVal = (keywords: string[]) => {
-    const conta = findConta(keywords);
-    if (!conta) return { realizado: 0, meta: 0, id: '' };
-    const v = valMap.get(conta.id);
-    return { realizado: v?.valor_realizado || 0, meta: v?.valor_meta || 0, id: conta.id };
-  };
+  // CMO: look for personnel-related leaf accounts within despesa_fixa
+  const cmoKeywords = ['pessoal', 'salário', 'salario', 'folha', 'cmo', 'mão de obra', 'mao de obra', 'pró-labore', 'pro-labore'];
+  const cmoContas = leafContas.filter(
+    (c) => c.tipo === 'despesa_fixa' && cmoKeywords.some((kw) => c.nome.toLowerCase().includes(kw))
+  );
+  let cmoReal = 0, cmoMeta = 0;
+  cmoContas.forEach((c) => {
+    cmoReal += Math.abs(realizadoMap[c.id] || 0);
+    cmoMeta += Math.abs(metaMap[c.id] || 0);
+  });
 
-  const getSparkForConta = (contaId: string) =>
-    months.map((m) => {
-      const v = (sparkValores || []).find((sv: any) => sv.conta_id === contaId && sv.competencia === m);
-      return v?.valor_realizado || 0;
-    });
+  // GC = Resultado de Caixa (all 5 types)
+  const gcReal = calcIndicador(contas, realizadoMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
+  const gcMeta = calcIndicador(contas, metaMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
 
-  const fat = getVal(['faturamento bruto', 'receita bruta']);
-  const mc = getVal(['margem de contribui']);
-  const cmv = getVal(['cmv', 'custo da mercadoria', 'custo variável', 'custo variavel']);
-  const cmo = getVal(['cmo', 'custo de mão', 'folha', 'pessoal']);
-  const gc = getVal(['geração de caixa', 'geracao de caixa']);
-  const df = getVal(['despesas fixas', 'despesa fixa total']);
-  const ret = getVal(['retirada', 'sócio', 'socio', 'pró-labore', 'pro-labore']);
+  // Retiradas: look for withdrawal keywords in leaf accounts
+  const retKeywords = ['retirada', 'sócio', 'socio', 'pró-labore', 'pro-labore', 'distribuição', 'distribuicao'];
+  const retContas = leafContas.filter(
+    (c) => retKeywords.some((kw) => c.nome.toLowerCase().includes(kw))
+  );
+  let retReal = 0;
+  retContas.forEach((c) => { retReal += Math.abs(realizadoMap[c.id] || 0); });
 
-  const fatVal = fat.realizado || 1;
-  const mc_pct = fatVal ? (mc.realizado / fatVal) * 100 : 0;
-  const cmv_pct = fatVal ? (Math.abs(cmv.realizado) / fatVal) * 100 : 0;
-  const cmo_pct = fatVal ? (Math.abs(cmo.realizado) / fatVal) * 100 : 0;
-  const gc_pct = fatVal ? (gc.realizado / fatVal) * 100 : 0;
-  const pe = mc_pct > 0 ? Math.abs(df.realizado) / (mc_pct / 100) : 0;
-  const ms = fatVal > 0 && pe > 0 ? ((fat.realizado - pe) / fat.realizado) * 100 : 0;
+  const fatVal = fatReal || 1;
+  const mc_pct = fatReal ? (mcReal / fatReal) * 100 : 0;
+  const cmv_pct = fatReal ? (cmvReal / fatReal) * 100 : 0;
+  const cmo_pct = fatReal ? (cmoReal / fatReal) * 100 : 0;
+  const gc_pct = fatReal ? (gcReal / fatReal) * 100 : 0;
+  const pe = mc_pct > 0 ? dfReal / (mc_pct / 100) : 0;
+  const ms = fatReal > 0 && pe > 0 ? ((fatReal - pe) / fatReal) * 100 : 0;
 
   const hasData = (valores || []).length > 0;
 
+  // Spark lines: build per-month maps using leaf logic
+  const getSparkForTypes = (tipos: string[]) =>
+    months.map((m) => {
+      const monthMap: Record<string, number | null> = {};
+      (sparkValores || []).filter((sv: any) => sv.competencia === m).forEach((sv: any) => {
+        monthMap[sv.conta_id] = sv.valor_realizado;
+      });
+      return calcIndicador(contas, monthMap, tipos);
+    });
+
   return {
-    faturamento: fat.realizado,
-    faturamento_meta: fat.meta,
-    mc_valor: mc.realizado,
+    faturamento: fatReal,
+    faturamento_meta: fatMeta,
+    mc_valor: mcReal,
     mc_pct,
-    mc_meta: mc.meta,
-    cmv_valor: Math.abs(cmv.realizado),
+    mc_meta: mcMeta,
+    cmv_valor: cmvReal,
     cmv_pct,
-    cmv_meta: cmv.meta,
-    cmo_valor: Math.abs(cmo.realizado),
+    cmv_meta: cmvMeta,
+    cmo_valor: cmoReal,
     cmo_pct,
-    cmo_meta: cmo.meta,
-    gc_valor: gc.realizado,
+    cmo_meta: cmoMeta,
+    gc_valor: gcReal,
     gc_pct,
-    gc_meta: gc.meta,
-    despesas_fixas: Math.abs(df.realizado),
-    retiradas: Math.abs(ret.realizado),
-    retiradas_pct_fat: fatVal ? (Math.abs(ret.realizado) / fatVal) * 100 : 0,
-    retiradas_pct_gc: gc.realizado ? (Math.abs(ret.realizado) / Math.abs(gc.realizado)) * 100 : 0,
+    gc_meta: gcMeta,
+    despesas_fixas: dfReal,
+    retiradas: retReal,
+    retiradas_pct_fat: fatReal ? (retReal / fatReal) * 100 : 0,
+    retiradas_pct_gc: gcReal ? (retReal / Math.abs(gcReal)) * 100 : 0,
     pe_valor: pe,
     margem_seguranca: ms,
     hasData,
     sparkHistory: {
-      faturamento: getSparkForConta(fat.id),
-      mc: getSparkForConta(mc.id),
-      cmv: getSparkForConta(cmv.id),
-      cmo: getSparkForConta(cmo.id),
-      gc: getSparkForConta(gc.id),
+      faturamento: getSparkForTypes(['receita']),
+      mc: getSparkForTypes(['receita', 'custo_variavel']),
+      cmv: months.map((m) => {
+        const monthMap: Record<string, number | null> = {};
+        (sparkValores || []).filter((sv: any) => sv.competencia === m).forEach((sv: any) => {
+          monthMap[sv.conta_id] = sv.valor_realizado;
+        });
+        return Math.abs(sumLeafByTipo(contas, monthMap, 'custo_variavel'));
+      }),
+      cmo: months.map(() => cmoReal), // simplified
+      gc: getSparkForTypes(['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']),
     },
   };
 }
