@@ -112,27 +112,27 @@ export default function TorrePage() {
   }, [valores]);
 
   // KPI calculations
+  const leafContas = useMemo(() => contas ? getLeafContas(contas) : [], [contas]);
+
   const faturamento = useMemo(() => {
-    if (!contas) return { real: 0, meta: 0 };
-    const receitaContas = contas.filter((c) => c.tipo === 'receita');
+    if (!leafContas.length) return { real: 0, meta: 0 };
+    const receitaLeafs = leafContas.filter((c) => c.tipo === 'receita');
     let real = 0, meta = 0;
-    receitaContas.forEach((c) => {
+    receitaLeafs.forEach((c) => {
       const v = valoresMap[c.id];
       if (v?.valor_realizado) real += v.valor_realizado;
       if (v?.valor_meta) meta += v.valor_meta;
     });
     return { real, meta };
-  }, [contas, valoresMap]);
+  }, [leafContas, valoresMap]);
 
   const custos = useMemo(() => {
-    if (!contas) return 0;
-    return contas.filter((c) => c.tipo === 'custo_variavel').reduce((s, c) => s + (valoresMap[c.id]?.valor_realizado || 0), 0);
-  }, [contas, valoresMap]);
+    return leafContas.filter((c) => c.tipo === 'custo_variavel').reduce((s, c) => s + (valoresMap[c.id]?.valor_realizado || 0), 0);
+  }, [leafContas, valoresMap]);
 
   const despesas = useMemo(() => {
-    if (!contas) return 0;
-    return contas.filter((c) => c.tipo === 'despesa_fixa').reduce((s, c) => s + (valoresMap[c.id]?.valor_realizado || 0), 0);
-  }, [contas, valoresMap]);
+    return leafContas.filter((c) => c.tipo === 'despesa_fixa').reduce((s, c) => s + (valoresMap[c.id]?.valor_realizado || 0), 0);
+  }, [leafContas, valoresMap]);
 
   const margem = faturamento.real - custos;
   const lucro = margem - despesas;
