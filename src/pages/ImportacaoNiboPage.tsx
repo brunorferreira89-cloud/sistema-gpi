@@ -15,7 +15,7 @@ export default function ImportacaoNiboPage() {
   const [clienteId, setClienteId] = useState('');
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [importOpen, setImportOpen] = useState(false);
-  const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string } | null>(null);
+  const [actionDialog, setActionDialog] = useState<{ type: 'edit' | 'delete'; importId: string; currentCompetencia: string; clienteId: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: clientes } = useQuery({
