@@ -236,24 +236,58 @@ function ConfigModal({ indicador, clienteId, contas, onClose, onSaved }: {
   const [limiteAmbar, setLimiteAmbar] = useState(indicador ? String(indicador.limite_ambar) : '');
   const [ativo, setAtivo] = useState(indicador?.ativo ?? true);
 
-  const subgrupos = contas.filter(c => c.nivel === 1 && ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(c.tipo));
-  const groupedSubgrupos = useMemo(() => {
-    const groups: Record<string, ContaRow[]> = {};
-    for (const s of subgrupos) {
+  // Build hierarchical tree: N1 subgroups with N2 children
+  const contasTree = useMemo(() => {
+    const n1 = contas.filter(c => c.nivel === 1 && ['custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'].includes(c.tipo));
+    const groups: Record<string, { sub: ContaRow; children: ContaRow[] }[]> = {};
+    for (const s of n1) {
       if (!groups[s.tipo]) groups[s.tipo] = [];
-      groups[s.tipo].push(s);
+      const children = contas.filter(c => c.conta_pai_id === s.id && c.nivel === 2).sort((a, b) => a.ordem - b.ordem);
+      groups[s.tipo].push({ sub: s, children });
     }
     return groups;
-  }, [subgrupos]);
+  }, [contas]);
 
   const verde = Number(limiteVerde);
   const ambar = Number(limiteAmbar);
   const hasValid = !isNaN(verde) && !isNaN(ambar) && limiteVerde !== '' && limiteAmbar !== '';
 
+  // Helper: get parent subgroup of a conta
+  const getParentSub = (id: string) => contas.find(c => c.id === id && c.nivel === 1) ? id : contas.find(c => c.nivel === 2 && c.id === id)?.conta_pai_id;
+
   const toggleContaId = (id: string) => {
-    setSelectedContaIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    const conta = contas.find(c => c.id === id);
+    if (!conta) return;
+
+    if (conta.nivel === 1) {
+      // Selecting a subgroup
+      if (selectedContaIds.includes(id)) {
+        // Deselecting subgroup
+        setSelectedContaIds(prev => prev.filter(x => x !== id));
+        return;
+      }
+      // Check if any children are already selected
+      const childIds = contas.filter(c => c.conta_pai_id === id && c.nivel === 2).map(c => c.id);
+      const selectedChildren = childIds.filter(cid => selectedContaIds.includes(cid));
+      if (selectedChildren.length > 0) {
+        if (window.confirm(`Algumas categorias filhas estão selecionadas. Selecionar o subgrupo vai substituí-las. Confirmar?`)) {
+          setSelectedContaIds(prev => [...prev.filter(x => !selectedChildren.includes(x)), id]);
+        }
+        return;
+      }
+      setSelectedContaIds(prev => [...prev, id]);
+    } else if (conta.nivel === 2) {
+      if (selectedContaIds.includes(id)) {
+        setSelectedContaIds(prev => prev.filter(x => x !== id));
+        return;
+      }
+      // Check if parent subgroup is selected
+      if (conta.conta_pai_id && selectedContaIds.includes(conta.conta_pai_id)) {
+        toast.error(`O subgrupo pai já está selecionado. Remova-o antes de selecionar categorias individuais.`);
+        return;
+      }
+      setSelectedContaIds(prev => [...prev, id]);
+    }
   };
 
   const saveMutation = useMutation({
