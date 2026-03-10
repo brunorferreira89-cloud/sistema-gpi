@@ -55,6 +55,7 @@ export function calcIndicador(
 ): number {
   let total = 0;
   for (const c of contas) {
+    if (c.is_total) continue; // skip group headers to avoid double-counting
     if (acumula.includes(c.tipo)) {
       const val = valoresMap[c.id];
       if (val != null) total += val;
