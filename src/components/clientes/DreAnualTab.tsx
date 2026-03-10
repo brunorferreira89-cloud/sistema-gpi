@@ -122,44 +122,7 @@ function fmtIndicadorVal(val: number | null): { text: string; color: string } {
   return { text: abs, color: '#00A86B' };
 }
 
-// --- Dynamic Benchmark from benchmark_configuracoes ---
-interface BenchmarkConfigRow {
-  id: string;
-  cliente_id: string;
-  conta_id: string;
-  limite_verde: number;
-  limite_ambar: number;
-  direcao: string;
-}
-
-function getDynamicBenchmarkDot(avPct: number, config: BenchmarkConfigRow): React.ReactNode {
-  let color: string;
-  if (config.direcao === 'menor_melhor') {
-    if (avPct < config.limite_verde) color = '#00A86B';
-    else if (avPct < config.limite_ambar) color = '#D97706';
-    else color = '#DC2626';
-  } else {
-    if (avPct > config.limite_verde) color = '#00A86B';
-    else if (avPct > config.limite_ambar) color = '#D97706';
-    else color = '#DC2626';
-  }
-  return (
-    <svg width="6" height="6" style={{ flexShrink: 0 }}>
-      <circle cx="3" cy="3" r="3" fill={color} />
-    </svg>
-  );
-}
-
-function getBenchmarkTooltip(config: BenchmarkConfigRow): string {
-  if (config.direcao === 'menor_melhor') {
-    return `Benchmark: verde <${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho >${config.limite_ambar}%`;
-  }
-  return `Benchmark: verde >${config.limite_verde}% · âmbar ${config.limite_ambar}–${config.limite_verde}% · vermelho <${config.limite_ambar}%`;
-}
-
-import { type BenchmarkThresholds, DEFAULT_BENCHMARKS } from '@/components/clientes/BenchmarkConfigTab';
-
-interface Props { clienteId: string; benchmarks?: BenchmarkThresholds; }
+interface Props { clienteId: string; }
 
 export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Props) {
   const years = getYearOptions();
