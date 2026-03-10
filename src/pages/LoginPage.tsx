@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect } from 'react';
-import gpiLogo from '@/assets/gpi-logo.png';
+import gpiLogo from '@/assets/gpi-logo-dark.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
