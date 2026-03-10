@@ -194,7 +194,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     enabled: !!clienteId && !!contas?.length,
     queryFn: async () => {
       const contaIds = contas!.map((c) => c.id);
-      const { data } = await supabase.from('valores_mensais').select('conta_id, competencia, valor_realizado').in('conta_id', contaIds).in('competencia', competencias);
+      const { data } = await supabase.from('valores_mensais').select('conta_id, competencia, valor_realizado').in('conta_id', contaIds).gte('competencia', `${ano}-01-01`).lte('competencia', `${ano}-12-31`);
       return data || [];
     },
   });
