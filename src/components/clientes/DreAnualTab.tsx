@@ -429,11 +429,12 @@ export function DreAnualTab({ clienteId }: Props) {
     isGrupo?: boolean;
     isReceita?: boolean;
     isSubgrupo?: boolean;
+    isCategoria?: boolean;
     contaId?: string;
     isCurrent?: boolean;
   }): React.ReactNode => {
     if (!showAV) return null;
-    const { bg, isGrupo, isReceita, isSubgrupo, contaId, isCurrent } = opts || {};
+    const { bg, isGrupo, isReceita, isSubgrupo, isCategoria, contaId, isCurrent } = opts || {};
     const baseBg = isCurrent ? (bg === '#F0F4FA' ? '#E8EEF8' : bg === '#0D1B35' ? undefined : '#FAFCFF') : bg;
 
     if (isGrupo || isReceita) {
@@ -450,10 +451,11 @@ export function DreAnualTab({ clienteId }: Props) {
     let dot: React.ReactNode = null;
     let tooltipText: string | null = null;
 
-    if (isSubgrupo && contaId) {
+    // Show dot for both N1 (subgrupo) and N2 (categoria) if in benchmarkMap
+    if ((isSubgrupo || isCategoria) && contaId) {
       const config = benchmarkMap.get(contaId);
       if (config) {
-        let dotColor = '#DC2626'; // vermelho default
+        let dotColor = '#DC2626';
         if (config.direcao === 'menor_melhor') {
           if (avPct < config.limite_verde) dotColor = '#00A86B';
           else if (avPct < config.limite_ambar) dotColor = '#D97706';
@@ -462,7 +464,7 @@ export function DreAnualTab({ clienteId }: Props) {
           else if (avPct > config.limite_ambar) dotColor = '#D97706';
         }
         const sign = config.direcao === 'maior_melhor' ? '>' : '<';
-        tooltipText = `Benchmark: verde ${sign}${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho ${config.direcao === 'menor_melhor' ? '>' : '<'}${config.limite_ambar}%`;
+        tooltipText = `Benchmark [${config.nome}]: verde ${sign}${config.limite_verde}% · âmbar ${config.limite_verde}–${config.limite_ambar}% · vermelho ${config.direcao === 'menor_melhor' ? '>' : '<'}${config.limite_ambar}%`;
         dot = <span style={{ fontSize: 8, color: dotColor, lineHeight: 1 }}>●</span>;
       }
     }
