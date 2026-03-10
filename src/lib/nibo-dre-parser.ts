@@ -34,10 +34,13 @@ function deveIgnorar(nome: string): boolean {
   return LINHAS_IGNORADAS.some((ig) => lower === ig || lower.startsWith(ig));
 }
 
-/** Normalise a name for comparison: remove prefix, trim, lowercase, strip accents */
-function normalizar(nome: string): string {
-  return nome
-    .replace(/^\s*\([+-]\)\s*/, '')
+/** Normalise a name for comparison: trim, lowercase, strip accents. Optionally keep prefix marker. */
+function normalizar(nome: string, manterPrefixo = false): string {
+  let s = nome.trim();
+  if (!manterPrefixo) {
+    s = s.replace(/^\s*\([+-]\)\s*/, '');
+  }
+  return s
     .trim()
     .toLowerCase()
     .normalize('NFD')
