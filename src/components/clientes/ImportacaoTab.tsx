@@ -320,7 +320,7 @@ export function ImportacaoTab({ clienteId, clienteNome, clienteSegmento, cliente
         clienteNome={clienteNome}
         competencia={competencia}
         competenciaLabel={compLabel}
-        contas={contas?.map((c) => ({ id: c.id, nome: c.nome })) || []}
+        contas={contas?.filter((c) => c.nivel === 2).map((c) => ({ id: c.id, nome: c.nome })) || []}
       />
 
       <ImportXlsxDialog
