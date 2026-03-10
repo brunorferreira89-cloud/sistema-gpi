@@ -519,6 +519,14 @@ export function TorreControleTab({ clienteId }: Props) {
   const compLabel = competencia ? fmtCompetencia(competencia) : '';
   const mesAntLabel = mesAnt ? fmtCompetencia(mesAnt) : '';
   const mesSegLabel = mesSeg ? fmtCompetencia(mesSeg) : '';
+  // Month-only labels (no year) for column headers
+  const fmtMesOnly = (comp: string) => {
+    const d = new Date(comp + 'T12:00:00Z');
+    return d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase();
+  };
+  const mesAntShort = mesAnt ? fmtMesOnly(mesAnt) : '';
+  const compShort = competencia ? fmtMesOnly(competencia) : '';
+  const mesSegShort = mesSeg ? fmtMesOnly(mesSeg) : '';
 
   // ── Variation (R$) helper ──────────────────────────────────────
   const calcVariacao = (node: DreNode): number | null => {
