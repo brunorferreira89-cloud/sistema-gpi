@@ -87,42 +87,19 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
 
   const competencia = dados ? mesRefToCompetencia(dados.mes_referencia) : null;
 
-  const fetchFromCache = useCallback(async (): Promise<boolean> => {
-    if (!clienteId || !dados || !competencia) return false;
-    try {
-      const { data: cached } = await supabase
-        .from('analises_ia' as any)
-        .select('*')
-        .eq('cliente_id', clienteId)
-        .eq('indicador', dados.indicador)
-        .eq('competencia', competencia)
-        .limit(1)
-        .maybeSingle();
-      if (cached && (cached as any).titulo) {
-        setAnalysis({
-          titulo: (cached as any).titulo || '',
-          analise: (cached as any).analise || '',
-          acao: (cached as any).acao || '',
-        });
-        setGeradoEm((cached as any).gerado_em || null);
-        return true;
-      }
-    } catch (e) {
-      console.error('Erro ao buscar cache:', e);
-    }
-    return false;
-  }, [clienteId, dados, competencia]);
-
-  const callEdgeFunction = useCallback(async () => {
+  const gerarNovaAnalise = useCallback(async () => {
     if (!dados) return;
     setLoading(true);
+    setAnalysis(null);
+    setGeradoEm(null);
     try {
       const { data: result, error } = await supabase.functions.invoke('analisar-indicador', {
         body: dados,
       });
       if (error) throw error;
+      const now = new Date().toISOString();
       setAnalysis(result);
-      setGeradoEm(new Date().toISOString());
+      setGeradoEm(now);
 
       // Save to cache
       if (clienteId && competencia) {
@@ -134,7 +111,7 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
             titulo: result?.titulo || '',
             analise: result?.analise || '',
             acao: result?.acao || '',
-            gerado_em: new Date().toISOString(),
+            gerado_em: now,
           } as any,
           { onConflict: 'cliente_id,indicador,competencia' }
         );
@@ -147,24 +124,55 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
     }
   }, [dados, clienteId, competencia]);
 
-  const handleOpen = useCallback(async () => {
-    setAnalysis(null);
-    setGeradoEm(null);
-    const found = await fetchFromCache();
-    if (!found) {
-      await callEdgeFunction();
-    }
-  }, [fetchFromCache, callEdgeFunction]);
+  useEffect(() => {
+    if (!isOpen || !dados) return;
+
+    const carregarAnalise = async () => {
+      if (!clienteId || !competencia) {
+        await gerarNovaAnalise();
+        return;
+      }
+
+      setLoading(true);
+      setAnalysis(null);
+      setGeradoEm(null);
+
+      try {
+        const { data: cached } = await supabase
+          .from('analises_ia' as any)
+          .select('*')
+          .eq('cliente_id', clienteId)
+          .eq('indicador', dados.indicador)
+          .eq('competencia', competencia)
+          .maybeSingle();
+
+        if (cached && (cached as any).analise) {
+          setAnalysis({
+            titulo: (cached as any).titulo || '',
+            contexto: (cached as any).contexto || undefined,
+            analise: (cached as any).analise || '',
+            alerta: (cached as any).alerta || null,
+            acao: (cached as any).acao || '',
+          });
+          setGeradoEm((cached as any).gerado_em || null);
+          setLoading(false);
+          return; // Cache found — do NOT call Edge Function
+        }
+      } catch (e) {
+        console.error('Erro ao buscar cache:', e);
+      }
+
+      // No cache found — generate new analysis
+      setLoading(false);
+      await gerarNovaAnalise();
+    };
+
+    carregarAnalise();
+  }, [isOpen, dados, clienteId, competencia, gerarNovaAnalise]);
 
   const handleRefresh = useCallback(async () => {
-    setAnalysis(null);
-    setGeradoEm(null);
-    await callEdgeFunction();
-  }, [callEdgeFunction]);
-
-  useEffect(() => {
-    if (isOpen && dados) handleOpen();
-  }, [isOpen, dados]);
+    await gerarNovaAnalise();
+  }, [gerarNovaAnalise]);
 
   if (!isOpen || !dados) return null;
 
