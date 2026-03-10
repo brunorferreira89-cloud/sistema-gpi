@@ -9,8 +9,8 @@ import { EditContaDialog } from './EditContaDialog';
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
+  useSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
