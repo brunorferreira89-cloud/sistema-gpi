@@ -205,7 +205,11 @@ export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<
 
         const dedup = new Map<string, ValorParseado>();
         for (const v of valores) {
-          dedup.set(normalizar(v.nomeOriginal), v);
+          // Use prefix-aware key when the plan has the full-name entry, otherwise fallback to stripped key
+          const keyComPrefixo = normalizar(v.nomeOriginal, true);
+          const keySemPrefixo = normalizar(v.nomeOriginal);
+          const key = nomesComPrefixo?.has(keyComPrefixo) ? keyComPrefixo : keySemPrefixo;
+          dedup.set(key, v);
         }
         const valoresFinais = Array.from(dedup.values());
 
