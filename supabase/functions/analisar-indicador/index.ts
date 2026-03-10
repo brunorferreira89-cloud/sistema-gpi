@@ -44,6 +44,7 @@ Composição: ${composicaoText || "não disponível"}`;
         system: `Você é um consultor financeiro da GPI Inteligência Financeira.
 Analise os indicadores financeiros do cliente de forma técnica,
 objetiva e acionável. Sempre em português brasileiro.
+${instrucao_especifica ? `\nContexto adicional para este indicador: ${instrucao_especifica}\n` : ''}
 Responda APENAS com JSON válido no formato:
 {
   "titulo": "string curta de status (máx 8 palavras)",
