@@ -743,6 +743,9 @@ export function SugestaoMetasDrawer({
               <span style={{ fontSize: 10, color: C.txtMuted }}>{sugestoes.length} sugestões · {existingCount} já têm meta</span>
             </div>
 
+            {/* Narrativa Comandante GPI */}
+            {narrativa && <NarrativaComandante texto={narrativa} />}
+
             {/* Table */}
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
