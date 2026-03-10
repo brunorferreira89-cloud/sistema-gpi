@@ -264,9 +264,7 @@ export function ContasTree({ contas, valoresMetas, clienteId, onRefresh }: Props
         {/* Sortable categories */}
         <SortableContext items={catIds} strategy={verticalListSortingStrategy}>
           {node.filhos.map(cat => (
-            <SortableRow key={cat.id} id={cat.id} nivel={2}>
-              {(dragListeners: any) => renderCategoria(cat, dragListeners)}
-            </SortableRow>
+            <SortableRow key={cat.id} id={cat.id} renderContent={(dragListeners) => renderCategoria(cat, dragListeners)} />
           ))}
         </SortableContext>
       </div>
