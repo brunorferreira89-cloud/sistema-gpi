@@ -289,6 +289,7 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     }
   }, [saldosData, clienteId, ano, queryClient]);
 
+  const valoresMap = useMemo(() => {
     const map: Record<string, Record<string, number | null>> = {};
     valoresAnuais?.forEach((v) => {
       if (!map[v.conta_id]) map[v.conta_id] = {};
