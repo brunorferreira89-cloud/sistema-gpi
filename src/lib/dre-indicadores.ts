@@ -40,13 +40,11 @@ export const indicadoresDRE: IndicadorDRE[] = [
 ];
 
 /**
- * A conta is a leaf (nivel 2) if it's the lowest level where values are stored.
- * nivel=0 (seção) and nivel=1 (grupo) are NEVER leafs — they are totalized.
+ * Leaf contas are nivel=2 (categorias) — the only level where values are stored.
  */
 export function isLeafConta(contas: ContaRow[], index: number): boolean {
   const conta = contas[index];
   if (conta.is_total) return false;
-  // Only nivel 2 stores values
   return conta.nivel === 2;
 }
 
@@ -69,7 +67,6 @@ export function calcIndicador(
     if (acumula.includes(c.tipo)) {
       const val = valoresMap[c.id];
       if (val != null) {
-        // Receita adds, everything else subtracts
         if (c.tipo === 'receita') {
           total += val;
         } else {
@@ -101,7 +98,7 @@ export function sumLeafByTipo(
 }
 
 /**
- * Sum children (nivel=2) under a specific parent (nivel=1 grupo).
+ * Sum children (nivel=2) under a specific parent (nivel=1 subgrupo).
  */
 export function sumChildrenOfGroup(
   contas: ContaRow[],
@@ -123,7 +120,7 @@ export function sumChildrenOfGroup(
 }
 
 /**
- * Sum all groups (nivel=1) under a specific section (nivel=0).
+ * Sum all subgrupos (nivel=1) under a specific grupo (nivel=0).
  */
 export function sumChildrenOfSection(
   contas: ContaRow[],
