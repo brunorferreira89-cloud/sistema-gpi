@@ -50,6 +50,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [competencia, setCompetencia] = useState(competencias[0]?.value || '');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  const anoSelecionado = useMemo(() => competencia ? competencia.split('-')[0] : String(new Date().getFullYear()), [competencia]);
+
   const mesAnterior = useMemo(() => {
     if (!competencia) return '';
     const [y, m] = competencia.split('-').map(Number);
@@ -82,6 +84,23 @@ export function TorreControleTab({ clienteId }: Props) {
     queryFn: async () => {
       const contaIds = contas!.map((c) => c.id);
       const { data } = await supabase.from('valores_mensais').select('conta_id, valor_realizado').in('conta_id', contaIds).eq('competencia', mesAnterior);
+      return data || [];
+    },
+  });
+
+  // --- Full year query for visibility filter ---
+  const { data: valoresAnoCompleto } = useQuery({
+    queryKey: ['valores-ano-completo-torre', clienteId, anoSelecionado, contas?.length ?? 0],
+    enabled: !!clienteId && !!contas?.length,
+    queryFn: async () => {
+      const contaIds = contas!.map((c) => c.id);
+      const { data } = await supabase
+        .from('valores_mensais')
+        .select('conta_id, valor_realizado')
+        .in('conta_id', contaIds)
+        .gte('competencia', `${anoSelecionado}-01-01`)
+        .lte('competencia', `${anoSelecionado}-12-31`)
+        .not('valor_realizado', 'is', null);
       return data || [];
     },
   });
@@ -129,19 +148,18 @@ export function TorreControleTab({ clienteId }: Props) {
     });
   };
 
-  // --- Filter: contas with value in the selected competência ---
+  // --- Filter: contas with value in ANY month of the year ---
   const contasComValor = useMemo(() => {
     const set = new Set<string>();
-    valores?.forEach((v) => {
-      if (v.valor_realizado != null) set.add(v.conta_id);
+    valoresAnoCompleto?.forEach((v) => {
+      set.add(v.conta_id);
     });
     return set;
-  }, [valores]);
+  }, [valoresAnoCompleto]);
 
-  /** Check if a conta (or any descendant) has values */
+  /** Check if a conta (or any descendant) has values in the year */
   const contaHasValues = useCallback((contaId: string, nivel: number): boolean => {
     if (nivel === 2) return contasComValor.has(contaId);
-    // Check children
     return contas?.some((c) => c.conta_pai_id === contaId && contaHasValues(c.id, c.nivel)) ?? false;
   }, [contas, contasComValor]);
 
