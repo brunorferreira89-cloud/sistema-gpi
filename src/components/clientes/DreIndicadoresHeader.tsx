@@ -70,10 +70,10 @@ function getSubgroups(
     let valPrev = 0;
     for (const ch of children) {
       const v = valMap[ch.id];
-      if (v != null) val += Math.abs(v);
+      if (v != null) val += v;
       if (prevMap) {
         const vp = prevMap[ch.id];
-        if (vp != null) valPrev += Math.abs(vp);
+        if (vp != null) valPrev += vp;
       }
     }
     const filhas = children
