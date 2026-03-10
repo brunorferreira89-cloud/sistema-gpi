@@ -89,7 +89,8 @@ export function OnboardingTab({ clienteId }: Props) {
               <CollapsibleContent>
                 <div className="border-t border-border px-4 pb-4">
                   {semanaItems.map((item: any) => {
-                    const isCritical = semana === 4 && item.ordem === 2;
+                    const isCritical = semana === 4 && item.ordem === 3;
+                    const isKpiConfig = item.item === 'Configurar indicadores de saúde financeira';
                     return (
                       <label
                         key={item.id}
