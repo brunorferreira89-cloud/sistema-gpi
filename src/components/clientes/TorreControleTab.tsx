@@ -826,6 +826,8 @@ export function TorreControleTab({ clienteId }: Props) {
         onRegenerar={() => handleSugerirMetas(true)}
         geradoEm={sugestaoGeradaEm}
         fromCache={sugestaoFromCache}
+        contas={contas || []}
+        realizadoMap={realizadoMap}
       />
     </div>
   );
