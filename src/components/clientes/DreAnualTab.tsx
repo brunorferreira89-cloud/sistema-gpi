@@ -543,8 +543,6 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
             </td>,
             renderAvCell(val, fat, {
               isReceita,
-              tipo: node.conta.nivel === 2 ? node.conta.tipo : undefined,
-              contaId: node.conta.nivel === 2 ? node.conta.id : undefined,
               isCurrent: isCurrentMonth(m.value),
             }),
             renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
