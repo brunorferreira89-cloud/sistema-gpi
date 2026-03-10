@@ -67,36 +67,60 @@ export function CopyFromClienteDialog({ open, onOpenChange, clienteId, clienteSe
     if (!selectedCliente || !previewContas?.length) return;
     setIsSaving(true);
 
-    const rows = previewContas.map((c, i) => ({
-      cliente_id: clienteId,
-      nome: c.nome,
-      tipo: c.tipo,
-      nivel: c.nivel,
-      ordem: i,
-      is_total: c.is_total || false,
-    }));
+    try {
+      // Delete existing contas for this client first
+      await supabase.from('plano_de_contas').delete().eq('cliente_id', clienteId);
 
-    const { data, error } = await supabase.from('plano_de_contas').insert(rows).select('id, nome, tipo');
-    if (error) {
-      toast.error('Erro ao copiar estrutura');
+      // Build a map from old ID → source conta for hierarchy reconstruction
+      const oldIdMap = new Map<string, typeof previewContas[0]>();
+      previewContas.forEach(c => oldIdMap.set(c.id, c));
+
+      // Insert level by level to reconstruct conta_pai_id relationships
+      const oldToNewId = new Map<string, string>();
+      const allInserted: { id: string; nome: string; tipo: ContaTipo }[] = [];
+
+      // Sort by nivel to insert parents first (0 → 1 → 2)
+      const sortedContas = [...previewContas].sort((a, b) => a.nivel - b.nivel);
+
+      for (const source of sortedContas) {
+        const newPaiId = source.conta_pai_id ? (oldToNewId.get(source.conta_pai_id) || null) : null;
+
+        const { data, error } = await supabase.from('plano_de_contas').insert({
+          cliente_id: clienteId,
+          nome: source.nome,
+          tipo: source.tipo,
+          nivel: source.nivel,
+          ordem: source.ordem,
+          is_total: source.is_total || false,
+          conta_pai_id: newPaiId,
+        }).select('id, nome, tipo').single();
+
+        if (error || !data) throw new Error(`Erro ao copiar: ${source.nome}`);
+
+        oldToNewId.set(source.id, data.id);
+        allInserted.push({ ...data, tipo: data.tipo as ContaTipo });
+      }
+
+      setSavedContaIds(allInserted);
+      const fRef = getFaturamentoReferencia(clienteFaixa);
+      const metasInit: Record<string, number | null> = {};
+      allInserted.forEach((c) => {
+        const s = getMetaSugerida(c.tipo as ContaTipo, c.nome, fRef);
+        metasInit[c.id] = s.valor;
+      });
+      setMetas(metasInit);
+
+      queryClient.invalidateQueries({ queryKey: ['plano-contas'] });
+      queryClient.invalidateQueries({ queryKey: ['plano-contas-count'] });
+      toast.success(`${allInserted.length} contas copiadas`);
+      setStep('metas');
+    } catch (err) {
+      console.error(err);
+      await supabase.from('plano_de_contas').delete().eq('cliente_id', clienteId);
+      toast.error('Falha ao copiar estrutura. Tente novamente.');
+    } finally {
       setIsSaving(false);
-      return;
     }
-
-    setSavedContaIds((data || []).map(c => ({ ...c, tipo: c.tipo as ContaTipo })));
-    const fRef = getFaturamentoReferencia(clienteFaixa);
-    const metasInit: Record<string, number | null> = {};
-    data?.forEach((c) => {
-      const s = getMetaSugerida(c.tipo as ContaTipo, c.nome, fRef);
-      metasInit[c.id] = s.valor;
-    });
-    setMetas(metasInit);
-
-    queryClient.invalidateQueries({ queryKey: ['plano-contas'] });
-    queryClient.invalidateQueries({ queryKey: ['plano-contas-count'] });
-    toast.success(`${data?.length} contas copiadas`);
-    setIsSaving(false);
-    setStep('metas');
   };
 
   const handleSaveMetas = async () => {
