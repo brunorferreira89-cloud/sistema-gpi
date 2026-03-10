@@ -199,7 +199,96 @@ export function DreAnualTab({ clienteId, benchmarks = DEFAULT_BENCHMARKS }: Prop
     },
   });
 
-  const valoresMap = useMemo(() => {
+  // --- Saldos de contas bancárias ---
+  const queryClient = useQueryClient();
+  const [editingSaldo, setEditingSaldo] = useState<{ key: string; field: 'saldo_inicial' | 'saldo_final' } | null>(null);
+  const [editingSaldoValue, setEditingSaldoValue] = useState('');
+  const [savingSaldo, setSavingSaldo] = useState(false);
+  const [addingConta, setAddingConta] = useState(false);
+  const [newContaNome, setNewContaNome] = useState('');
+  const [hoveredConta, setHoveredConta] = useState<string | null>(null);
+
+  const { data: saldosData } = useQuery({
+    queryKey: ['saldos-contas', clienteId, ano],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('saldos_contas')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .gte('competencia', `${ano}-01-01`)
+        .lte('competencia', `${ano}-12-01`)
+        .order('ordem')
+        .order('nome_conta');
+      return data || [];
+    },
+  });
+
+  const contasBancarias = useMemo(() => {
+    const names = new Set<string>();
+    saldosData?.forEach((s) => names.add(s.nome_conta));
+    return Array.from(names);
+  }, [saldosData]);
+
+  const saldosMap = useMemo(() => {
+    const map: Record<string, Record<string, { saldo_inicial: number | null; saldo_final: number | null }>> = {};
+    saldosData?.forEach((s) => {
+      if (!map[s.nome_conta]) map[s.nome_conta] = {};
+      map[s.nome_conta][s.competencia] = { saldo_inicial: s.saldo_inicial != null ? Number(s.saldo_inicial) : null, saldo_final: s.saldo_final != null ? Number(s.saldo_final) : null };
+    });
+    return map;
+  }, [saldosData]);
+
+  const saveSaldo = useCallback(async (nomeConta: string, comp: string, field: 'saldo_inicial' | 'saldo_final', value: number | null) => {
+    setSavingSaldo(true);
+    try {
+      const existing = saldosData?.find((s) => s.nome_conta === nomeConta && s.competencia === comp);
+      if (existing) {
+        await supabase.from('saldos_contas').update({ [field]: value }).eq('id', existing.id);
+      } else {
+        await supabase.from('saldos_contas').insert({ cliente_id: clienteId, nome_conta: nomeConta, competencia: comp, [field]: value });
+      }
+      queryClient.invalidateQueries({ queryKey: ['saldos-contas', clienteId, ano] });
+    } catch {
+      toast.error('Erro ao salvar saldo');
+    } finally {
+      setSavingSaldo(false);
+      setEditingSaldo(null);
+    }
+  }, [saldosData, clienteId, ano, queryClient]);
+
+  const addContaBancaria = useCallback(async () => {
+    if (!newContaNome.trim()) return;
+    try {
+      await supabase.from('saldos_contas').insert({
+        cliente_id: clienteId,
+        nome_conta: newContaNome.trim(),
+        competencia: `${ano}-01-01`,
+        saldo_inicial: null,
+        saldo_final: null,
+        ordem: contasBancarias.length,
+      });
+      queryClient.invalidateQueries({ queryKey: ['saldos-contas', clienteId, ano] });
+      setNewContaNome('');
+      setAddingConta(false);
+      toast.success('Conta adicionada');
+    } catch {
+      toast.error('Erro ao adicionar conta');
+    }
+  }, [newContaNome, clienteId, ano, contasBancarias.length, queryClient]);
+
+  const deleteContaBancaria = useCallback(async (nomeConta: string) => {
+    const hasValues = saldosData?.some((s) => s.nome_conta === nomeConta && (s.saldo_inicial != null || s.saldo_final != null));
+    if (hasValues && !window.confirm(`A conta "${nomeConta}" possui valores cadastrados. Deseja realmente excluir?`)) return;
+    try {
+      await supabase.from('saldos_contas').delete().eq('cliente_id', clienteId).eq('nome_conta', nomeConta);
+      queryClient.invalidateQueries({ queryKey: ['saldos-contas', clienteId, ano] });
+      toast.success('Conta removida');
+    } catch {
+      toast.error('Erro ao remover conta');
+    }
+  }, [saldosData, clienteId, ano, queryClient]);
+
     const map: Record<string, Record<string, number | null>> = {};
     valoresAnuais?.forEach((v) => {
       if (!map[v.conta_id]) map[v.conta_id] = {};
