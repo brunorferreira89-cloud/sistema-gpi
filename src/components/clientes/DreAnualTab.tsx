@@ -80,7 +80,9 @@ function calcIndicadorValue(leafs: ContaRow[], valMap: Record<string, number | n
     const v = valMap[c.id];
     if (v == null) continue;
     hasAny = true;
-    total += c.tipo === 'receita' ? v : -v;
+    // Apply category prefix sign, then type-level sign
+    const signed = hasPrefixMinus(c.nome) ? -Math.abs(v) : Math.abs(v);
+    total += c.tipo === 'receita' ? signed : -signed;
   }
   return hasAny ? total : null;
 }
