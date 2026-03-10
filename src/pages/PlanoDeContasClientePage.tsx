@@ -44,11 +44,6 @@ export default function PlanoDeContasClientePage() {
     refetchContas();
   };
 
-  const handleRefresh = () => {
-    refetchContas();
-    refetchMetas();
-  };
-
   const hasContas = contas && contas.length > 0;
 
   return (
@@ -74,9 +69,8 @@ export default function PlanoDeContasClientePage() {
       </div>
 
       {hasContas ? (
-        <ContasTree
+        <PlanoDeContasDetail
           contas={contas}
-          valoresMetas={valoresMetas || {}}
           clienteId={clienteId!}
           onRefresh={handleRefresh}
         />
