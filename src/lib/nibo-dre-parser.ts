@@ -131,8 +131,8 @@ export function parseValoresNibo(file: File): Promise<ResultadoParseValores> {
           const nomeOriginal = String(nameCell.v).trim();
           if (!nomeOriginal) continue;
           if (deveIgnorar(nomeOriginal)) continue;
-          if (isTotalizadorLine(nomeOriginal)) continue;
-          if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix
+          if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix (+) or (-)
+          if (!isCategoriaReal(nomeOriginal)) continue; // Skip totalizers (all uppercase)
 
           const valoresRow: Record<string, number> = {};
           for (let mi = 0; mi < mesesDisponiveis.length; mi++) {
