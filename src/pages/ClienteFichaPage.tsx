@@ -15,7 +15,7 @@ import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
 import { ImportacaoTab } from '@/components/clientes/ImportacaoTab';
 import { ContatoTab } from '@/components/clientes/ContatoTab';
-import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
+import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels, formatCnpj, nomeExibido } from '@/lib/clientes-utils';
 import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
@@ -147,7 +147,10 @@ export default function ClienteFichaPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-txt">{cliente.razao_social || cliente.nome_empresa}</h2>
+          <h2 className="text-2xl font-bold text-txt">{nomeExibido(cliente)}</h2>
+          {cliente.cnpj && (
+            <p className="mt-0.5 text-[11px] text-txt-muted font-normal" style={{ letterSpacing: '0.03em' }}>{formatCnpj(cliente.cnpj)}</p>
+          )}
           <div className="mt-1 flex items-center gap-2 text-xs text-txt-muted">
             <Popover>
               <PopoverTrigger>
@@ -263,7 +266,7 @@ export default function ClienteFichaPage() {
         <TabsContent value="importacao">
           <ImportacaoTab
             clienteId={clienteId!}
-            clienteNome={cliente.nome_empresa}
+            clienteNome={nomeExibido(cliente)}
             clienteSegmento={cliente.segmento}
             clienteFaixa={cliente.faturamento_faixa}
           />
@@ -273,7 +276,7 @@ export default function ClienteFichaPage() {
         <TabsContent value="financeiro">
           <FinanceiroTab
             clienteId={clienteId!}
-            clienteNome={cliente.nome_empresa}
+            clienteNome={nomeExibido(cliente)}
             clienteSegmento={cliente.segmento}
             clienteFaixa={cliente.faturamento_faixa}
           />

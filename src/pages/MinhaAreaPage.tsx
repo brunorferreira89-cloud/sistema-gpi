@@ -153,7 +153,7 @@ export default function MinhaAreaPage() {
       {/* Greeting */}
       <div>
         <p className="text-[11px] text-txt-muted">Olá, {primeiroNome} 👋</p>
-        <h1 className="text-lg font-extrabold text-txt">{cliente?.nome_empresa || '...'}</h1>
+        <h1 className="text-lg font-extrabold text-txt">{cliente?.razao_social || cliente?.nome_empresa || '...'}</h1>
         <p className="text-[11px] text-txt-muted">
           Mês atual · {hasCurrentData ? 'Fechamento disponível' : 'Aguardando fechamento'}
         </p>

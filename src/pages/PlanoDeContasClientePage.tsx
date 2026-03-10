@@ -53,7 +53,7 @@ export default function PlanoDeContasClientePage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-txt">{cliente?.nome_empresa || 'Carregando...'}</h2>
+          <h2 className="text-2xl font-bold text-txt">{cliente?.razao_social || cliente?.nome_empresa || 'Carregando...'}</h2>
           <p className="text-sm text-txt-muted">Plano de Contas — Estrutura DRE</p>
         </div>
         <div className="flex gap-2">

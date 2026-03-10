@@ -104,7 +104,7 @@ export default function PlanoDeContasPage() {
               <div key={cliente.id} className="group flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 transition-shadow hover:shadow-md">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-txt">{cliente.nome_empresa}</h3>
+                    <h3 className="font-semibold text-txt">{cliente.razao_social || cliente.nome_empresa}</h3>
                     <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${seg.bg} ${seg.text}`}>
                       {segmentLabels[cliente.segmento] || cliente.segmento}
                     </span>

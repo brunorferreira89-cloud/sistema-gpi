@@ -30,7 +30,7 @@ export function ReuniaoDialog({ open, onOpenChange, reuniao, preselectedClienteI
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('id, nome_empresa').eq('status', 'ativo').order('nome_empresa');
+      const { data } = await supabase.from('clientes').select('id, nome_empresa, razao_social').eq('status', 'ativo').order('nome_empresa');
       return data || [];
     },
   });
@@ -63,7 +63,7 @@ export function ReuniaoDialog({ open, onOpenChange, reuniao, preselectedClienteI
       setTitulo(`Reunião Coletiva Mensal — ${now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`);
     } else if (clienteId && clientes) {
       const c = clientes.find((c) => c.id === clienteId);
-      if (c) setTitulo(`Reunião Individual — ${c.nome_empresa}`);
+      if (c) setTitulo(`Reunião Individual — ${c.razao_social || c.nome_empresa}`);
     }
   }, [tipo, clienteId, clientes, reuniao]);
 
@@ -121,7 +121,7 @@ export function ReuniaoDialog({ open, onOpenChange, reuniao, preselectedClienteI
               <Select value={clienteId} onValueChange={setClienteId}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+                  {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

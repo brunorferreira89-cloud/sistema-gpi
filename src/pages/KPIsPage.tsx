@@ -43,7 +43,7 @@ export default function KPIsPage() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('id, nome_empresa').eq('status', 'ativo').order('nome_empresa');
+      const { data } = await supabase.from('clientes').select('id, nome_empresa, razao_social').eq('status', 'ativo').order('nome_empresa');
       return data || [];
     },
   });
@@ -100,7 +100,7 @@ export default function KPIsPage() {
           <Select value={clienteId} onValueChange={setClienteId}>
             <SelectTrigger className="w-52"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
             <SelectContent>
-              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={competencia} onValueChange={setCompetencia}>

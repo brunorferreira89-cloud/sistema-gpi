@@ -156,7 +156,7 @@ export function CopyFromClienteDialog({ open, onOpenChange, clienteId, clienteSe
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-txt">{c.nome_empresa}</p>
+                    <p className="font-medium text-txt">{c.razao_social || c.nome_empresa}</p>
                     <p className="text-xs text-txt-muted">{c.segmento}</p>
                   </div>
                   <span className="font-mono text-xs text-txt-sec">{contasCounts?.[c.id] || 0} contas</span>

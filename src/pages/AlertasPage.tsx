@@ -19,7 +19,7 @@ export default function AlertasPage() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, segmento').eq('status', 'ativo').order('nome_empresa');
+      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('status', 'ativo').order('nome_empresa');
       if (error) throw error;
       return data;
     },
@@ -75,7 +75,7 @@ export default function AlertasPage() {
             <SelectTrigger className="w-56"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
             <SelectContent>
               {clientes?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -128,7 +128,7 @@ export default function AlertasPage() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           clienteId={clienteId}
-          clienteNome={clientes?.find((c) => c.id === clienteId)?.nome_empresa || ''}
+          clienteNome={clientes?.find((c) => c.id === clienteId)?.razao_social || clientes?.find((c) => c.id === clienteId)?.nome_empresa || ''}
         />
       )}
     </div>

@@ -55,7 +55,7 @@ export default function KanbanPage() {
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes-ativos-kanban'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, segmento, status');
+      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento, status');
       if (error) throw error;
       return data;
     },
@@ -100,7 +100,7 @@ export default function KanbanPage() {
           toInsert.push({
             cliente_id: c.id,
             tipo: 'auditoria_diaria',
-            titulo: `Auditoria — ${c.nome_empresa}`,
+            titulo: `Auditoria — ${c.razao_social || c.nome_empresa}`,
             status: 'pendente',
             prioridade: 'normal',
             data_tarefa: dateStr,
@@ -113,7 +113,7 @@ export default function KanbanPage() {
           toInsert.push({
             cliente_id: c.id,
             tipo: 'alerta_semanal',
-            titulo: `Alerta Semanal — ${c.nome_empresa}`,
+            titulo: `Alerta Semanal — ${c.razao_social || c.nome_empresa}`,
             status: 'pendente',
             prioridade: 'alta',
             data_tarefa: dateStr,
@@ -289,7 +289,7 @@ export default function KanbanPage() {
 
       <TarefaDialog
         open={dialogOpen} onOpenChange={setDialogOpen} tarefa={editingTarefa}
-        clientes={clientes.filter((c) => c.status === 'ativo').map((c) => ({ id: c.id, nome_empresa: c.nome_empresa }))}
+        clientes={clientes.filter((c) => c.status === 'ativo').map((c) => ({ id: c.id, nome_empresa: c.razao_social || c.nome_empresa }))}
         analistas={analistas.map((a) => ({ id: a.id, nome: a.nome }))}
         defaultDate={selectedDate} onSaved={() => queryClient.invalidateQueries({ queryKey: ['tarefas', dateStr] })}
       />
@@ -379,7 +379,7 @@ function TarefaCardContent({ tarefa, cliente, analista }: { tarefa: any; cliente
         <div className="flex items-center gap-1.5 flex-wrap">
           {seg && (
             <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${seg.bg} ${seg.text}`}>
-              {cliente.nome_empresa}
+              {cliente.razao_social || cliente.nome_empresa}
             </span>
           )}
           <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${tipo.cls}`}>{tipo.label}</span>

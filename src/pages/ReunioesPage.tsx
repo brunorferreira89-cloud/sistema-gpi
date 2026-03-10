@@ -31,7 +31,7 @@ export default function ReunioesPage() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('id, nome_empresa, segmento').eq('status', 'ativo').order('nome_empresa');
+      const { data } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('status', 'ativo').order('nome_empresa');
       return data || [];
     },
   });
@@ -59,7 +59,7 @@ export default function ReunioesPage() {
     },
   });
 
-  const getClienteNome = (id: string) => clientes?.find((c) => c.id === id)?.nome_empresa || '—';
+  const getClienteNome = (id: string) => { const c = clientes?.find((c) => c.id === id); return c?.razao_social || c?.nome_empresa || '—'; };
   const getClienteSegmento = (id: string) => clientes?.find((c) => c.id === id)?.segmento || 'outro';
 
   const filterReunioes = (tipo: string) => {
@@ -180,7 +180,7 @@ export default function ReunioesPage() {
               <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os clientes</SelectItem>
-                {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+                {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filtroStatus} onValueChange={setFiltroStatus}>

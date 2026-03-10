@@ -60,7 +60,7 @@ export default function TorrePage() {
   const { data: clientes } = useQuery({
     queryKey: ['clientes-ativos'],
     queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('id, nome_empresa, segmento').eq('status', 'ativo').order('nome_empresa');
+      const { data } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('status', 'ativo').order('nome_empresa');
       return data || [];
     },
   });
@@ -191,7 +191,7 @@ export default function TorrePage() {
           <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setCollapsed(new Set()); }}>
             <SelectTrigger className="w-64"><SelectValue placeholder="Selecionar cliente..." /></SelectTrigger>
             <SelectContent>
-              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_empresa}</SelectItem>)}
+              {clientes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social || c.nome_empresa}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -346,7 +346,7 @@ export default function TorrePage() {
           open={importOpen}
           onOpenChange={setImportOpen}
           clienteId={clienteId}
-          clienteNome={clienteSel?.nome_empresa || ''}
+          clienteNome={clienteSel?.razao_social || clienteSel?.nome_empresa || ''}
           competencia={competencia}
           competenciaLabel={compLabel}
           contas={contas?.filter((c) => c.nivel === 2).map((c) => ({ id: c.id, nome: c.nome })) || []}
