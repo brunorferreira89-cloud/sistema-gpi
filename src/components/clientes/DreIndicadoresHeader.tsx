@@ -55,17 +55,41 @@ function sumByTipo(leafs: ContaRow[], valMap: Record<string, number | null>, tip
   return total;
 }
 
-function getSubgroups(contas: ContaRow[], tipo: string, valMap: Record<string, number | null>): { nome: string; valor: number }[] {
+function getSubgroups(
+  contas: ContaRow[], tipo: string,
+  valMap: Record<string, number | null>,
+  fat: number,
+  prevMap?: Record<string, number | null>,
+): { nome: string; grupo: string; nivel: string; valor: number; pct_faturamento: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number }[] {
   const subs = contas.filter(c => c.tipo === tipo && c.nivel === 1);
-  return subs.map(s => {
+  const result = subs.map(s => {
+    const parent = contas.find(c => c.id === s.conta_pai_id && c.nivel === 0);
     const children = contas.filter(c => c.conta_pai_id === s.id && c.nivel === 2);
     let val = 0;
+    let valPrev = 0;
     for (const ch of children) {
       const v = valMap[ch.id];
       if (v != null) val += Math.abs(v);
+      if (prevMap) {
+        const vp = prevMap[ch.id];
+        if (vp != null) valPrev += Math.abs(vp);
+      }
     }
-    return { nome: s.nome, valor: val };
+    const entry: any = {
+      nome: s.nome,
+      grupo: parent?.nome || tipo,
+      nivel: 'subgrupo',
+      valor: val,
+      pct_faturamento: fat ? (val / fat) * 100 : 0,
+    };
+    if (prevMap) {
+      entry.valor_anterior = valPrev;
+      entry.variacao_abs = val - valPrev;
+      entry.variacao_pct = valPrev ? ((val - valPrev) / valPrev) * 100 : 0;
+    }
+    return entry;
   }).filter(s => s.valor !== 0);
+  return result.sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
 }
 
 function fmtCurrency(v: number): string {
