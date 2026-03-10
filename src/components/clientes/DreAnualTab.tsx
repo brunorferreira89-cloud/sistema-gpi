@@ -6,6 +6,7 @@ import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
 import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
+import { DreIndicadoresHeader } from './DreIndicadoresHeader';
 
 // --- helpers ---
 
