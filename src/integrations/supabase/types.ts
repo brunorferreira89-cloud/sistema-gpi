@@ -701,6 +701,38 @@ export type Database = {
           },
         ]
       }
+      sugestoes_metas_ia: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          gerado_em: string | null
+          id: string
+          sugestoes: Json
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          gerado_em?: string | null
+          id?: string
+          sugestoes: Json
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          gerado_em?: string | null
+          id?: string
+          sugestoes?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugestoes_metas_ia_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas_operacionais: {
         Row: {
           cliente_id: string

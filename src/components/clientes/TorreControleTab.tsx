@@ -445,14 +445,14 @@ export function TorreControleTab({ clienteId }: Props) {
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMap]);
 
-  const handleSugerirMetas = async () => {
+  const handleSugerirMetas = async (force = false) => {
     if (!cliente) return;
     setLoadingSugestao(true);
     setDrawerSugestaoOpen(true);
     setSugestoes([]);
     try {
       const { data, error } = await supabase.functions.invoke('sugerir-metas', {
-        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt },
+        body: { cliente_id: cliente.id, competencia, competencia_anterior: mesAnt, force },
       });
       if (error) throw error;
       setSugestoes(data?.sugestoes || []);
@@ -747,7 +747,7 @@ export function TorreControleTab({ clienteId }: Props) {
             {/* AI suggest button + Table */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: -8 }}>
               <button
-                onClick={handleSugerirMetas}
+                onClick={() => handleSugerirMetas()}
                 disabled={loadingSugestao}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -802,6 +802,7 @@ export function TorreControleTab({ clienteId }: Props) {
         metasExistentes={metaMap}
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
+        onRegenerar={() => handleSugerirMetas(true)}
       />
     </div>
   );
