@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Settings, Plus, RotateCcw, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { Settings, Plus, RotateCcw, ArrowUp, ArrowDown, X, Search } from 'lucide-react';
 import type { ContaRow } from '@/lib/plano-contas-utils';
 import { fetchAllIndicadores, type KpiIndicador } from '@/lib/kpi-indicadores-utils';
 
