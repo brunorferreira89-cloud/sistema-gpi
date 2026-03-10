@@ -620,6 +620,7 @@ export function DreAnualTab({ clienteId }: Props) {
               isCategoria: true,
               contaId: node.conta.id,
               isCurrent: isCurrentMonth(m.value),
+              monthComp: m.value,
             }),
             renderAhCell(val, i === 0 ? null : prevVal, isExpense, isCurrentMonth(m.value) ? '#FAFCFF' : undefined),
           ];
