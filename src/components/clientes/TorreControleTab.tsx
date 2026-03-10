@@ -617,11 +617,11 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
           {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: isTotal ? 13 : 12, fontWeight: isTotal ? 800 : 400, color: displayAnt != null ? (displayAnt < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 110, borderLeft: isSubgrupo || isCat ? `1px solid ${C.borderStr}` : 'none' }}>
+          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayAnt != null ? (displayAnt < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 110 }}>
             {fmtTorre(displayAnt)}
           </td>
           {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: isTotal ? 13 : 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayReal != null ? (displayReal < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayReal != null ? (displayReal < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 120 }}>
             {fmtTorre(displayReal)}
           </td>
           {/* Meta */}
