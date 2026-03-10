@@ -7,6 +7,7 @@ import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRigh
 import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { DreIndicadoresHeader } from './DreIndicadoresHeader';
+import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
 
 // --- helpers ---
 
