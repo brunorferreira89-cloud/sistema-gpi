@@ -547,7 +547,7 @@ export function TorreControleTab({ clienteId }: Props) {
     const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
 
     const hasMeta = meta && meta.meta_valor !== null;
-    const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
+    const paddingLeft = isGrupo ? 16 : isSubgrupo ? 28 : (hasMeta ? 38 : 40);
 
     // Styles
     let rowBg = hasMeta ? '#FFFFFF' : '#FAFCFF';
