@@ -136,6 +136,7 @@ export function DreAnualTab({ clienteId }: Props) {
   const [drawerTitulo, setDrawerTitulo] = useState('');
   const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
   const months = getMonthsForYear(ano);
+  const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
 
   const now = new Date();
   const currentMonthComp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
