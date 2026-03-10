@@ -108,12 +108,31 @@ export function ImportActionDialog({ type, importId, clienteId, currentCompetenc
   const handleDeleteConfirm = async () => {
     setLoading(true);
     try {
+      // 1. Get all contas for this client
+      const { data: contas } = await supabase
+        .from('plano_de_contas')
+        .select('id')
+        .eq('cliente_id', clienteId);
+
+      // 2. Clear valor_realizado for this competencia
+      if (contas && contas.length > 0) {
+        const contaIds = contas.map((c) => c.id);
+        const { error: clearError } = await supabase
+          .from('valores_mensais')
+          .update({ valor_realizado: null })
+          .in('conta_id', contaIds)
+          .eq('competencia', currentCompetencia);
+        if (clearError) throw clearError;
+      }
+
+      // 3. Delete import record
       const { error } = await supabase
         .from('importacoes_nibo')
         .delete()
         .eq('id', importId);
       if (error) throw error;
-      toast.success('Importação excluída com sucesso.');
+
+      toast.success('Importação excluída com sucesso. Valores realizados foram limpos.');
       onComplete();
     } catch (err) {
       console.error('Erro ao excluir importação:', err);

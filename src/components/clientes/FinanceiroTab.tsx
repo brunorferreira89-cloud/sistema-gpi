@@ -65,11 +65,10 @@ export function FinanceiroTab({ clienteId, clienteNome, clienteSegmento, cliente
   });
 
   const { data: valores } = useQuery({
-    queryKey: ['valores-mensais-torre', clienteId, competencia],
-    enabled: !!clienteId && !!competencia,
+    queryKey: ['valores-mensais-torre', clienteId, competencia, contas?.length ?? 0],
+    enabled: !!clienteId && !!competencia && !!contas?.length,
     queryFn: async () => {
-      const contaIds = contas?.map((c) => c.id) || [];
-      if (contaIds.length === 0) return [];
+      const contaIds = contas!.map((c) => c.id);
       const { data } = await supabase.from('valores_mensais').select('*').in('conta_id', contaIds).eq('competencia', competencia);
       return data || [];
     },
