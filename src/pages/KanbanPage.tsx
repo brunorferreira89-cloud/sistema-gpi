@@ -55,7 +55,7 @@ export default function KanbanPage() {
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes-ativos-kanban'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, segmento, status');
+      const { data, error } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento, status');
       if (error) throw error;
       return data;
     },

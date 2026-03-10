@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { NovoClienteDialog } from '@/components/clientes/NovoClienteDialog';
-import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels } from '@/lib/clientes-utils';
+import { segmentColors, segmentLabels, faixaLabels, statusColors, statusLabels, formatCnpj } from '@/lib/clientes-utils';
 
 export default function ClientesPage() {
   const navigate = useNavigate();
