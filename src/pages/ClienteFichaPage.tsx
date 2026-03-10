@@ -290,29 +290,8 @@ export default function ClienteFichaPage() {
         </TabsContent>
 
         {/* Contato */}
-        <TabsContent value="contato" className="space-y-4">
-          <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
-            <p className="text-sm font-semibold text-txt">Dados de contato</p>
-            <InlineField label="Nome do responsável" value={cliente.responsavel_nome || ''} onSave={(v) => updateMutation.mutate({ responsavel_nome: v })} />
-            <InlineField label="E-mail" value={cliente.responsavel_email || ''} onSave={(v) => updateMutation.mutate({ responsavel_email: v })} />
-            <InlineField label="WhatsApp" value={cliente.responsavel_whatsapp || ''} onSave={(v) => updateMutation.mutate({ responsavel_whatsapp: v })} />
-          </div>
-          <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
-            <p className="text-sm font-semibold text-txt">Observações internas</p>
-            <Textarea
-              defaultValue={cliente.observacoes || ''}
-              placeholder="Notas sobre este cliente..."
-              onBlur={(e) => {
-                if (e.target.value !== (cliente.observacoes || '')) {
-                  updateMutation.mutate({ observacoes: e.target.value });
-                }
-              }}
-              className="min-h-[100px]"
-            />
-          </div>
-          <div className="rounded-xl border border-border bg-surface p-5 text-xs text-txt-muted space-y-1">
-            <p>Cadastrado em: {new Date(cliente.created_at).toLocaleDateString('pt-BR')}</p>
-          </div>
+        <TabsContent value="contato">
+          <ContatoTab clienteId={clienteId!} cliente={cliente} />
         </TabsContent>
       </Tabs>
 
