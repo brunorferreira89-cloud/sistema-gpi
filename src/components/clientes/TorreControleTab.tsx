@@ -547,36 +547,36 @@ export function TorreControleTab({ clienteId }: Props) {
     const status = displayReal != null ? calcStatus(displayReal, projetado, isReceita) : 'neutro';
 
     const hasMeta = meta && meta.meta_valor !== null;
-    const paddingLeft = isGrupo ? 16 : isSubgrupo ? 28 : (hasMeta ? 38 : 40);
+    const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
 
-    // Styles
-    let rowBg = hasMeta ? '#FFFFFF' : '#FAFCFF';
-    let fontWeight = hasMeta ? 500 : 400;
-    let fontSize = 11;
-    let textColor = hasMeta ? '#0D1B35' : '#4A5E80';
-    let borderLeft = hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
+    // Styles — copied from DreAnualTab.tsx
+    let rowBg = '#FFFFFF';
+    let fontWeight = 400;
+    let fontSize = 12;
+    let textColor = '#4A5E80';
+    let borderLeft = isCat && hasMeta ? '2px solid rgba(26,60,255,0.35)' : 'none';
     let borderTop = 'none';
-    let borderBottom = '1px solid rgba(221,228,240,0.4)';
+    let borderBottom = '1px solid #F8F9FB';
     let letterSpacing: string | undefined = undefined;
     let textTransform: 'uppercase' | 'none' = 'none';
 
     if (isTotal) {
-      rowBg = 'rgba(26,60,255,0.05)';
-      fontWeight = 800;
-      fontSize = 12;
-      textColor = '#1A3CFF';
-      borderLeft = 'none';
-      borderTop = '2px solid rgba(26,60,255,0.12)';
-      borderBottom = '2px solid rgba(26,60,255,0.12)';
-    } else if (isGrupo) {
-      rowBg = 'rgba(26,60,255,0.03)';
+      rowBg = '#0D1B35';
       fontWeight = 700;
-      fontSize = 11;
+      fontSize = 12;
+      textColor = '#FFFFFF';
+      borderLeft = 'none';
+      borderTop = 'none';
+      borderBottom = 'none';
+    } else if (isGrupo) {
+      rowBg = '#F0F4FA';
+      fontWeight = 700;
+      fontSize = 12;
       textColor = '#0D1B35';
       borderLeft = 'none';
-      borderTop = '1px solid #DDE4F0';
-      borderBottom = '1px solid #DDE4F0';
-      letterSpacing = '0.03em';
+      borderTop = '1px solid #C4CFEA';
+      borderBottom = '1px solid #C4CFEA';
+      letterSpacing = '0.04em';
       textTransform = 'uppercase';
     } else if (isSubgrupo) {
       rowBg = '#FFFFFF';
@@ -584,7 +584,7 @@ export function TorreControleTab({ clienteId }: Props) {
       fontSize = 12;
       textColor = '#0D1B35';
       borderLeft = 'none';
-      borderBottom = '1px solid rgba(221,228,240,0.6)';
+      borderBottom = '1px solid #F0F4FA';
     }
 
     return (
@@ -597,7 +597,7 @@ export function TorreControleTab({ clienteId }: Props) {
             borderLeft,
             transition: 'background 0.1s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(26,60,255,0.02)'; }}
+          onMouseEnter={e => { if (!isTotal) e.currentTarget.style.background = '#F6F9FF'; }}
           onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
         >
           {/* Expand */}
@@ -617,11 +617,11 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
           {/* Mês anterior */}
-          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayAnt != null ? (displayAnt < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 110 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayAnt != null ? (displayAnt < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 110 }}>
             {fmtTorre(displayAnt)}
           </td>
           {/* Realizado */}
-          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo ? 700 : 400), color: displayReal != null ? (displayReal < 0 ? C.red : C.txt) : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: displayReal != null ? (displayReal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
             {fmtTorre(displayReal)}
           </td>
           {/* Meta */}
@@ -636,7 +636,7 @@ export function TorreControleTab({ clienteId }: Props) {
             />
           </td>
           {/* Projetado */}
-          <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? C.txtSec : C.txtMuted, padding: '8px 10px', width: 120 }}>
+          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, fontWeight: isTotal ? 800 : 400, color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted), padding: '8px 10px', width: 120 }}>
             {fmtTorre(projetado)}
           </td>
           {/* Status */}
@@ -655,22 +655,22 @@ export function TorreControleTab({ clienteId }: Props) {
     const antVal = totaisAnt[key as keyof typeof totaisAnt];
 
     return (
-      <tr key={key} style={{ background: 'rgba(26,60,255,0.05)', borderTop: '2px solid rgba(26,60,255,0.12)', borderBottom: '2px solid rgba(26,60,255,0.12)' }}>
+      <tr key={key} style={{ background: '#0D1B35' }}>
         <td style={{ width: 24 }} />
-        <td style={{ padding: '10px 8px 10px 16px', fontWeight: 800, fontSize: 12, color: '#1A3CFF' }}>
+        <td style={{ padding: '11px 8px 11px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: '#0099E6', fontSize: 13 }}>◈</span>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0099E6', flexShrink: 0, display: 'inline-block' }} />
             {config.nome}
           </span>
         </td>
-        <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 800, color: antVal < 0 ? C.red : C.green, padding: '10px 10px', width: 110 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: antVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 110 }}>
           {fmtTorre(antVal)}
         </td>
-        <td style={{ textAlign: 'right', fontFamily: "'Courier New', monospace", fontSize: 12, fontWeight: 800, color: realVal < 0 ? C.red : C.green, padding: '10px 10px', width: 120 }}>
+        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: realVal < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px', width: 120 }}>
           {fmtTorre(realVal)}
         </td>
-        <td style={{ textAlign: 'right', padding: '10px 10px', width: 130, color: C.txtMuted, fontFamily: "'Courier New', monospace", fontSize: 12 }}>—</td>
-        <td style={{ textAlign: 'right', padding: '10px 10px', width: 120, color: C.txtMuted, fontFamily: "'Courier New', monospace", fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', width: 130, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
+        <td style={{ textAlign: 'right', padding: '11px 10px', width: 120, color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12 }}>—</td>
         <td style={{ width: 96 }} />
       </tr>
     );
@@ -805,13 +805,13 @@ export function TorreControleTab({ clienteId }: Props) {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 800 }}>
                   <thead>
-                    <tr style={{ background: 'rgba(26,60,255,0.04)', borderBottom: '2px solid #DDE4F0' }}>
+                    <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                       <th style={{ width: 24 }} />
-                      <th style={{ textAlign: 'left', padding: '10px 16px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 130 }}>META</th>
-                      <th style={{ textAlign: 'right', padding: '10px 10px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
+                      <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CONTA DRE</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 110 }}>{mesAntLabel || 'MÊS ANT.'}</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 130 }}>META</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 120 }}>PROJETADO {mesSegLabel}</th>
                       <th style={{ textAlign: 'center', padding: '10px 6px', fontSize: 9, fontWeight: 800, color: '#8A9BBC', letterSpacing: '0.14em', width: 96 }}>STATUS</th>
                     </tr>
                   </thead>
