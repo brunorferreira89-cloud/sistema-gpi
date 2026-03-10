@@ -16,21 +16,11 @@ serve(async (req) => {
       direcao, historico, formula, composicao,
     } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const historicoText = (historico || []).map((h: any) => `${h.mes}: ${h.valor.toFixed(1)}%`).join(", ");
     const composicaoText = (composicao || []).map((c: any) => `${c.nome}: R$ ${Math.abs(c.valor).toLocaleString("pt-BR")}`).join("; ");
-
-    const systemPrompt = `Você é um consultor financeiro da GPI Inteligência Financeira.
-Analise os indicadores financeiros do cliente de forma técnica, objetiva e acionável. Sempre em português brasileiro.
-Responda APENAS com JSON no formato:
-{
-  "titulo": "string curta de status (máx 8 palavras)",
-  "analise": "string de 2-3 frases técnicas e diretas",
-  "acao": "string com 1 ação concreta recomendada (máx 15 palavras)"
-}
-Nunca use markdown. Nunca saia do JSON.`;
 
     const userPrompt = `Indicador: ${indicador} — ${mes_referencia}
 Valor atual: ${valor_atual.toFixed(1)}% (${valor_absoluto.toLocaleString("pt-BR")} sobre faturamento ${faturamento.toLocaleString("pt-BR")})
@@ -40,25 +30,35 @@ Histórico 6 meses: ${historicoText || "não disponível"}
 Fórmula: ${formula}
 Composição: ${composicaoText || "não disponível"}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 400,
+        system: `Você é um consultor financeiro da GPI Inteligência Financeira.
+Analise os indicadores financeiros do cliente de forma técnica,
+objetiva e acionável. Sempre em português brasileiro.
+Responda APENAS com JSON válido no formato:
+{
+  "titulo": "string curta de status (máx 8 palavras)",
+  "analise": "string de 2-3 frases técnicas e diretas",
+  "acao": "string com 1 ação concreta recomendada (máx 15 palavras)"
+}
+Nunca use markdown. Nunca saia do JSON.`,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 400,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
+      console.error("Anthropic API error:", response.status, errText);
 
       if (response.status === 429) {
         return new Response(JSON.stringify({ titulo: "Análise temporariamente indisponível", analise: "Limite de requisições atingido. Tente novamente em alguns segundos.", acao: "" }), {
@@ -66,28 +66,28 @@ Composição: ${composicaoText || "não disponível"}`;
         });
       }
 
-      return new Response(JSON.stringify({ titulo: "Análise indisponível", analise: "", acao: "" }), {
+      return new Response(JSON.stringify({ titulo: "Análise indisponível", analise: "Não foi possível gerar a análise no momento.", acao: "Tente novamente em alguns instantes." }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const text = data.content?.[0]?.text || "";
 
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       return new Response(JSON.stringify(parsed), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch {
-      return new Response(JSON.stringify({ titulo: "Análise indisponível", analise: content, acao: "" }), {
+      return new Response(JSON.stringify({ titulo: "Análise indisponível", analise: "Não foi possível gerar a análise no momento.", acao: "Tente novamente em alguns instantes." }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
   } catch (e) {
     console.error("analisar-indicador error:", e);
-    return new Response(JSON.stringify({ titulo: "Análise indisponível", analise: "", acao: "" }), {
+    return new Response(JSON.stringify({ titulo: "Análise indisponível", analise: "Não foi possível gerar a análise no momento.", acao: "Tente novamente em alguns instantes." }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
