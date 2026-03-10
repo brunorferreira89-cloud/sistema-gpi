@@ -14,6 +14,10 @@ interface Row {
 export default function DebugTributosPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteResult, setDeleteResult] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadData = async () => {
 
   useEffect(() => {
     async function run() {
