@@ -96,7 +96,7 @@ export async function fetchKpiData(clienteId: string, competencia: string): Prom
     (c) => retKeywords.some((kw) => c.nome.toLowerCase().includes(kw))
   );
   let retReal = 0;
-  retContas.forEach((c) => { retReal += Math.abs(realizadoMap[c.id] || 0); });
+  retContas.forEach((c) => { retReal += realizadoMap[c.id] || 0; });
 
   const fatVal = fatReal || 1;
   const mc_pct = fatReal ? (mcReal / fatReal) * 100 : 0;
