@@ -1155,6 +1155,39 @@ export function TorreControleTab({ clienteId }: Props) {
           })()}
         </td>
         )}
+        {/* META annual totalizador cell */}
+        {showMetaAnualCol && (() => {
+          // Year realized total
+          let yearRealized = 0;
+          for (const m of months) {
+            const monthMap = getMonthMap(m.value);
+            const t = calcTotaisForMap(monthMap);
+            yearRealized += t[key as keyof typeof t];
+          }
+          // Projected next month
+          const projTotais = calcTotaisProjetado();
+          const projVal = projTotais[key as keyof typeof projTotais];
+          const metaAnual = yearRealized + projVal;
+          // AV%: for fat use absolute, others relative to fat
+          const fatYearRealized = (() => {
+            let f = 0;
+            for (const m of months) { const mm = getMonthMap(m.value); const t = calcTotaisForMap(mm); f += t.fat; }
+            return f;
+          })();
+          const fatProj = calcTotaisProjetado().fat;
+          const fatMetaAnual = fatYearRealized + fatProj;
+          const avPct = fatMetaAnual !== 0 ? (Math.abs(metaAnual) / Math.abs(fatMetaAnual)) * 100 : 0;
+          return (
+            <td style={{
+              textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
+              padding: '11px 10px', borderLeft: '1px solid #DDE4F0',
+              background: 'rgba(26,60,255,0.12)',
+              color: metaAnual < 0 ? '#FF6B6B' : '#00E68A',
+            }}>
+              {fmtTorre(metaAnual)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({avPct.toFixed(1)}%)</span>
+            </td>
+          );
+        })()}
       </tr>
     );
   };
