@@ -104,6 +104,35 @@ function sumGrupos(grupos: DreNode[], valMap: Record<string, number | null>): nu
   return total;
 }
 
+function sumGruposProjetado(grupos: DreNode[], valMap: Record<string, number | null>, mMap: Record<string, TorreMeta>): number {
+  let total = 0;
+  for (const g of grupos) {
+    const v = sumNodeProjetado(g, valMap, mMap);
+    if (v != null) total += v;
+  }
+  return total;
+}
+
+function sumNodeProjetado(
+  node: DreNode,
+  valMap: Record<string, number | null>,
+  mMap: Record<string, TorreMeta>,
+): number | null {
+  if (node.conta.nivel === 2) {
+    const real = valMap[node.conta.id] ?? null;
+    if (real == null) return null;
+    const meta = mMap[node.conta.id] || null;
+    const proj = calcProjetado(real, meta);
+    return proj ?? real; // no meta → assume same as realized
+  }
+  let total = 0, hasAny = false;
+  for (const child of node.children) {
+    const v = sumNodeProjetado(child, valMap, mMap);
+    if (v != null) { total += v; hasAny = true; }
+  }
+  return hasAny ? total : null;
+}
+
 // ── Status badge ────────────────────────────────────────────────
 function StatusBadge({ status }: { status: 'ok' | 'atencao' | 'critico' | 'neutro' }) {
   const map = {
@@ -417,6 +446,20 @@ export function TorreControleTab({ clienteId }: Props) {
     return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
   }, [gruposPorTipo]);
 
+  // ── Totalizador projetado calc ────────────────────────────────
+  const calcTotaisProjetado = useCallback(() => {
+    const fat = sumGruposProjetado(gruposPorTipo['receita'] || [], realizadoMapSel, metaMap);
+    const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], realizadoMapSel, metaMap);
+    const mc = fat + custos;
+    const despesas = sumGruposProjetado(gruposPorTipo['despesa_fixa'] || [], realizadoMapSel, metaMap);
+    const ro = mc + despesas;
+    const invest = sumGruposProjetado(gruposPorTipo['investimento'] || [], realizadoMapSel, metaMap);
+    const rai = ro + invest;
+    const financ = sumGruposProjetado(gruposPorTipo['financeiro'] || [], realizadoMapSel, metaMap);
+    const gc = rai + financ;
+    return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
+  }, [gruposPorTipo, realizadoMapSel, metaMap]);
+
   // ── Status counts (based on selected month) ──────────────────
   const statusCounts = useMemo(() => {
     const counts = { ok: 0, atencao: 0, critico: 0 };
@@ -609,7 +652,9 @@ export function TorreControleTab({ clienteId }: Props) {
     const meta = metaMap[conta.id] || null;
     const hasMeta = meta && meta.meta_valor !== null;
     const realSel = realizadoMapSel[conta.id] ?? (isCat ? null : sumNodeLeafs(node, realizadoMapSel));
-    const projetado = realSel != null ? calcProjetado(realSel, meta) : null;
+    const projetado = isCat
+      ? (realSel != null ? calcProjetado(realSel, meta) : null)
+      : sumNodeProjetado(node, realizadoMapSel, metaMap);
     const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
     const status = realSel != null ? calcStatus(realSel, projetado, isReceita) : 'neutro';
 
@@ -796,17 +841,37 @@ export function TorreControleTab({ clienteId }: Props) {
               }}>
                 {fmtTorre(val)}
               </td>
-              {modoAnaliseMeta && isSel && (
-                <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
-              )}
-              {modoMeta && isSel && (
-                <>
-                  <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
-                  <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
-                  <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
-                  <td style={{ background: '#0D1B35' }} />
-                </>
-              )}
+              {modoAnaliseMeta && isSel && (() => {
+                const projTotais = calcTotaisProjetado();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                return (
+                  <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: '#0D1B35',
+                    color: projVal < 0 ? '#FF6B6B' : '#00E68A',
+                  }}>
+                    {fmtTorre(projVal)}
+                  </td>
+                );
+              })()}
+              {modoMeta && isSel && (() => {
+                const projTotais = calcTotaisProjetado();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                const variacao = projVal - val;
+                return (
+                  <>
+                    <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
+                    <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35',
+                      color: variacao >= 0 ? '#00E68A' : '#FF6B6B',
+                    }}>
+                      {variacao >= 0 ? '+' : '−'} {fmtTorre(Math.abs(variacao))}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: '#0D1B35',
+                      color: projVal < 0 ? '#FF6B6B' : '#00E68A',
+                    }}>
+                      {fmtTorre(projVal)}
+                    </td>
+                  </>
+                );
+              })()}
             </Fragment>
           );
         })}
