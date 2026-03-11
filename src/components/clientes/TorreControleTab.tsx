@@ -298,6 +298,8 @@ const keyframesCSS = `
 @keyframes floatDrift { 0%{transform:translate(0,0) scale(1);opacity:0} 10%{opacity:0.8} 75%{opacity:0.4} 100%{transform:translate(35px,-130px) scale(0.6);opacity:0} }
 @keyframes glowPulse { 0%,100%{opacity:0.5;filter:drop-shadow(0 0 2px rgba(0,153,230,0.3))} 50%{opacity:1;filter:drop-shadow(0 0 8px rgba(0,153,230,0.8))} }
 @keyframes signalWave { 0%{r:8;opacity:0.6} 100%{r:28;opacity:0} }
+@keyframes propagateBorder { 0%{border-left-color:rgba(0,153,230,0.9)} 100%{border-left-color:transparent} }
+@keyframes propagateLabel { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 `;
 
 const DATA_PARTICLES = [
