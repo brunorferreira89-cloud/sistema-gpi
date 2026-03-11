@@ -120,9 +120,10 @@ function sumNodeProjetado(
 ): number | null {
   if (node.conta.nivel === 2) {
     const real = valMap[node.conta.id] ?? null;
-    const meta = mMap[node.conta.id] || null;
     if (real == null) return null;
-    return calcProjetado(real, meta);
+    const meta = mMap[node.conta.id] || null;
+    const proj = calcProjetado(real, meta);
+    return proj ?? real; // no meta → assume same as realized
   }
   let total = 0, hasAny = false;
   for (const child of node.children) {
