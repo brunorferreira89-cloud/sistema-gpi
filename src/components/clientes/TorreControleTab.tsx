@@ -1074,8 +1074,8 @@ export function TorreControleTab({ clienteId }: Props) {
         {/* Main content */}
         {hasContas && hasAnyData && !isLoading && (
           <>
-            {/* Summary cards (only when META mode is on) */}
-            {modoMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
+            {/* Summary cards (only when ANÁLISE META mode is on) */}
+            {modoAnaliseMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
 
 
             {/* Table */}
