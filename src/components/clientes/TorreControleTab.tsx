@@ -1583,6 +1583,17 @@ export function TorreControleTab({ clienteId }: Props) {
                       {ano}
                     </th>
                     )}
+                    {/* META annual header */}
+                    {showMetaAnualCol && (
+                    <th style={{
+                      padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700,
+                      color: '#1A3CFF', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      width: metaAnualColW, minWidth: metaAnualColW, borderLeft: '1px solid #DDE4F0',
+                      background: 'rgba(26,60,255,0.06)',
+                    }}>
+                      META {ano}
+                    </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
