@@ -1165,9 +1165,24 @@ export function TorreControleTab({ clienteId }: Props) {
         {/* Main content */}
         {hasContas && hasAnyData && !isLoading && (
           <>
+            {/* Instrumentos de Criação de Metas — logo abaixo do banner */}
+            {modoMeta && mesEfetivo && cliente && (
+              <TorreIndicadoresCriacao
+                cliente={cliente}
+                competencia={mesEfetivo}
+                mesProximo={(() => {
+                  const d = new Date(mesEfetivo + 'T00:00:00');
+                  d.setMonth(d.getMonth() + 1);
+                  return d.toISOString().slice(0, 7) + '-01';
+                })()}
+                valoresMensais={valoresAnuais || []}
+                torreMetas={metas || []}
+                planoDeContas={contas || []}
+              />
+            )}
+
             {/* Summary cards (only when ANÁLISE META mode is on) */}
             {modoAnaliseMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
-
 
             {/* Table */}
             <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
@@ -1246,23 +1261,6 @@ export function TorreControleTab({ clienteId }: Props) {
                 </tbody>
               </table>
             </div>
-
-
-            {/* Instrumentos de Criação de Metas (only in criação mode with a month selected) */}
-            {modoMeta && mesEfetivo && cliente && (
-              <TorreIndicadoresCriacao
-                cliente={cliente}
-                competencia={mesEfetivo}
-                mesProximo={(() => {
-                  const d = new Date(mesEfetivo + 'T00:00:00');
-                  d.setMonth(d.getMonth() + 1);
-                  return d.toISOString().slice(0, 7) + '-01';
-                })()}
-                valoresMensais={valoresAnuais || []}
-                torreMetas={metas || []}
-                planoDeContas={contas || []}
-              />
-            )}
           </>
         )}
       </div>
