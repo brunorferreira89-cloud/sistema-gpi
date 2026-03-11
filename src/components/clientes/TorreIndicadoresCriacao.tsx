@@ -128,6 +128,8 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         if (data.coordenada_comandante) setCoordenadaSalva(data.coordenada_comandante as string);
         if ((data as any).coordenada_tecnico) setCoordenadaTecnico((data as any).coordenada_tecnico as string);
         if (data.coordenada_gerada_em) setCoordenadaGeradaEm(data.coordenada_gerada_em);
+        // Snapshot metas at load time so we can detect changes
+        setMetasSnapshot(metasFingerprint);
       }
     };
     loadCoordenada();
