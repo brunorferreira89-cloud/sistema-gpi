@@ -125,20 +125,80 @@ function confiancaLabel(c: 'alta' | 'media' | 'baixa') {
 }
 
 // ── Meta IA Cell Popover ────────────────────────────────────────
-function MetaIACell({ sugestao, isReceita, isSelected, onToggle }: {
+interface ManualMeta { meta_tipo: 'pct' | 'valor'; meta_valor: number }
+
+function MetaIACell({ sugestao, isReceita, isSelected, onToggle, manualMeta, onManualApply, onManualClear }: {
   sugestao: SugestaoMeta; isReceita: boolean; isSelected: boolean; onToggle: () => void;
+  manualMeta?: ManualMeta | null;
+  onManualApply: (m: ManualMeta) => void;
+  onManualClear: () => void;
 }) {
-  const metaPositiva = sugestao.meta_valor > 0;
+  const [popoverState, setPopoverState] = useState<'ia' | 'manual'>(manualMeta ? 'manual' : 'ia');
+  const [manualTipo, setManualTipo] = useState<'pct' | 'valor'>(manualMeta?.meta_tipo ?? 'pct');
+  const [manualValor, setManualValor] = useState<string>(manualMeta ? String(manualMeta.meta_valor) : '');
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset state when popover opens
+  const handleOpenChange = (open: boolean) => {
+    setPopoverOpen(open);
+    if (open) {
+      if (manualMeta) {
+        setPopoverState('manual');
+        setManualTipo(manualMeta.meta_tipo);
+        setManualValor(String(manualMeta.meta_valor));
+      } else {
+        setPopoverState('ia');
+      }
+    }
+  };
+
+  // Focus input when switching to manual state
+  useEffect(() => {
+    if (popoverState === 'manual' && popoverOpen) {
+      setTimeout(() => inputRef.current?.focus(), 60);
+    }
+  }, [popoverState, popoverOpen]);
+
+  const handleIgnorar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isSelected) onToggle();
+    setPopoverState('manual');
+    setManualValor('');
+  };
+
+  const handleAplicarManual = () => {
+    const val = parseFloat(manualValor);
+    if (isNaN(val) || manualValor.trim() === '') return;
+    onManualApply({ meta_tipo: manualTipo, meta_valor: val });
+    setPopoverOpen(false);
+  };
+
+  const handlePular = () => {
+    onManualClear();
+    setPopoverOpen(false);
+  };
+
+  // Display logic for trigger
+  const hasManual = !!manualMeta;
+  const metaPositiva = hasManual
+    ? manualMeta!.meta_valor > 0
+    : sugestao.meta_valor > 0;
   const dirIcon = metaPositiva ? '▲' : '▼';
   const isGood = isReceita ? metaPositiva : !metaPositiva;
   const dirColor = isGood ? C.green : C.red;
-  const dotColor = confiancaColor(sugestao.confianca);
-  const label = sugestao.meta_tipo === 'pct'
-    ? `${sugestao.meta_valor > 0 ? '+' : ''}${sugestao.meta_valor}%`
-    : `R$ ${fmtVal(sugestao.meta_valor)}`;
+  const dotColor = hasManual ? C.primary : confiancaColor(sugestao.confianca);
+
+  const displayLabel = hasManual
+    ? (manualMeta!.meta_tipo === 'pct'
+      ? `${manualMeta!.meta_valor > 0 ? '+' : ''}${manualMeta!.meta_valor}%`
+      : `R$ ${fmtVal(manualMeta!.meta_valor)}`)
+    : (sugestao.meta_tipo === 'pct'
+      ? `${sugestao.meta_valor > 0 ? '+' : ''}${sugestao.meta_valor}%`
+      : `R$ ${fmtVal(sugestao.meta_valor)}`);
 
   return (
-    <Popover>
+    <Popover open={popoverOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           style={{
@@ -150,9 +210,18 @@ function MetaIACell({ sugestao, isReceita, isSelected, onToggle }: {
           onMouseEnter={e => e.currentTarget.style.background = 'rgba(26,60,255,0.06)'}
           onMouseLeave={e => e.currentTarget.style.background = 'none'}
         >
-          <span style={{ color: dirColor, fontWeight: 700 }}>{dirIcon}</span>
-          <span style={{ color: C.txt, fontWeight: 500 }}>{label}</span>
-          <span style={{ color: dotColor, fontSize: 8 }}>●</span>
+          {hasManual ? (
+            <>
+              <span style={{ fontSize: 10 }}>✏️</span>
+              <span style={{ color: C.txt, fontWeight: 500 }}>{displayLabel}</span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: dirColor, fontWeight: 700 }}>{dirIcon}</span>
+              <span style={{ color: C.txt, fontWeight: 500 }}>{displayLabel}</span>
+              <span style={{ color: dotColor, fontSize: 8 }}>●</span>
+            </>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -168,79 +237,157 @@ function MetaIACell({ sugestao, isReceita, isSelected, onToggle }: {
           boxShadow: '0 8px 32px rgba(13,27,53,0.14)',
           padding: '14px 16px',
           fontFamily: "'DM Sans', system-ui",
+          position: 'relative', overflow: 'hidden',
         }}>
-          {/* Confiança badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <span style={{ color: dotColor, fontSize: 10 }}>●</span>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: dotColor }}>
-              {confiancaLabel(sugestao.confianca)}
-            </span>
-          </div>
-          <div style={{ height: 1, background: C.border, margin: '0 0 10px' }} />
-
-          {/* Motivo */}
-          {sugestao.motivo && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', marginBottom: 3 }}>MOTIVO</div>
-              <div style={{ fontSize: 12, color: C.txtSec, lineHeight: 1.5 }}>{sugestao.motivo}</div>
+          {/* STATE 1 — IA Suggestion */}
+          <div style={{
+            opacity: popoverState === 'ia' ? 1 : 0,
+            position: popoverState === 'ia' ? 'relative' : 'absolute',
+            top: 0, left: 0, right: 0,
+            transition: 'opacity 150ms ease',
+            pointerEvents: popoverState === 'ia' ? 'auto' : 'none',
+          }}>
+            {/* Confiança badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <span style={{ color: confiancaColor(sugestao.confianca), fontSize: 10 }}>●</span>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: confiancaColor(sugestao.confianca) }}>
+                {confiancaLabel(sugestao.confianca)}
+              </span>
             </div>
-          )}
+            <div style={{ height: 1, background: C.border, margin: '0 0 10px' }} />
 
-          {/* Objetivo */}
-          {sugestao.objetivo && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', marginBottom: 3 }}>OBJETIVO</div>
-              <div style={{ fontSize: 12, color: C.txtSec, lineHeight: 1.5 }}>{sugestao.objetivo}</div>
-            </div>
-          )}
-
-          {/* Impacto GC */}
-          {sugestao.impacto_gc && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', marginBottom: 3 }}>IMPACTO NA GC</div>
-              <div style={{ fontSize: 12, color: C.primary, fontWeight: 600, lineHeight: 1.5 }}>{sugestao.impacto_gc}</div>
-            </div>
-          )}
-
-          {/* Parâmetros */}
-          {(sugestao.parametros?.length ?? 0) > 0 && (
-            <>
-              <div style={{ height: 1, background: C.border, margin: '8px 0' }} />
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                <span style={{ fontSize: 9, color: C.txtMuted, marginRight: 4 }}>Parâmetros:</span>
-                {sugestao.parametros.map((p, i) => (
-                  <span key={i} style={{ fontSize: 9, background: C.pLo, color: C.primary, padding: '2px 6px', borderRadius: 3 }}>{p}</span>
-                ))}
+            {sugestao.motivo && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', marginBottom: 3 }}>MOTIVO</div>
+                <div style={{ fontSize: 12, color: C.txtSec, lineHeight: 1.5 }}>{sugestao.motivo}</div>
               </div>
-            </>
-          )}
+            )}
+            {sugestao.objetivo && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', marginBottom: 3 }}>OBJETIVO</div>
+                <div style={{ fontSize: 12, color: C.txtSec, lineHeight: 1.5 }}>{sugestao.objetivo}</div>
+              </div>
+            )}
+            {sugestao.impacto_gc && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', marginBottom: 3 }}>IMPACTO NA GC</div>
+                <div style={{ fontSize: 12, color: C.primary, fontWeight: 600, lineHeight: 1.5 }}>{sugestao.impacto_gc}</div>
+              </div>
+            )}
+            {(sugestao.parametros?.length ?? 0) > 0 && (
+              <>
+                <div style={{ height: 1, background: C.border, margin: '8px 0' }} />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <span style={{ fontSize: 9, color: C.txtMuted, marginRight: 4 }}>Parâmetros:</span>
+                  {sugestao.parametros.map((p, i) => (
+                    <span key={i} style={{ fontSize: 9, background: C.pLo, color: C.primary, padding: '2px 6px', borderRadius: 3 }}>{p}</span>
+                  ))}
+                </div>
+              </>
+            )}
 
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); if (!isSelected) onToggle(); }}
-              style={{
-                flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                border: isSelected ? `1px solid ${C.green}` : `1px solid ${C.border}`,
-                background: isSelected ? C.greenBg : 'transparent',
-                color: isSelected ? C.green : C.txtSec,
-                cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
-              }}
-            >
-              ✓ Incluir
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); if (isSelected) onToggle(); }}
-              style={{
-                flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                border: !isSelected ? `1px solid ${C.red}` : `1px solid ${C.border}`,
-                background: !isSelected ? 'rgba(220,38,38,0.06)' : 'transparent',
-                color: !isSelected ? C.red : C.txtSec,
-                cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
-              }}
-            >
-              ✗ Ignorar
-            </button>
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (!isSelected) onToggle(); }}
+                style={{
+                  flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  border: isSelected ? `1px solid ${C.green}` : `1px solid ${C.border}`,
+                  background: isSelected ? C.greenBg : 'transparent',
+                  color: isSelected ? C.green : C.txtSec,
+                  cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
+                }}
+              >
+                ✓ Incluir
+              </button>
+              <button
+                onClick={handleIgnorar}
+                style={{
+                  flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  border: !isSelected ? `1px solid ${C.red}` : `1px solid ${C.border}`,
+                  background: !isSelected ? 'rgba(220,38,38,0.06)' : 'transparent',
+                  color: !isSelected ? C.red : C.txtSec,
+                  cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
+                }}
+              >
+                ✗ Ignorar
+              </button>
+            </div>
+          </div>
+
+          {/* STATE 2 — Manual Input */}
+          <div style={{
+            opacity: popoverState === 'manual' ? 1 : 0,
+            position: popoverState === 'manual' ? 'relative' : 'absolute',
+            top: 0, left: 0, right: 0,
+            transition: 'opacity 150ms ease',
+            pointerEvents: popoverState === 'manual' ? 'auto' : 'none',
+          }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: C.txtSec, letterSpacing: '0.15em', marginBottom: 6 }}>
+              📝 META MANUAL
+            </div>
+            <div style={{ fontSize: 11, color: C.txtMuted, marginBottom: 12 }}>
+              Sugestão IA ignorada. Defina um valor:
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              {/* Badge %/R$ */}
+              <button
+                onClick={() => setManualTipo(prev => prev === 'pct' ? 'valor' : 'pct')}
+                style={{
+                  padding: '4px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                  border: `1px solid ${C.borderStr}`, background: C.bg,
+                  color: C.txtSec, cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
+                  minWidth: 36, textAlign: 'center',
+                }}
+              >
+                {manualTipo === 'pct' ? '%' : 'R$'}
+              </button>
+
+              {/* Input */}
+              <input
+                ref={inputRef}
+                type="number"
+                value={manualValor}
+                onChange={e => setManualValor(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleAplicarManual();
+                  if (e.key === 'Escape') handlePular();
+                }}
+                placeholder="0"
+                style={{
+                  width: 90, height: 32, borderRadius: 6,
+                  border: `1px solid ${C.borderStr}`,
+                  fontFamily: C.mono, fontSize: 12, textAlign: 'right',
+                  padding: '0 8px', outline: 'none',
+                  transition: 'border-color 0.15s',
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = C.primary}
+                onBlur={e => e.currentTarget.style.borderColor = C.borderStr}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                onClick={handleAplicarManual}
+                style={{
+                  padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  border: 'none', background: C.primary, color: '#FFFFFF',
+                  cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
+                }}
+              >
+                ✓ Aplicar
+              </button>
+              <button
+                onClick={handlePular}
+                style={{
+                  background: 'none', border: 'none', fontSize: 11, color: C.txtMuted,
+                  cursor: 'pointer', fontFamily: "'DM Sans', system-ui",
+                }}
+              >
+                Pular →
+              </button>
+            </div>
           </div>
         </div>
       </PopoverContent>
