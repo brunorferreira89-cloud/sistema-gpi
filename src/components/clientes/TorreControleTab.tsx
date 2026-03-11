@@ -1250,6 +1250,17 @@ export function TorreControleTab({ clienteId }: Props) {
                 );
               })()}
 
+              {/* AV% after realized in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAV && modoMeta && isSel && !isTodosMode && (() => {
+                const fat = totals.fat;
+                const avStr = fmtAv(val, fat);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
               {modoMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
