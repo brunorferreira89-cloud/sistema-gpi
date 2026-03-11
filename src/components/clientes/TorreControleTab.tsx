@@ -262,8 +262,11 @@ const keyframesCSS = `
 @keyframes radarSweep { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
 @keyframes dataPulse { 0%,100%{opacity:0.05} 50%{opacity:0.15} }
 @keyframes scanHorizontal { 0%{left:-30%;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:110%;opacity:0} }
+@keyframes scanHorizontal2 { 0%{left:-20%;opacity:0} 15%{opacity:0.6} 85%{opacity:0.6} 100%{left:115%;opacity:0} }
 @keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:0} 8%{opacity:0.85} 70%{opacity:0.5} 100%{transform:translateY(-150px) scale(0.7);opacity:0} }
 @keyframes floatDrift { 0%{transform:translate(0,0) scale(1);opacity:0} 10%{opacity:0.8} 75%{opacity:0.4} 100%{transform:translate(35px,-130px) scale(0.6);opacity:0} }
+@keyframes glowPulse { 0%,100%{opacity:0.5;filter:drop-shadow(0 0 2px rgba(0,153,230,0.3))} 50%{opacity:1;filter:drop-shadow(0 0 8px rgba(0,153,230,0.8))} }
+@keyframes signalWave { 0%{r:8;opacity:0.6} 100%{r:28;opacity:0} }
 `;
 
 const DATA_PARTICLES = [
@@ -861,7 +864,7 @@ export function TorreControleTab({ clienteId }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Header banner — cockpit theme */}
         <div style={{
-          width: '100%', height: 150, position: 'relative', overflow: 'hidden',
+          width: '100%', height: 170, position: 'relative', overflow: 'hidden',
           borderRadius: 12, marginBottom: 0,
           background: 'linear-gradient(135deg, #0A1628 0%, #0D1B35 50%, #0A1628 100%)',
         }}>
@@ -912,21 +915,45 @@ export function TorreControleTab({ clienteId }: Props) {
             </div>
           </div>
 
-          {/* Layer 3 — tower SVG */}
-          <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.12 }}>
-            <svg viewBox="0 0 220 140" style={{ width: 160, height: 100 }}>
-              <rect x="90" y="110" width="40" height="20" fill="#1A3CFF" />
-              <rect x="98" y="60" width="24" height="52" fill="#1A3CFF" />
-              <rect x="82" y="40" width="56" height="28" fill="#1A3CFF" />
-              <rect x="88" y="46" width="10" height="10" fill="#0099E6" opacity="0.8" />
-              <rect x="102" y="46" width="10" height="10" fill="#0099E6" opacity="0.8" />
-              <rect x="116" y="46" width="10" height="10" fill="#0099E6" opacity="0.8" />
-              <line x1="110" y1="40" x2="110" y2="10" stroke="#1A3CFF" strokeWidth="2" />
-              <circle cx="110" cy="10" r="4" fill="#0099E6" />
-              <circle cx="110" cy="10" r="12" stroke="#0099E6" strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="4 3" />
-              <circle cx="110" cy="10" r="22" stroke="#1A3CFF" strokeWidth="1" fill="none" opacity="0.35" strokeDasharray="4 3" />
-              <circle cx="110" cy="10" r="32" stroke="#0099E6" strokeWidth="1" fill="none" opacity="0.2" strokeDasharray="4 3" />
-              <g transform="translate(170,25) rotate(-20)"><path d="M0,5 L18,0 L18,10 Z" fill="#0099E6" opacity="0.7" /></g>
+          {/* Layer — second scan beam (slower, subtler) */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', width: '25%', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(0,153,230,0.04), transparent)', animation: 'scanHorizontal2 12s linear infinite' }} />
+          </div>
+
+          {/* Layer 3 — detailed tower SVG */}
+          <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.25 }}>
+            <svg viewBox="0 0 200 140" style={{ width: 200, height: 130 }}>
+              {/* Base — trapezoidal */}
+              <polygon points="60,130 140,130 128,115 72,115" fill="#1A3CFF" opacity="0.8" />
+              {/* Body — tapered */}
+              <polygon points="78,115 122,115 116,60 84,60" fill="#1A3CFF" opacity="0.7" />
+              {/* Support struts */}
+              <line x1="82" y1="115" x2="72" y2="130" stroke="#0099E6" strokeWidth="1" opacity="0.3" />
+              <line x1="118" y1="115" x2="128" y2="130" stroke="#0099E6" strokeWidth="1" opacity="0.3" />
+              {/* Cabin — panoramic glass */}
+              <rect x="70" y="38" width="60" height="24" rx="4" fill="#0D1B35" stroke="#1A3CFF" strokeWidth="1.5" />
+              {/* Glass panels with glow */}
+              <rect x="76" y="42" width="11" height="16" rx="2" fill="#0099E6" opacity="0.6" style={{ animation: 'glowPulse 2s ease infinite' }} />
+              <rect x="90" y="42" width="11" height="16" rx="2" fill="#0099E6" opacity="0.6" style={{ animation: 'glowPulse 2s ease 0.3s infinite' }} />
+              <rect x="104" y="42" width="11" height="16" rx="2" fill="#0099E6" opacity="0.6" style={{ animation: 'glowPulse 2s ease 0.6s infinite' }} />
+              {/* Cabin roof */}
+              <polygon points="68,38 132,38 126,30 74,30" fill="#1A3CFF" opacity="0.6" />
+              {/* Observation deck rail */}
+              <line x1="68" y1="38" x2="132" y2="38" stroke="#0099E6" strokeWidth="0.8" opacity="0.5" />
+              {/* Antenna mast */}
+              <line x1="100" y1="30" x2="100" y2="6" stroke="#1A3CFF" strokeWidth="2" />
+              <line x1="100" y1="12" x2="92" y2="20" stroke="#0099E6" strokeWidth="0.8" opacity="0.4" />
+              <line x1="100" y1="12" x2="108" y2="20" stroke="#0099E6" strokeWidth="0.8" opacity="0.4" />
+              {/* Antenna tip with glow */}
+              <circle cx="100" cy="5" r="3" fill="#0099E6" style={{ animation: 'glowPulse 1.5s ease infinite' }} />
+              {/* Signal waves */}
+              <circle cx="100" cy="5" r="8" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.4" style={{ animation: 'signalWave 2s ease-out infinite' }} />
+              <circle cx="100" cy="5" r="8" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.3" style={{ animation: 'signalWave 2s ease-out 0.7s infinite' }} />
+              <circle cx="100" cy="5" r="8" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.2" style={{ animation: 'signalWave 2s ease-out 1.4s infinite' }} />
+              {/* Small lights on body */}
+              <circle cx="95" cy="80" r="1.5" fill="#00A86B" opacity="0.7" style={{ animation: 'glowPulse 3s ease infinite' }} />
+              <circle cx="105" cy="90" r="1.5" fill="#FF4444" opacity="0.7" style={{ animation: 'glowPulse 3s ease 1s infinite' }} />
+              <circle cx="95" cy="100" r="1.5" fill="#00A86B" opacity="0.7" style={{ animation: 'glowPulse 3s ease 2s infinite' }} />
             </svg>
           </div>
 
@@ -946,8 +973,8 @@ export function TorreControleTab({ clienteId }: Props) {
 
             {/* Middle row: title + subtitle */}
             <div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Torre de Controle</h2>
-              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '3px 0 0', letterSpacing: '0.04em' }}>Monitoramento · Metas · Projeções</p>
+              <h2 style={{ fontSize: 40, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1, textShadow: '0 0 20px rgba(26,60,255,0.5), 0 0 40px rgba(26,60,255,0.2)' }}>Torre de Controle</h2>
+              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '4px 0 0', letterSpacing: '0.06em' }}>Monitoramento · Metas · Projeções</p>
             </div>
 
             {/* Bottom row: controls */}
