@@ -999,6 +999,35 @@ export function TorreControleTab({ clienteId }: Props) {
             })()}
           </td>
           )}
+          {/* META annual cell */}
+          {showMetaAnualCol && (() => {
+            // Sum realized across all months with data
+            let yearRealized = 0;
+            let has = false;
+            for (const m of months) {
+              const mmap = getMonthMap(m.value);
+              const v = isCat ? (mmap[conta.id] ?? null) : sumNodeLeafs(node, mmap);
+              if (v != null) { yearRealized += v; has = true; }
+            }
+            // Add projected value for next month (mesSeg)
+            const projVal = isCat
+              ? (metaAnualProjMap[conta.id] ?? null)
+              : sumNodeProjetado(node, realizadoMapSel, metaMap);
+            const metaAnual = (has ? yearRealized : 0) + (projVal ?? 0);
+            const hasValue = has || projVal != null;
+            return (
+              <td style={{
+                textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+                fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
+                padding: '8px 10px',
+                borderLeft: '1px solid #DDE4F0',
+                background: isTotal ? 'rgba(26,60,255,0.12)' : 'rgba(26,60,255,0.03)',
+                color: !hasValue ? (isTotal ? '#8A9BBC' : C.txtMuted) : metaAnual < 0 ? '#DC2626' : (isTotal ? '#1A3CFF' : '#0D1B35'),
+              }}>
+                {hasValue ? fmtTorre(metaAnual) : '—'}
+              </td>
+            );
+          })()}
         </tr>
         {!isCollapsedItem && !isTotal && node.children.map(child => renderRow(child, depth + 1))}
       </Fragment>
@@ -1126,15 +1155,70 @@ export function TorreControleTab({ clienteId }: Props) {
           })()}
         </td>
         )}
+        {/* META annual totalizador cell */}
+        {showMetaAnualCol && (() => {
+          // Year realized total
+          let yearRealized = 0;
+          for (const m of months) {
+            const monthMap = getMonthMap(m.value);
+            const t = calcTotaisForMap(monthMap);
+            yearRealized += t[key as keyof typeof t];
+          }
+          // Projected next month
+          const projTotais = calcTotaisProjetado();
+          const projVal = projTotais[key as keyof typeof projTotais];
+          const metaAnual = yearRealized + projVal;
+          // AV%: for fat use absolute, others relative to fat
+          const fatYearRealized = (() => {
+            let f = 0;
+            for (const m of months) { const mm = getMonthMap(m.value); const t = calcTotaisForMap(mm); f += t.fat; }
+            return f;
+          })();
+          const fatProj = calcTotaisProjetado().fat;
+          const fatMetaAnual = fatYearRealized + fatProj;
+          const avPct = fatMetaAnual !== 0 ? (Math.abs(metaAnual) / Math.abs(fatMetaAnual)) * 100 : 0;
+          return (
+            <td style={{
+              textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
+              padding: '11px 10px', borderLeft: '1px solid #DDE4F0',
+              background: 'rgba(26,60,255,0.12)',
+              color: metaAnual < 0 ? '#FF6B6B' : '#00E68A',
+            }}>
+              {fmtTorre(metaAnual)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({avPct.toFixed(1)}%)</span>
+            </td>
+          );
+        })()}
       </tr>
     );
   };
+
+  // ── META annual column (TODOS + meta modes) ────────────────────
+  const showMetaAnualCol = isTodosMode && isModoAtivo;
+
+  // Pre-compute META annual projected map for mesSeg (next month)
+  const metaAnualProjMap = useMemo(() => {
+    if (!showMetaAnualCol || !contas) return {} as Record<string, number | null>;
+    const map: Record<string, number | null> = {};
+    contas.forEach(c => {
+      const real = realizadoMapSel[c.id] ?? null;
+      if (real == null) { map[c.id] = null; return; }
+      const meta = metaMap[c.id] || null;
+      if (meta && meta.meta_valor != null) {
+        const proj = calcProjetado(real, meta);
+        map[c.id] = proj ?? real;
+      } else {
+        map[c.id] = real;
+      }
+    });
+    return map;
+  }, [showMetaAnualCol, contas, realizadoMapSel, metaMap]);
 
   // ── Table min width calculation ───────────────────────────────
   const todosMetaColsCount = isTodosMode && isModoAtivo ? monthsWithMetas.size : 0;
   const extraColsWidth = (!isTodosMode && modoMeta) ? (metaColW + rsColW + metaProjetadoColW) : (!isTodosMode && modoAnaliseMeta ? metaColW : 0);
   const showYearCol = isTodosMode || !isModoAtivo;
-  const tableMinWidth = nameColW + displayMonths.length * valColW + (showYearCol ? valColW : 0) + extraColsWidth + todosMetaColsCount * metaProjetadoColW;
+  const metaAnualColW = 130;
+  const tableMinWidth = nameColW + displayMonths.length * valColW + (showYearCol ? valColW : 0) + extraColsWidth + todosMetaColsCount * metaProjetadoColW + (showMetaAnualCol ? metaAnualColW : 0);
 
   // ══════════════════════════════════════════════════════════════
   return (
@@ -1559,6 +1643,17 @@ export function TorreControleTab({ clienteId }: Props) {
                       background: '#F6F9FF',
                     }}>
                       {ano}
+                    </th>
+                    )}
+                    {/* META annual header */}
+                    {showMetaAnualCol && (
+                    <th style={{
+                      padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700,
+                      color: '#1A3CFF', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      width: metaAnualColW, minWidth: metaAnualColW, borderLeft: '1px solid #DDE4F0',
+                      background: 'rgba(26,60,255,0.06)',
+                    }}>
+                      META {ano}
                     </th>
                     )}
                   </tr>
