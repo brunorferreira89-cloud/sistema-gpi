@@ -347,7 +347,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
       const { data, error } = await supabase.functions.invoke('gerar-coordenada', {
         body: {
           cliente_id: cliente.id,
-          competencia: mesProximo,
+          competencia: coordenadaKey,
           dados: {
             nomeEmpresa: cliente.razao_social || cliente.nome_empresa,
             mesProximo: mesProxLabel,
