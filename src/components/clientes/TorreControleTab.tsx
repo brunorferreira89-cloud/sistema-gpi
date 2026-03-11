@@ -432,7 +432,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (s === 'ok' || s === 'atencao' || s === 'critico') counts[s]++;
     }
     return counts;
-  }, [contas, metaMap, realizadoMapSel, modoMeta]);
+  }, [contas, metaMap, realizadoMapSel, modoMeta, modoAnaliseMeta]);
 
   // ── GC projetado ──────────────────────────────────────────────
   const gcProjetado = useMemo(() => {
