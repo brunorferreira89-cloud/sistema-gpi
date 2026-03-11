@@ -884,6 +884,21 @@ export function TorreControleTab({ clienteId }: Props) {
             }} />
           </div>
 
+          {/* Layer — floating data particles */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+            {DATA_PARTICLES.map((p, i) => (
+              <span key={i} style={{
+                position: 'absolute', bottom: 8, left: p.left,
+                fontFamily: C.mono, fontSize: 10, fontWeight: 600,
+                color: p.text.startsWith('+') ? 'rgba(0,168,107,0.5)' : p.text.startsWith('−') ? 'rgba(220,38,38,0.4)' : 'rgba(0,153,230,0.4)',
+                animation: `${p.anim} ${p.dur} ease-in-out ${p.delay} infinite`,
+                letterSpacing: '0.04em',
+              }}>
+                {p.text}
+              </span>
+            ))}
+          </div>
+
           {/* Layer — radar pulse circles */}
           <div style={{ position: 'absolute', right: 100, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <div style={{ position: 'relative', width: 80, height: 80 }}>
