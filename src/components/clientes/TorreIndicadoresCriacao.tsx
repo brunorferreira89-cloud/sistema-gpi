@@ -103,7 +103,7 @@ function sumByTipo(tree: DreNode[], tipo: string, valMap: Record<string, number 
 }
 
 // ══════════════════════════════════════════════════════════════
-export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valoresMensais, torreMetas, planoDeContas }: Props) {
+export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valoresMensais, torreMetas, planoDeContas, modoTodos, metasAno, monthsWithData: mwdProp, ano }: Props) {
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<any>('altimetro');
