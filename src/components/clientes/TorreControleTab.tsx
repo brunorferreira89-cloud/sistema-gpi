@@ -1292,7 +1292,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
                   <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
-                    {(() => { const ar = getTotArrow(projVal, val); return ar && avStr ? <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</> : (avStr || '—'); })()}
+                    {(() => { const ar = getTotArrow(projVal, val); return ar && avStr ? <><span style={{ fontSize: 14, fontWeight: 700, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</> : (avStr || '—'); })()}
                   </td>
                 );
               })()}
