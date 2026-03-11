@@ -846,7 +846,7 @@ export function TorreControleTab({ clienteId }: Props) {
           </td>
 
           {/* Month columns */}
-          {months.map(m => {
+          {displayMonths.map(m => {
             const monthMap = getMonthMap(m.value);
             let val: number | null = null;
             if (isCat) {
@@ -856,13 +856,12 @@ export function TorreControleTab({ clienteId }: Props) {
             }
 
             const isSel = isSelectedMonth(m.value);
-            const selBg = isSel && (modoMeta || modoAnaliseMeta) ? (isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)') : undefined;
+            const selBg = isSel && isModoAtivo && !isTodosMode ? (isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)') : undefined;
 
             // Análise meta coloring
             let cellColor = val != null ? (val < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted);
             let cellBg = selBg;
-            if (modoAnaliseMeta && isSel && isCat && !isTotal && val != null && projetado != null) {
-              // Compare realized (val) vs projetado (meta target)
+            if (modoAnaliseMeta && isSel && !isTodosMode && isCat && !isTotal && val != null && projetado != null) {
               const metaAtingida = isReceita ? val >= projetado : Math.abs(val) <= Math.abs(projetado);
               if (metaAtingida) {
                 cellColor = '#00A86B';
@@ -872,6 +871,10 @@ export function TorreControleTab({ clienteId }: Props) {
                 cellBg = 'rgba(220,38,38,0.04)';
               }
             }
+
+            // TODOS mode: META column for this month
+            const hasMetaForMonth = isTodosMode && isModoAtivo && monthsWithMetas.has(m.value);
+            const metaMapForMonth = hasMetaForMonth ? metaMapByComp[m.value] : null;
 
             return (
               <Fragment key={m.value}>
@@ -885,8 +888,8 @@ export function TorreControleTab({ clienteId }: Props) {
                   {fmtTorre(val)}
                 </td>
 
-                {/* ANÁLISE META: META column after selected month */}
-                {modoAnaliseMeta && isSel && (
+                {/* ANÁLISE META: META column after selected month (specific month only) */}
+                {modoAnaliseMeta && isSel && !isTodosMode && (
                   <td style={{
                     textAlign: 'right', fontFamily: C.mono, fontSize: 12,
                     fontWeight: isTotal ? 800 : 400,
@@ -898,8 +901,8 @@ export function TorreControleTab({ clienteId }: Props) {
                   </td>
                 )}
 
-                {/* META mode: AJUSTE + R$ + META columns after selected month */}
-                {modoMeta && isSel && (
+                {/* META mode: AJUSTE + R$ + META columns after selected month (specific month only) */}
+                {modoMeta && isSel && !isTodosMode && (
                   <>
                     {/* AJUSTE */}
                     <td style={{ textAlign: 'right', padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
@@ -935,6 +938,31 @@ export function TorreControleTab({ clienteId }: Props) {
                     </td>
                   </>
                 )}
+
+                {/* TODOS mode: META column for months that have metas */}
+                {hasMetaForMonth && (() => {
+                  const prevComp = getPrevMonth(m.value);
+                  const prevMap = getMonthMap(prevComp);
+                  let projVal: number | null = null;
+                  if (isCat) {
+                    const prevReal = prevMap[conta.id] ?? null;
+                    const mf = metaMapForMonth?.[conta.id] || null;
+                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf) : null;
+                  } else {
+                    projVal = sumNodeProjetado(node, prevMap, metaMapForMonth || {});
+                  }
+                  return (
+                    <td style={{
+                      textAlign: 'right', fontFamily: C.mono, fontSize: 12,
+                      fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
+                      color: projVal != null ? (isTotal ? '#FFFFFF' : C.txtSec) : C.txtMuted,
+                      padding: '8px 10px',
+                      background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.03)',
+                    }}>
+                      {fmtTorre(projVal)}
+                    </td>
+                  );
+                })()}
               </Fragment>
             );
           })}
