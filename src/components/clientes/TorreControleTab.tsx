@@ -420,7 +420,7 @@ export function TorreControleTab({ clienteId }: Props) {
   // ── Status counts (based on selected month) ──────────────────
   const statusCounts = useMemo(() => {
     const counts = { ok: 0, atencao: 0, critico: 0 };
-    if (!contas || !modoMeta) return counts;
+    if (!contas || !(modoMeta || modoAnaliseMeta)) return counts;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const meta = metaMap[c.id] || null;
