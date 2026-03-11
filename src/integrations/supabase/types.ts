@@ -705,6 +705,8 @@ export type Database = {
         Row: {
           cliente_id: string
           competencia: string
+          coordenada_comandante: string | null
+          coordenada_gerada_em: string | null
           gerado_em: string | null
           id: string
           narrativa: string | null
@@ -713,6 +715,8 @@ export type Database = {
         Insert: {
           cliente_id: string
           competencia: string
+          coordenada_comandante?: string | null
+          coordenada_gerada_em?: string | null
           gerado_em?: string | null
           id?: string
           narrativa?: string | null
@@ -721,6 +725,8 @@ export type Database = {
         Update: {
           cliente_id?: string
           competencia?: string
+          coordenada_comandante?: string | null
+          coordenada_gerada_em?: string | null
           gerado_em?: string | null
           id?: string
           narrativa?: string | null
