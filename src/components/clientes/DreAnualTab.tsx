@@ -25,7 +25,7 @@ function getMonthsForYear(year: string) {
     months.push({
       value: `${year}-${String(m + 1).padStart(2, '0')}-01`,
       label: d.toLocaleDateString('pt-BR', { month: 'long' }),
-      shortLabel: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+      shortLabel: d.toLocaleDateString('pt-BR', { month: 'long' }),
     });
   }
   return months;
