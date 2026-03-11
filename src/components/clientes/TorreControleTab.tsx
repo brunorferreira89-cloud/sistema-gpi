@@ -1057,7 +1057,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       {(() => {
                         const ar = getMetaArrow(projetado, val, conta.tipo);
-                        if (ar) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{fmtTorre(projetado)}</>;
+                        if (ar) return <><span style={{ fontSize: 14, fontWeight: 700, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{fmtTorre(projetado)}</>;
                         return fmtTorre(projetado);
                       })()}
                     </td>
