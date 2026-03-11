@@ -354,6 +354,32 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
               }.
             </p>
           </div>
+
+          {/* Botão atualizar + data */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <button
+              onClick={gerarCoordenada}
+              disabled={coordenadaLoading}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontSize: 10, fontWeight: 600, color: C.cyan, background: 'none',
+                border: `1px solid ${C.cyan}`, borderRadius: 6, padding: '4px 10px',
+                cursor: coordenadaLoading ? 'not-allowed' : 'pointer', opacity: coordenadaLoading ? 0.6 : 1,
+              }}
+            >
+              {coordenadaLoading ? (
+                <>
+                  <span style={{ display: 'inline-block', animation: 'radarSweepInst 1s linear infinite' }}>↻</span>
+                  Gerando...
+                </>
+              ) : '↻ Atualizar análise'}
+            </button>
+            {coordenadaGeradaEm && (
+              <span style={{ fontSize: 10, color: '#8A9BBC', fontStyle: 'italic' }}>
+                Gerado em {new Date(coordenadaGeradaEm).toLocaleDateString('pt-BR')} às {new Date(coordenadaGeradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Delta GC */}
