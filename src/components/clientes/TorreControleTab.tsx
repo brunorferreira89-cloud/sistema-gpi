@@ -940,6 +940,18 @@ export function TorreControleTab({ clienteId }: Props) {
                   );
                 })()}
 
+                {/* AV% after realized in ANÁLISE META (filtered month) */}
+                {showAV && modoAnaliseMeta && isSel && !isTodosMode && (() => {
+                  const monthMap = getMonthMap(m.value);
+                  const fat = getFatForMap(monthMap);
+                  const avStr = fmtAv(val, fat);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                      {avStr || '—'}
+                    </td>
+                  );
+                })()}
+
                 {/* ANÁLISE META: META column after selected month (specific month only) */}
                 {modoAnaliseMeta && isSel && !isTodosMode && (
                   <td style={{
@@ -959,6 +971,18 @@ export function TorreControleTab({ clienteId }: Props) {
                   const projTotais = calcTotaisProjetado();
                   const fatMeta = projTotais.fat;
                   const avStr = fmtAv(projetado, fatMeta);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                      {avStr || '—'}
+                    </td>
+                  );
+                })()}
+
+                {/* AV% after realized in CRIAÇÃO DE METAS (filtered month) */}
+                {showAV && modoMeta && isSel && !isTodosMode && (() => {
+                  const monthMap = getMonthMap(m.value);
+                  const fat = getFatForMap(monthMap);
+                  const avStr = fmtAv(val, fat);
                   return (
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
@@ -1189,6 +1213,17 @@ export function TorreControleTab({ clienteId }: Props) {
                 );
               })()}
 
+              {/* AV% after realized in ANÁLISE META (filtered, totalizador) */}
+              {showAV && modoAnaliseMeta && isSel && !isTodosMode && (() => {
+                const fat = totals.fat;
+                const avStr = fmtAv(val, fat);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
               {modoAnaliseMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
@@ -1208,6 +1243,17 @@ export function TorreControleTab({ clienteId }: Props) {
                 const projVal = projTotais[key as keyof typeof projTotais];
                 const fatMeta = projTotais.fat;
                 const avStr = fmtAv(projVal, fatMeta);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
+              {/* AV% after realized in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAV && modoMeta && isSel && !isTodosMode && (() => {
+                const fat = totals.fat;
+                const avStr = fmtAv(val, fat);
                 return (
                   <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
@@ -1830,6 +1876,12 @@ export function TorreControleTab({ clienteId }: Props) {
                               AV%
                             </th>
                           )}
+                          {/* AV% header after realized in ANÁLISE META (filtered) */}
+                          {showAV && modoAnaliseMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
                           {modoAnaliseMeta && isSel && !isTodosMode && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
@@ -1842,6 +1894,12 @@ export function TorreControleTab({ clienteId }: Props) {
                           )}
                           {/* AV% header after META in ANÁLISE META (filtered) */}
                           {showAV && modoAnaliseMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
+                          {/* AV% header after realized in CRIAÇÃO DE METAS (filtered) */}
+                          {showAV && modoMeta && isSel && !isTodosMode && (
                             <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
                               AV%
                             </th>
