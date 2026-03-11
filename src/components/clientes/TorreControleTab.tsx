@@ -1852,6 +1852,12 @@ export function TorreControleTab({ clienteId }: Props) {
                               AV%
                             </th>
                           )}
+                          {/* AV% header after realized in CRIAÇÃO DE METAS (filtered) */}
+                          {showAV && modoMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
                           {modoMeta && isSel && !isTodosMode && (
                             <>
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaColW, minWidth: metaColW }}>
