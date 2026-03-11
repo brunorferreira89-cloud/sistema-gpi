@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { type TorreMeta, calcProjetado, fmtCompetencia } from '@/lib/torre-utils';
 import { TorreIndicadorModal } from './TorreIndicadorModal';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Cliente {
@@ -88,7 +90,29 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<any>('altimetro');
+  const [coordenadaSalva, setCoordenadaSalva] = useState<string | null>(null);
+  const [coordenadaGeradaEm, setCoordenadaGeradaEm] = useState<string | null>(null);
+  const [coordenadaLoading, setCoordenadaLoading] = useState(false);
 
+  // ── Load saved coordenada on mount ─────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const loadCoordenada = async () => {
+      const { data } = await supabase
+        .from('sugestoes_metas_ia')
+        .select('coordenada_comandante, coordenada_gerada_em')
+        .eq('cliente_id', cliente.id)
+        .eq('competencia', mesProximo)
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data?.coordenada_comandante) {
+        setCoordenadaSalva(data.coordenada_comandante);
+        setCoordenadaGeradaEm(data.coordenada_gerada_em);
+      }
+    };
+    loadCoordenada();
+    return () => { cancelled = true; };
+  }, [cliente.id, mesProximo]);
   const mesBaseLabel = fmtCompetencia(competencia);
   const mesProxLabel = fmtCompetencia(mesProximo);
 
@@ -223,13 +247,52 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
 
   const openModal = (tipo: any) => { setModalTipo(tipo); setModalOpen(true); };
 
-  // ── Frase lúdica ──────────────────────────────────────────
-  const fraseLudica = ganhoRapido.nome
+  // ── Frase lúdica (fallback local) ──────────────────────────
+  const fraseLudicaLocal = ganhoRapido.nome
     ? `Comandante, reduza ${ganhoRapido.nome} em ${ganhoRapido.pct.toFixed(0)}% e liberamos ${fmtR(ganhoRapido.valor)} de altitude financeira em ${mesProxLabel}. Esse é o ajuste que muda a rota.`
     : `Comandante, aplique os ajustes propostos e a Geração de Caixa passa de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}% em ${mesProxLabel}.`;
 
+  const fraseLudica = coordenadaSalva || fraseLudicaLocal;
+
   const gcDelta = totaisMeta.gc - totais.gc;
   const gcBenchmark10 = totais.fat * 0.1;
+
+  // ── Gerar coordenada via IA ───────────────────────────────
+  const gerarCoordenada = async () => {
+    setCoordenadaLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gerar-coordenada', {
+        body: {
+          cliente_id: cliente.id,
+          competencia: mesProximo,
+          dados: {
+            nomeEmpresa: cliente.razao_social || cliente.nome_empresa,
+            mesProximo: mesProxLabel,
+            mesBase: mesBaseLabel,
+            gcReal: totais.gc.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            gcMeta: totaisMeta.gc.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            gcPct: gcPct.toFixed(1),
+            gcMetaPct: gcMetaPct.toFixed(1),
+            fatReal: totais.fat.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            fatMeta: totaisMeta.fat.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            ganhoNome: ganhoRapido.nome,
+            ganhoPct: ganhoRapido.pct.toFixed(0),
+            ganhoValor: ganhoRapido.valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+          },
+        },
+      });
+      if (error) throw error;
+      if (data?.coordenada) {
+        setCoordenadaSalva(data.coordenada);
+        setCoordenadaGeradaEm(data.gerado_em);
+      }
+    } catch (e) {
+      console.error('Erro ao gerar coordenada:', e);
+      toast.error('Não foi possível gerar a análise. Tente novamente.');
+    } finally {
+      setCoordenadaLoading(false);
+    }
+  };
 
   // ── DRE Cards config ──────────────────────────────────────
   const dreCards = [
@@ -290,6 +353,32 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
                 : `de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}%`
               }.
             </p>
+          </div>
+
+          {/* Botão atualizar + data */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <button
+              onClick={gerarCoordenada}
+              disabled={coordenadaLoading}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontSize: 10, fontWeight: 600, color: C.cyan, background: 'none',
+                border: `1px solid ${C.cyan}`, borderRadius: 6, padding: '4px 10px',
+                cursor: coordenadaLoading ? 'not-allowed' : 'pointer', opacity: coordenadaLoading ? 0.6 : 1,
+              }}
+            >
+              {coordenadaLoading ? (
+                <>
+                  <span style={{ display: 'inline-block', animation: 'radarSweepInst 1s linear infinite' }}>↻</span>
+                  Gerando...
+                </>
+              ) : '↻ Atualizar análise'}
+            </button>
+            {coordenadaGeradaEm && (
+              <span style={{ fontSize: 10, color: '#8A9BBC', fontStyle: 'italic' }}>
+                Gerado em {new Date(coordenadaGeradaEm).toLocaleDateString('pt-BR')} às {new Date(coordenadaGeradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
           </div>
         </div>
 
