@@ -437,7 +437,103 @@ export function TorreControleTab({ clienteId }: Props) {
   // Realized map for selected month (for meta calculations)
   const realizadoMapSel = useMemo(() => mesEfetivo ? getMonthMap(mesEfetivo) : {}, [mesEfetivo, getMonthMap]);
 
-  // ── Totalizador calc per month ────────────────────────────────
+  // ── Propagation handler ───────────────────────────────────────
+  const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
+    if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
+    const conta = contas.find(c => c.id === contaId);
+    if (!conta || metaValor === null) { invalidateMetas(); return; }
+
+    const newPropagated = new Set<string>();
+    const updatedMetaMap: Record<string, TorreMeta> = { ...metaMap, [contaId]: { conta_id: contaId, meta_tipo: metaTipo, meta_valor: metaValor } };
+
+    if (conta.nivel === 2) {
+      // ── BOTTOM-UP: category → subgroup → group ──
+      const parent = contas.find(c => c.id === conta.conta_pai_id);
+      if (parent) {
+        const siblings = contas.filter(c => c.conta_pai_id === parent.id);
+        let sumMeta = 0, sumReal = 0;
+        for (const sib of siblings) {
+          const real = realizadoMapSel[sib.id] ?? 0;
+          sumReal += real;
+          const m = updatedMetaMap[sib.id] || null;
+          const proj = m ? calcProjetado(real, m) : null;
+          sumMeta += proj ?? real;
+        }
+        const pctParent = sumReal !== 0 ? Math.round(((sumMeta / sumReal) - 1) * 10000) / 100 : 0;
+        await supabase.from('torre_metas').upsert({
+          cliente_id: clienteId, conta_id: parent.id, competencia: mesSeg,
+          meta_tipo: 'pct', meta_valor: pctParent, updated_at: new Date().toISOString(),
+        }, { onConflict: 'cliente_id,conta_id,competencia' });
+        newPropagated.add(parent.id);
+        updatedMetaMap[parent.id] = { conta_id: parent.id, meta_tipo: 'pct', meta_valor: pctParent };
+
+        const grandparent = contas.find(c => c.id === parent.conta_pai_id);
+        if (grandparent) {
+          const uncles = contas.filter(c => c.conta_pai_id === grandparent.id);
+          let sumMetaGP = 0, sumRealGP = 0;
+          for (const uncle of uncles) {
+            const nephews = contas.filter(c => c.conta_pai_id === uncle.id);
+            for (const neph of nephews) {
+              const r = realizadoMapSel[neph.id] ?? 0;
+              sumRealGP += r;
+              const m = updatedMetaMap[neph.id] || null;
+              const proj = m ? calcProjetado(r, m) : null;
+              sumMetaGP += proj ?? r;
+            }
+          }
+          const pctGP = sumRealGP !== 0 ? Math.round(((sumMetaGP / sumRealGP) - 1) * 10000) / 100 : 0;
+          await supabase.from('torre_metas').upsert({
+            cliente_id: clienteId, conta_id: grandparent.id, competencia: mesSeg,
+            meta_tipo: 'pct', meta_valor: pctGP, updated_at: new Date().toISOString(),
+          }, { onConflict: 'cliente_id,conta_id,competencia' });
+          newPropagated.add(grandparent.id);
+        }
+      }
+    } else {
+      // ── TOP-DOWN: group/subgroup → children (+ grandchildren if grupo) ──
+      let pctToApply: number;
+      if (metaTipo === 'pct') {
+        pctToApply = metaValor;
+      } else {
+        const findNode = (nodes: DreNode[], id: string): DreNode | null => {
+          for (const n of nodes) { if (n.conta.id === id) return n; const f = findNode(n.children, id); if (f) return f; } return null;
+        };
+        const node = findNode(tree, contaId);
+        const nodeReal = node ? sumNodeLeafs(node, realizadoMapSel) : null;
+        if (nodeReal && nodeReal !== 0) {
+          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: 'valor', meta_valor: metaValor });
+          pctToApply = proj != null ? Math.round(((proj / nodeReal) - 1) * 10000) / 100 : 0;
+        } else {
+          pctToApply = 0;
+        }
+      }
+
+      const children = contas.filter(c => c.conta_pai_id === contaId);
+      const upserts: { cliente_id: string; conta_id: string; competencia: string; meta_tipo: string; meta_valor: number; updated_at: string }[] = [];
+      for (const child of children) {
+        upserts.push({ cliente_id: clienteId, conta_id: child.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctToApply, updated_at: new Date().toISOString() });
+        newPropagated.add(child.id);
+        if (conta.nivel === 0) {
+          const grandchildren = contas.filter(c => c.conta_pai_id === child.id);
+          for (const gc of grandchildren) {
+            upserts.push({ cliente_id: clienteId, conta_id: gc.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctToApply, updated_at: new Date().toISOString() });
+            newPropagated.add(gc.id);
+          }
+        }
+      }
+      if (upserts.length > 0) {
+        await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+      }
+    }
+
+    if (newPropagated.size > 0) {
+      setPropagatedCells(newPropagated);
+      if (propagateTimerRef.current) clearTimeout(propagateTimerRef.current);
+      propagateTimerRef.current = setTimeout(() => setPropagatedCells(new Set()), 1500);
+    }
+    invalidateMetas();
+  }, [contas, clienteId, mesSeg, realizadoMapSel, metaMap, tree, invalidateMetas]);
+
   const calcTotaisForMap = useCallback((valMap: Record<string, number | null>) => {
     const fat = sumGrupos(gruposPorTipo['receita'] || [], valMap);
     const custos = sumGrupos(gruposPorTipo['custo_variavel'] || [], valMap);
