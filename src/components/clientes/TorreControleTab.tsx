@@ -921,8 +921,8 @@ export function TorreControleTab({ clienteId }: Props) {
           </div>
 
           {/* Layer 3 — detailed tower SVG with enhanced glow */}
-          <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.45, filter: 'drop-shadow(0 0 18px rgba(26,60,255,0.5)) drop-shadow(0 0 40px rgba(0,153,230,0.25))' }}>
-            <svg viewBox="0 0 220 150" style={{ width: 240, height: 150 }}>
+          <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.75, filter: 'drop-shadow(0 0 24px rgba(26,60,255,0.7)) drop-shadow(0 0 50px rgba(0,153,230,0.4)) drop-shadow(0 0 80px rgba(0,212,255,0.15))' }}>
+            <svg viewBox="0 0 220 150" style={{ width: 280, height: 175 }}>
               {/* Ground glow */}
               <ellipse cx="110" cy="142" rx="80" ry="6" fill="#1A3CFF" opacity="0.3" style={{ animation: 'glowPulse 3s ease infinite' }} />
               {/* Base — trapezoidal with gradient */}
