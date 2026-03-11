@@ -335,6 +335,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [sugestaoGeradaEm, setSugestaoGeradaEm] = useState<string | null>(null);
   const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
   const [narrativa, setNarrativa] = useState<string | null>(null);
+  const [propagatedCells, setPropagatedCells] = useState<Set<string>>(new Set());
+  const propagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const months = useMemo(() => getMonthsForYear(ano), [ano]);
 
