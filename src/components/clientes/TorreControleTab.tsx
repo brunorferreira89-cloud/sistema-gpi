@@ -47,7 +47,7 @@ function getMonthsForYear(year: string) {
     const d = new Date(Number(year), m, 1);
     months.push({
       value: `${year}-${String(m + 1).padStart(2, '0')}-01`,
-      shortLabel: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+      shortLabel: d.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase(),
     });
   }
   return months;
