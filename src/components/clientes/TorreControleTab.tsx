@@ -6,6 +6,7 @@ import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-rea
 import { toast } from 'sonner';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
+import { ChatAnalistaDrawer } from './ChatAnalistaDrawer';
 import { TorreIndicadoresCriacao } from './TorreIndicadoresCriacao';
 
 // ── Types ───────────────────────────────────────────────────────
@@ -354,6 +355,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
   const [narrativa, setNarrativa] = useState<string | null>(null);
   const [propagatedCells, setPropagatedCells] = useState<Set<string>>(new Set());
+  const [chatOpen, setChatOpen] = useState(false);
   const propagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const months = useMemo(() => getMonthsForYear(ano), [ano]);
@@ -1543,6 +1545,20 @@ export function TorreControleTab({ clienteId }: Props) {
                 👨🏻‍✈️ Comandante GPI
               </button>
 
+              {/* Chat Analista */}
+              <button
+                onClick={() => setChatOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                  background: 'rgba(0,153,230,0.15)', border: '1px solid rgba(0,153,230,0.3)',
+                  color: '#7BC8FF', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  transition: 'all 0.15s',
+                }}
+              >
+                💬 Chat Analista
+              </button>
+
             </div>
           </div>
         </div>
@@ -1716,6 +1732,22 @@ export function TorreControleTab({ clienteId }: Props) {
         realizadoMap={realizadoMapSel}
         narrativa={narrativa}
       />
+
+      {cliente && mesEfetivo && mesSeg && (
+        <ChatAnalistaDrawer
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          clienteId={clienteId}
+          clienteNome={cliente.razao_social || cliente.nome_empresa}
+          clienteSegmento={cliente.segmento}
+          contas={contas || []}
+          realizadoMap={realizadoMapSel}
+          metaMap={metaMap}
+          mesBase={mesEfetivo}
+          mesProximo={mesSeg}
+          onMetaAtualizada={invalidateMetas}
+        />
+      )}
     </div>
   );
 }
