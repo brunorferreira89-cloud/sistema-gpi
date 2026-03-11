@@ -482,6 +482,17 @@ export function TorreControleTab({ clienteId }: Props) {
   // Realized map for selected month (for meta calculations)
   const realizadoMapSel = useMemo(() => mesEfetivo ? getMonthMap(mesEfetivo) : {}, [mesEfetivo, getMonthMap]);
 
+  // AV% helper: get faturamento for a given month map
+  const getFatForMap = useCallback((valMap: Record<string, number | null>): number => {
+    return sumGrupos(gruposPorTipo['receita'] || [], valMap);
+  }, [gruposPorTipo]);
+
+  // AV% formatter
+  const fmtAv = (val: number | null, fat: number): string | null => {
+    if (val == null || fat === 0) return null;
+    return ((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1) + '%';
+  };
+
   // ── Propagation handler ───────────────────────────────────────
   const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
