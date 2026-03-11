@@ -153,7 +153,8 @@ function StatusBadge({ status }: { status: 'ok' | 'atencao' | 'critico' | 'neutr
 function EditableMetaCell({
   meta, contaId, clienteId, competencia, isTotal, onSaved,
 }: {
-  meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean; onSaved: () => void;
+  meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean;
+  onSaved: (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [localTipo, setLocalTipo] = useState<'pct' | 'valor'>(meta?.meta_tipo || 'pct');
@@ -170,7 +171,7 @@ function EditableMetaCell({
       { onConflict: 'cliente_id,conta_id,competencia' }
     );
     if (error) { toast.error('Erro ao salvar meta'); return; }
-    onSaved();
+    onSaved(contaId, tipo, valor);
   };
 
   const commit = () => {
