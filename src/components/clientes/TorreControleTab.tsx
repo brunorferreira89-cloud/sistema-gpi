@@ -436,7 +436,7 @@ export function TorreControleTab({ clienteId }: Props) {
 
   // ── GC projetado ──────────────────────────────────────────────
   const gcProjetado = useMemo(() => {
-    if (!contas || !modoMeta) return null;
+    if (!contas || !(modoMeta || modoAnaliseMeta)) return null;
     let total = 0;
     let hasAny = false;
     for (const c of contas) {
