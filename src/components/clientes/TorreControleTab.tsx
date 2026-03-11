@@ -445,6 +445,20 @@ export function TorreControleTab({ clienteId }: Props) {
     return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
   }, [gruposPorTipo]);
 
+  // ── Totalizador projetado calc ────────────────────────────────
+  const calcTotaisProjetado = useCallback(() => {
+    const fat = sumGruposProjetado(gruposPorTipo['receita'] || [], realizadoMapSel, metaMap);
+    const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], realizadoMapSel, metaMap);
+    const mc = fat + custos;
+    const despesas = sumGruposProjetado(gruposPorTipo['despesa_fixa'] || [], realizadoMapSel, metaMap);
+    const ro = mc + despesas;
+    const invest = sumGruposProjetado(gruposPorTipo['investimento'] || [], realizadoMapSel, metaMap);
+    const rai = ro + invest;
+    const financ = sumGruposProjetado(gruposPorTipo['financeiro'] || [], realizadoMapSel, metaMap);
+    const gc = rai + financ;
+    return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
+  }, [gruposPorTipo, realizadoMapSel, metaMap]);
+
   // ── Status counts (based on selected month) ──────────────────
   const statusCounts = useMemo(() => {
     const counts = { ok: 0, atencao: 0, critico: 0 };
