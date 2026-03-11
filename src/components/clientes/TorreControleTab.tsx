@@ -498,6 +498,24 @@ export function TorreControleTab({ clienteId }: Props) {
   // AV% semantic color for totalizador cells
   const avTotColor = (v: number): string => v < 0 ? '#FF6B6B' : '#00E68A';
 
+  // Direction arrow for META columns: compares meta vs realized
+  const getMetaArrow = (metaVal: number | null, realVal: number | null, tipo: string): { arrow: string; color: string } | null => {
+    if (metaVal == null || realVal == null) return null;
+    if (tipo === 'financeiro') return null;
+    const isReceita = tipo === 'receita';
+    if (metaVal === realVal) return { arrow: '→', color: '#8A9BBC' };
+    if (isReceita) {
+      return metaVal > realVal ? { arrow: '↑', color: '#00A86B' } : { arrow: '↓', color: '#DC2626' };
+    }
+    // custo_variavel, despesa_fixa, investimento: lower is better
+    return metaVal < realVal ? { arrow: '↓', color: '#00A86B' } : { arrow: '↑', color: '#DC2626' };
+  };
+  // Direction arrow for totalizador META: higher is always better
+  const getTotArrow = (metaVal: number, realVal: number): { arrow: string; color: string } | null => {
+    if (metaVal === realVal) return { arrow: '→', color: '#8A9BBC' };
+    return metaVal > realVal ? { arrow: '↑', color: '#00A86B' } : { arrow: '↓', color: '#DC2626' };
+  };
+
   // ── Propagation handler ───────────────────────────────────────
   const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
