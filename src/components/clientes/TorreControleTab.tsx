@@ -262,21 +262,24 @@ const keyframesCSS = `
 @keyframes radarSweep { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
 @keyframes dataPulse { 0%,100%{opacity:0.05} 50%{opacity:0.15} }
 @keyframes scanHorizontal { 0%{left:-30%;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:110%;opacity:0} }
-@keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:0} 10%{opacity:0.6} 80%{opacity:0.3} 100%{transform:translateY(-140px) scale(0.7);opacity:0} }
-@keyframes floatDrift { 0%{transform:translate(0,0) scale(1);opacity:0} 15%{opacity:0.5} 85%{opacity:0.2} 100%{transform:translate(30px,-120px) scale(0.6);opacity:0} }
+@keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:0} 8%{opacity:0.85} 70%{opacity:0.5} 100%{transform:translateY(-150px) scale(0.7);opacity:0} }
+@keyframes floatDrift { 0%{transform:translate(0,0) scale(1);opacity:0} 10%{opacity:0.8} 75%{opacity:0.4} 100%{transform:translate(35px,-130px) scale(0.6);opacity:0} }
 `;
 
 const DATA_PARTICLES = [
-  { text: '3.2M', left: '12%', delay: '0s', dur: '4.5s', anim: 'floatUp' },
-  { text: '+12%', left: '25%', delay: '1.2s', dur: '5s', anim: 'floatDrift' },
-  { text: '847K', left: '38%', delay: '2.8s', dur: '4s', anim: 'floatUp' },
-  { text: '−5.3%', left: '52%', delay: '0.6s', dur: '5.5s', anim: 'floatDrift' },
-  { text: '1.4M', left: '65%', delay: '3.5s', dur: '4.2s', anim: 'floatUp' },
-  { text: '+8.7%', left: '78%', delay: '1.8s', dur: '4.8s', anim: 'floatDrift' },
-  { text: '92K', left: '45%', delay: '4s', dur: '5.2s', anim: 'floatUp' },
-  { text: '◈', left: '88%', delay: '2.2s', dur: '6s', anim: 'floatDrift' },
-  { text: '2.1M', left: '8%', delay: '3.2s', dur: '4.6s', anim: 'floatDrift' },
-  { text: '+24%', left: '70%', delay: '0.3s', dur: '5.8s', anim: 'floatUp' },
+  { text: '3.2M', left: '12%', delay: '0s', dur: '3s', anim: 'floatUp' },
+  { text: '+12%', left: '25%', delay: '0.8s', dur: '3.4s', anim: 'floatDrift' },
+  { text: '847K', left: '38%', delay: '1.8s', dur: '2.8s', anim: 'floatUp' },
+  { text: '−5.3%', left: '52%', delay: '0.4s', dur: '3.6s', anim: 'floatDrift' },
+  { text: '1.4M', left: '65%', delay: '2.5s', dur: '2.9s', anim: 'floatUp' },
+  { text: '+8.7%', left: '78%', delay: '1.2s', dur: '3.2s', anim: 'floatDrift' },
+  { text: '92K', left: '45%', delay: '2.8s', dur: '3.5s', anim: 'floatUp' },
+  { text: '◈', left: '88%', delay: '1.5s', dur: '4s', anim: 'floatDrift' },
+  { text: '2.1M', left: '8%', delay: '2.2s', dur: '3.1s', anim: 'floatDrift' },
+  { text: '+24%', left: '70%', delay: '0.2s', dur: '3.8s', anim: 'floatUp' },
+  { text: '560K', left: '18%', delay: '1.6s', dur: '3.3s', anim: 'floatUp' },
+  { text: '−2.1%', left: '58%', delay: '3s', dur: '3s', anim: 'floatDrift' },
+  { text: '4.8M', left: '82%', delay: '0.5s', dur: '3.7s', anim: 'floatUp' },
 ];
 
 // ══════════════════════════════════════════════════════════════════
