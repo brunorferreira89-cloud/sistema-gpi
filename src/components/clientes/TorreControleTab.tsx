@@ -1128,7 +1128,8 @@ export function TorreControleTab({ clienteId }: Props) {
   // ── Table min width calculation ───────────────────────────────
   const todosMetaColsCount = isTodosMode && isModoAtivo ? monthsWithMetas.size : 0;
   const extraColsWidth = (!isTodosMode && modoMeta) ? (metaColW + rsColW + metaProjetadoColW) : (!isTodosMode && modoAnaliseMeta ? metaColW : 0);
-  const tableMinWidth = nameColW + displayMonths.length * valColW + valColW + extraColsWidth + todosMetaColsCount * metaProjetadoColW;
+  const showYearCol = isTodosMode || !isModoAtivo;
+  const tableMinWidth = nameColW + displayMonths.length * valColW + (showYearCol ? valColW : 0) + extraColsWidth + todosMetaColsCount * metaProjetadoColW;
 
   // ══════════════════════════════════════════════════════════════
   return (
