@@ -895,7 +895,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     fontWeight: isTotal ? 800 : 400,
                     color: projetado != null ? (isTotal ? '#FFFFFF' : C.txtSec) : C.txtMuted,
                     padding: '8px 10px',
-                    background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.03)',
+                    background: isTotal ? '#0D1B35' : '#F6F9FF',
                   }}>
                     {fmtTorre(projetado)}
                   </td>
@@ -932,7 +932,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       fontWeight: isTotal ? 800 : 400,
                       color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted),
                       padding: '8px 10px',
-                      background: isTotal ? '#0D1B35' : undefined,
+                      background: isTotal ? '#0D1B35' : '#F6F9FF',
                     }}>
                       {fmtTorre(projetado)}
                     </td>
@@ -957,7 +957,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
                       color: projVal != null ? (isTotal ? '#FFFFFF' : C.txtSec) : C.txtMuted,
                       padding: '8px 10px',
-                      background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.03)',
+                      background: isTotal ? '#0D1B35' : '#F6F9FF',
                     }}>
                       {fmtTorre(projVal)}
                     </td>
@@ -968,6 +968,7 @@ export function TorreControleTab({ clienteId }: Props) {
           })}
 
           {/* Year total */}
+          {showYearCol && (
           <td style={{
             textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
             fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
@@ -997,6 +998,7 @@ export function TorreControleTab({ clienteId }: Props) {
               return has ? fmtTorre(yearTotal) : '—';
             })()}
           </td>
+          )}
         </tr>
         {!isCollapsedItem && !isTotal && node.children.map(child => renderRow(child, depth + 1))}
       </Fragment>
@@ -1098,6 +1100,7 @@ export function TorreControleTab({ clienteId }: Props) {
           );
         })}
         {/* Year total */}
+        {showYearCol && (
         <td style={{
           textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
           padding: '11px 10px', borderLeft: '1px solid #DDE4F0', background: '#0D1B35',
@@ -1121,6 +1124,7 @@ export function TorreControleTab({ clienteId }: Props) {
             return fmtTorre(total);
           })()}
         </td>
+        )}
       </tr>
     );
   };
@@ -1128,7 +1132,8 @@ export function TorreControleTab({ clienteId }: Props) {
   // ── Table min width calculation ───────────────────────────────
   const todosMetaColsCount = isTodosMode && isModoAtivo ? monthsWithMetas.size : 0;
   const extraColsWidth = (!isTodosMode && modoMeta) ? (metaColW + rsColW + metaProjetadoColW) : (!isTodosMode && modoAnaliseMeta ? metaColW : 0);
-  const tableMinWidth = nameColW + displayMonths.length * valColW + valColW + extraColsWidth + todosMetaColsCount * metaProjetadoColW;
+  const showYearCol = isTodosMode || !isModoAtivo;
+  const tableMinWidth = nameColW + displayMonths.length * valColW + (showYearCol ? valColW : 0) + extraColsWidth + todosMetaColsCount * metaProjetadoColW;
 
   // ══════════════════════════════════════════════════════════════
   return (
@@ -1508,7 +1513,7 @@ export function TorreControleTab({ clienteId }: Props) {
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
                               color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
                               width: metaColW, minWidth: metaColW,
-                              background: 'rgba(26,60,255,0.05)',
+                              background: '#F6F9FF',
                             }}>
                               META
                             </th>
@@ -1521,7 +1526,7 @@ export function TorreControleTab({ clienteId }: Props) {
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: rsColW, minWidth: rsColW }}>
                                 R$
                               </th>
-                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap' }}>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap', background: '#F6F9FF' }}>
                                 META {mesSegShort}
                               </th>
                             </>
@@ -1532,7 +1537,7 @@ export function TorreControleTab({ clienteId }: Props) {
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
                               color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
                               width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap',
-                              background: 'rgba(26,60,255,0.05)',
+                              background: '#F6F9FF',
                             }}>
                               META {m.shortLabel}
                             </th>
@@ -1541,6 +1546,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       );
                     })}
                     {/* Year total header */}
+                    {showYearCol && (
                     <th style={{
                       padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700,
                       color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -1549,6 +1555,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       {ano}
                     </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
