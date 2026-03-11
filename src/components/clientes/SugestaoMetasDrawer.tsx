@@ -484,6 +484,7 @@ export function SugestaoMetasDrawer({
 }: SugestaoMetasDrawerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
+  const [manualMetas, setManualMetas] = useState<Record<string, ManualMeta>>({});
 
   // Initialize selections when sugestoes change
   useMemo(() => {
