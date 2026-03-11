@@ -755,6 +755,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const metaColW = 90;
   const rsColW = 90;
   const metaProjetadoColW = 110;
+  const avColW = 72;
 
   const isModoAtivo = modoMeta || modoAnaliseMeta;
   const isTodosMode = mesSelecionado === null;
