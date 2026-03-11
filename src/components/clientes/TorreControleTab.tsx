@@ -920,40 +920,83 @@ export function TorreControleTab({ clienteId }: Props) {
             <div style={{ position: 'absolute', width: '25%', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(0,153,230,0.04), transparent)', animation: 'scanHorizontal2 12s linear infinite' }} />
           </div>
 
-          {/* Layer 3 — detailed tower SVG */}
-          <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.25 }}>
-            <svg viewBox="0 0 200 140" style={{ width: 200, height: 130 }}>
-              {/* Base — trapezoidal */}
-              <polygon points="60,130 140,130 128,115 72,115" fill="#1A3CFF" opacity="0.8" />
+          {/* Layer 3 — detailed tower SVG with enhanced glow */}
+          <div style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.45, filter: 'drop-shadow(0 0 18px rgba(26,60,255,0.5)) drop-shadow(0 0 40px rgba(0,153,230,0.25))' }}>
+            <svg viewBox="0 0 220 150" style={{ width: 240, height: 150 }}>
+              {/* Ground glow */}
+              <ellipse cx="110" cy="142" rx="80" ry="6" fill="#1A3CFF" opacity="0.3" style={{ animation: 'glowPulse 3s ease infinite' }} />
+              {/* Base — trapezoidal with gradient */}
+              <defs>
+                <linearGradient id="tower-body-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1A3CFF" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#0D1B35" stopOpacity="0.95" />
+                </linearGradient>
+                <linearGradient id="cabin-glass-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.85" />
+                  <stop offset="100%" stopColor="#0099E6" stopOpacity="0.5" />
+                </linearGradient>
+                <radialGradient id="antenna-glow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#00D4FF" stopOpacity="1" />
+                  <stop offset="60%" stopColor="#0099E6" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#0099E6" stopOpacity="0" />
+                </radialGradient>
+                <filter id="glass-glow">
+                  <feGaussianBlur stdDeviation="2" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
+              <polygon points="60,140 160,140 145,122 75,122" fill="url(#tower-body-grad)" />
               {/* Body — tapered */}
-              <polygon points="78,115 122,115 116,60 84,60" fill="#1A3CFF" opacity="0.7" />
+              <polygon points="80,122 140,122 132,60 88,60" fill="url(#tower-body-grad)" />
+              {/* Horizontal body lines (structure details) */}
+              <line x1="82" y1="80" x2="138" y2="80" stroke="#0099E6" strokeWidth="0.5" opacity="0.25" />
+              <line x1="83" y1="95" x2="137" y2="95" stroke="#0099E6" strokeWidth="0.5" opacity="0.2" />
+              <line x1="84" y1="110" x2="136" y2="110" stroke="#0099E6" strokeWidth="0.5" opacity="0.15" />
               {/* Support struts */}
-              <line x1="82" y1="115" x2="72" y2="130" stroke="#0099E6" strokeWidth="1" opacity="0.3" />
-              <line x1="118" y1="115" x2="128" y2="130" stroke="#0099E6" strokeWidth="1" opacity="0.3" />
-              {/* Cabin — panoramic glass */}
-              <rect x="70" y="38" width="60" height="24" rx="4" fill="#0D1B35" stroke="#1A3CFF" strokeWidth="1.5" />
-              {/* Glass panels with glow */}
-              <rect x="76" y="42" width="11" height="16" rx="2" fill="#0099E6" opacity="0.6" style={{ animation: 'glowPulse 2s ease infinite' }} />
-              <rect x="90" y="42" width="11" height="16" rx="2" fill="#0099E6" opacity="0.6" style={{ animation: 'glowPulse 2s ease 0.3s infinite' }} />
-              <rect x="104" y="42" width="11" height="16" rx="2" fill="#0099E6" opacity="0.6" style={{ animation: 'glowPulse 2s ease 0.6s infinite' }} />
+              <line x1="85" y1="122" x2="70" y2="140" stroke="#0099E6" strokeWidth="1.2" opacity="0.35" />
+              <line x1="135" y1="122" x2="150" y2="140" stroke="#0099E6" strokeWidth="1.2" opacity="0.35" />
+              <line x1="90" y1="90" x2="78" y2="122" stroke="#0099E6" strokeWidth="0.6" opacity="0.2" />
+              <line x1="130" y1="90" x2="142" y2="122" stroke="#0099E6" strokeWidth="0.6" opacity="0.2" />
+              {/* Cabin — panoramic glass with glow filter */}
+              <rect x="72" y="36" width="76" height="26" rx="5" fill="#0D1B35" stroke="#1A3CFF" strokeWidth="2" />
+              <rect x="72" y="36" width="76" height="26" rx="5" fill="none" stroke="#0099E6" strokeWidth="0.5" opacity="0.4" />
+              {/* Glass panels with enhanced glow */}
+              <g filter="url(#glass-glow)">
+                <rect x="78" y="40" width="14" height="18" rx="2" fill="url(#cabin-glass-grad)" style={{ animation: 'glowPulse 2s ease infinite' }} />
+                <rect x="96" y="40" width="14" height="18" rx="2" fill="url(#cabin-glass-grad)" style={{ animation: 'glowPulse 2s ease 0.4s infinite' }} />
+                <rect x="114" y="40" width="14" height="18" rx="2" fill="url(#cabin-glass-grad)" style={{ animation: 'glowPulse 2s ease 0.8s infinite' }} />
+              </g>
+              {/* Glass reflection highlights */}
+              <rect x="80" y="41" width="4" height="8" rx="1" fill="#FFFFFF" opacity="0.15" />
+              <rect x="98" y="41" width="4" height="8" rx="1" fill="#FFFFFF" opacity="0.15" />
+              <rect x="116" y="41" width="4" height="8" rx="1" fill="#FFFFFF" opacity="0.15" />
               {/* Cabin roof */}
-              <polygon points="68,38 132,38 126,30 74,30" fill="#1A3CFF" opacity="0.6" />
-              {/* Observation deck rail */}
-              <line x1="68" y1="38" x2="132" y2="38" stroke="#0099E6" strokeWidth="0.8" opacity="0.5" />
+              <polygon points="68,36 152,36 144,26 76,26" fill="#1A3CFF" opacity="0.7" />
+              <line x1="68" y1="36" x2="152" y2="36" stroke="#0099E6" strokeWidth="1" opacity="0.6" />
               {/* Antenna mast */}
-              <line x1="100" y1="30" x2="100" y2="6" stroke="#1A3CFF" strokeWidth="2" />
-              <line x1="100" y1="12" x2="92" y2="20" stroke="#0099E6" strokeWidth="0.8" opacity="0.4" />
-              <line x1="100" y1="12" x2="108" y2="20" stroke="#0099E6" strokeWidth="0.8" opacity="0.4" />
-              {/* Antenna tip with glow */}
-              <circle cx="100" cy="5" r="3" fill="#0099E6" style={{ animation: 'glowPulse 1.5s ease infinite' }} />
-              {/* Signal waves */}
-              <circle cx="100" cy="5" r="8" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.4" style={{ animation: 'signalWave 2s ease-out infinite' }} />
-              <circle cx="100" cy="5" r="8" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.3" style={{ animation: 'signalWave 2s ease-out 0.7s infinite' }} />
-              <circle cx="100" cy="5" r="8" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.2" style={{ animation: 'signalWave 2s ease-out 1.4s infinite' }} />
+              <line x1="110" y1="26" x2="110" y2="4" stroke="#1A3CFF" strokeWidth="2.5" />
+              <line x1="110" y1="4" x2="110" y2="26" stroke="#0099E6" strokeWidth="0.8" opacity="0.4" />
+              {/* Antenna cross-arms */}
+              <line x1="110" y1="12" x2="100" y2="20" stroke="#0099E6" strokeWidth="1" opacity="0.5" />
+              <line x1="110" y1="12" x2="120" y2="20" stroke="#0099E6" strokeWidth="1" opacity="0.5" />
+              <line x1="110" y1="8" x2="104" y2="14" stroke="#0099E6" strokeWidth="0.6" opacity="0.3" />
+              <line x1="110" y1="8" x2="116" y2="14" stroke="#0099E6" strokeWidth="0.6" opacity="0.3" />
+              {/* Antenna tip with radial glow */}
+              <circle cx="110" cy="4" r="5" fill="url(#antenna-glow)" style={{ animation: 'glowPulse 1.2s ease infinite' }} />
+              <circle cx="110" cy="4" r="2" fill="#FFFFFF" opacity="0.9" style={{ animation: 'glowPulse 1.2s ease infinite' }} />
+              {/* Signal waves — 4 rings */}
+              <circle cx="110" cy="4" r="10" stroke="#00D4FF" strokeWidth="1" fill="none" opacity="0.5" style={{ animation: 'signalWave 2s ease-out infinite' }} />
+              <circle cx="110" cy="4" r="10" stroke="#0099E6" strokeWidth="0.8" fill="none" opacity="0.4" style={{ animation: 'signalWave 2s ease-out 0.5s infinite' }} />
+              <circle cx="110" cy="4" r="10" stroke="#0099E6" strokeWidth="0.6" fill="none" opacity="0.3" style={{ animation: 'signalWave 2s ease-out 1s infinite' }} />
+              <circle cx="110" cy="4" r="10" stroke="#1A3CFF" strokeWidth="0.5" fill="none" opacity="0.2" style={{ animation: 'signalWave 2s ease-out 1.5s infinite' }} />
               {/* Small lights on body */}
-              <circle cx="95" cy="80" r="1.5" fill="#00A86B" opacity="0.7" style={{ animation: 'glowPulse 3s ease infinite' }} />
-              <circle cx="105" cy="90" r="1.5" fill="#FF4444" opacity="0.7" style={{ animation: 'glowPulse 3s ease 1s infinite' }} />
-              <circle cx="95" cy="100" r="1.5" fill="#00A86B" opacity="0.7" style={{ animation: 'glowPulse 3s ease 2s infinite' }} />
+              <circle cx="100" cy="75" r="2" fill="#00FF88" opacity="0.8" style={{ animation: 'glowPulse 3s ease infinite' }} />
+              <circle cx="120" cy="85" r="2" fill="#FF4444" opacity="0.8" style={{ animation: 'glowPulse 3s ease 1s infinite' }} />
+              <circle cx="100" cy="100" r="2" fill="#00FF88" opacity="0.8" style={{ animation: 'glowPulse 3s ease 2s infinite' }} />
+              <circle cx="120" cy="105" r="1.5" fill="#FFD700" opacity="0.7" style={{ animation: 'glowPulse 2.5s ease 0.5s infinite' }} />
+              {/* Cabin side lights */}
+              <circle cx="70" cy="49" r="2" fill="#FF4444" opacity="0.7" style={{ animation: 'glowPulse 1.8s ease infinite' }} />
+              <circle cx="150" cy="49" r="2" fill="#00FF88" opacity="0.7" style={{ animation: 'glowPulse 1.8s ease 0.9s infinite' }} />
             </svg>
           </div>
 
