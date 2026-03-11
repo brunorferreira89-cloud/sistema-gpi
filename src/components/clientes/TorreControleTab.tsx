@@ -160,12 +160,13 @@ function EditableMetaCell({
   const [localTipo, setLocalTipo] = useState<'pct' | 'valor'>(meta?.meta_tipo || 'pct');
   const [input, setInput] = useState('');
   const ref = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
 
   if (isTotal) return <span style={{ color: C.txtMuted, fontFamily: C.mono, fontSize: 12 }}>—</span>;
 
-  const upsert = async (tipo: 'pct' | 'valor', valor: number | null) => {
+  const upsertAndPropagate = async (tipo: 'pct' | 'valor', valor: number | null) => {
     const { error } = await supabase.from('torre_metas').upsert(
       { cliente_id: clienteId, conta_id: contaId, competencia, meta_tipo: tipo, meta_valor: valor, updated_at: new Date().toISOString() },
       { onConflict: 'cliente_id,conta_id,competencia' }
@@ -174,19 +175,36 @@ function EditableMetaCell({
     onSaved(contaId, tipo, valor);
   };
 
+  const scheduleUpsert = (rawInput: string, tipo: 'pct' | 'valor') => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const cleaned = rawInput.replace(/[^\d.,-]/g, '').replace(',', '.');
+      if (cleaned === '') { upsertAndPropagate(tipo, null); return; }
+      const num = parseFloat(cleaned);
+      if (!isNaN(num)) upsertAndPropagate(tipo, num);
+    }, 600);
+  };
+
   const commit = () => {
+    clearTimeout(debounceRef.current);
     setEditing(false);
     const cleaned = input.replace(/[^\d.,-]/g, '').replace(',', '.');
-    if (cleaned === '') { upsert(localTipo, null); return; }
+    if (cleaned === '') { upsertAndPropagate(localTipo, null); return; }
     const num = parseFloat(cleaned);
-    if (!isNaN(num)) upsert(localTipo, num);
+    if (!isNaN(num)) upsertAndPropagate(localTipo, num);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    scheduleUpsert(val, localTipo);
   };
 
   const toggleTipo = (e: React.MouseEvent) => {
     e.stopPropagation();
     const next = localTipo === 'pct' ? 'valor' : 'pct';
     setLocalTipo(next);
-    if (meta && meta.meta_valor !== null) upsert(next, meta.meta_valor);
+    if (meta && meta.meta_valor !== null) upsertAndPropagate(next, meta.meta_valor);
   };
 
   if (editing) {
@@ -198,9 +216,9 @@ function EditableMetaCell({
         <input
           ref={ref}
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={handleChange}
           onBlur={commit}
-          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { clearTimeout(debounceRef.current); setEditing(false); } }}
           style={{ width: 70, textAlign: 'right', fontFamily: C.mono, fontSize: 12, border: `1px solid ${C.primary}`, borderRadius: 4, padding: '2px 6px', outline: 'none', background: C.surfaceHi }}
         />
       </span>
