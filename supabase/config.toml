@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.sugerir-metas]
 verify_jwt = false
+
+[functions.chat-analista]
+verify_jwt = false
