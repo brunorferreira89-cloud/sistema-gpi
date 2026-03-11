@@ -129,7 +129,9 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
       const real = realizadoMap[c.id] ?? null;
       const meta = metaMap[c.id] || null;
       if (real != null && meta && meta.meta_valor != null) {
-        map[c.id] = calcProjetado(real, meta);
+        // calcProjetado returns Math.abs — preserve original sign for costs/expenses
+        const projected = calcProjetado(real, meta);
+        map[c.id] = projected !== null ? (real < 0 ? -Math.abs(projected) : projected) : real;
       } else {
         map[c.id] = real;
       }
