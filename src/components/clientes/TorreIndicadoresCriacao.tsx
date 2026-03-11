@@ -363,11 +363,15 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
           {/* Bloco técnico */}
           <div style={{ background: C.bgAlt, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px' }}>
             <p style={{ fontSize: 11.5, color: C.txtSec, fontWeight: 500, margin: 0, lineHeight: 1.6 }}>
-              📌 Meta proposta para {mesProxLabel}: {ganhoRapido.nome ? <>reduzir {ganhoRapido.nome} em {fmtRColor(ganhoRapido.valor)}, mantendo receitas e demais saídas constantes.</> : <>aplicar os ajustes definidos nas metas.</>}
-              {' '}Se atingida, a Geração de Caixa passará de {fmtRColor(totais.gc)} para {fmtRColor(totaisMeta.gc)} — {totais.gc < 0 && totaisMeta.gc >= 0
-                ? 'saindo do vermelho para o positivo'
-                : `de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}%`
-              }.
+              📌{' '}
+              {coordenadaTecnico
+                ? colorizeReais(coordenadaTecnico)
+                : (<>Meta proposta para {mesProxLabel}: {ganhoRapido.nome ? <>reduzir {ganhoRapido.nome} em {fmtRColor(ganhoRapido.valor)}, mantendo receitas e demais saídas constantes.</> : <>aplicar os ajustes definidos nas metas.</>}
+                  {' '}Se atingida, a Geração de Caixa passará de {fmtRColor(totais.gc)} para {fmtRColor(totaisMeta.gc)} — {totais.gc < 0 && totaisMeta.gc >= 0
+                    ? 'saindo do vermelho para o positivo'
+                    : `de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}%`
+                  }.</>)
+              }
             </p>
           </div>
 
