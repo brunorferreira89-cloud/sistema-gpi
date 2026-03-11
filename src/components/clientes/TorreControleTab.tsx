@@ -1220,9 +1220,6 @@ export function TorreControleTab({ clienteId }: Props) {
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap' }}>
                                 META {mesSegShort}
                               </th>
-                              <th style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: statusColW, minWidth: statusColW }}>
-                                STATUS
-                              </th>
                             </>
                           )}
                         </Fragment>
