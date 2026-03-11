@@ -499,8 +499,9 @@ export function TorreControleTab({ clienteId }: Props) {
       const meta = metaMap[conta.id] || null;
       const real = realizadoMapSel[conta.id] ?? null;
       if (!meta || meta.meta_valor === null || real == null) return null;
-      if (meta.meta_tipo === 'pct') return Math.abs(real) * (meta.meta_valor / 100);
-      return meta.meta_valor - real;
+      const proj = calcProjetado(real, meta);
+      if (proj == null) return null;
+      return proj - real;
     }
     let total = 0;
     let hasAny = false;
