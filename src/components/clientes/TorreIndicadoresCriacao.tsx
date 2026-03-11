@@ -27,6 +27,10 @@ interface Props {
   valoresMensais: ValorMensal[];
   torreMetas: TorreMeta[];
   planoDeContas: ContaRow[];
+  modoTodos?: boolean;
+  metasAno?: (TorreMeta & { competencia: string })[];
+  monthsWithData?: string[];
+  ano?: string;
 }
 
 // ── Colors ────────────────────────────────────────────────────
