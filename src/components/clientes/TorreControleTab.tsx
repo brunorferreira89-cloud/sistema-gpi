@@ -727,10 +727,6 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       {fmtTorre(projetado)}
                     </td>
-                    {/* STATUS */}
-                    <td style={{ textAlign: 'center', padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>
-                      {isCat && !isTotal ? <StatusBadge status={status} /> : null}
-                    </td>
                   </>
                 )}
               </Fragment>
