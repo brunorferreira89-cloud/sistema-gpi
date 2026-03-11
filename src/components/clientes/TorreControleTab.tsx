@@ -1120,6 +1120,7 @@ export function TorreControleTab({ clienteId }: Props) {
 
             </div>
             </div>
+            </div>
           </div>
         </div>
 
