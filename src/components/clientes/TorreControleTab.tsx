@@ -724,12 +724,20 @@ export function TorreControleTab({ clienteId }: Props) {
   // ── Column layout ─────────────────────────────────────────────
   const valColW = 80;
   const nameColW = 280;
-  const extraMetaCols = modoMeta ? 3 : 0; // AJUSTE, R$, META
-  const extraAnaliseCols = modoAnaliseMeta ? 1 : 0; // META column
   const metaColW = 90;
   const rsColW = 90;
   const metaProjetadoColW = 110;
-  
+
+  const isModoAtivo = modoMeta || modoAnaliseMeta;
+  const isTodosMode = mesSelecionado === null;
+  const isMonthFiltered = isModoAtivo && !isTodosMode;
+  const displayMonths = isMonthFiltered ? months.filter(m => m.value === mesEfetivo) : months;
+
+  const getPrevMonth = (comp: string): string => {
+    const d = new Date(comp + 'T12:00:00Z');
+    d.setUTCMonth(d.getUTCMonth() - 1);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  };
 
   // Sticky cell style
   const stickyTd = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
@@ -754,6 +762,20 @@ export function TorreControleTab({ clienteId }: Props) {
     const isTotal = !!conta.is_total;
     const hasChildren = node.children.length > 0;
     const isCollapsedItem = collapsed.has(conta.id);
+
+    // Rule 1: Hide zeroed N2 categories in meta modes
+    if (isModoAtivo && isCat && !isTotal) {
+      if (!isTodosMode) {
+        const val = realizadoMapSel[conta.id];
+        if (val == null || val === 0) return null;
+      } else {
+        const hasAnyVal = months.some(m => {
+          const v = valoresMap[conta.id]?.[m.value];
+          return v != null && v !== 0;
+        });
+        if (!hasAnyVal) return null;
+      }
+    }
 
     const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
 
