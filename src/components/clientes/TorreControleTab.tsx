@@ -999,6 +999,35 @@ export function TorreControleTab({ clienteId }: Props) {
             })()}
           </td>
           )}
+          {/* META annual cell */}
+          {showMetaAnualCol && (() => {
+            // Sum realized across all months with data
+            let yearRealized = 0;
+            let has = false;
+            for (const m of months) {
+              const mmap = getMonthMap(m.value);
+              const v = isCat ? (mmap[conta.id] ?? null) : sumNodeLeafs(node, mmap);
+              if (v != null) { yearRealized += v; has = true; }
+            }
+            // Add projected value for next month (mesSeg)
+            const projVal = isCat
+              ? (metaAnualProjMap[conta.id] ?? null)
+              : sumNodeProjetado(node, realizadoMapSel, metaMap);
+            const metaAnual = (has ? yearRealized : 0) + (projVal ?? 0);
+            const hasValue = has || projVal != null;
+            return (
+              <td style={{
+                textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
+                fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
+                padding: '8px 10px',
+                borderLeft: '1px solid #DDE4F0',
+                background: isTotal ? 'rgba(26,60,255,0.12)' : 'rgba(26,60,255,0.03)',
+                color: !hasValue ? (isTotal ? '#8A9BBC' : C.txtMuted) : metaAnual < 0 ? '#DC2626' : (isTotal ? '#1A3CFF' : '#0D1B35'),
+              }}>
+                {hasValue ? fmtTorre(metaAnual) : '—'}
+              </td>
+            );
+          })()}
         </tr>
         {!isCollapsedItem && !isTotal && node.children.map(child => renderRow(child, depth + 1))}
       </Fragment>
