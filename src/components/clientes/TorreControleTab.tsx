@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, Fragment, useCallback } from 'rea
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { type ContaRow } from '@/lib/plano-contas-utils';
-import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
