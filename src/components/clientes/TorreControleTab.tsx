@@ -984,8 +984,28 @@ export function TorreControleTab({ clienteId }: Props) {
 
               {/* Month selector as buttons */}
               {monthsWithData.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  {monthsWithData.map(m => {
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {/* TODOS chip */}
+                  {(() => {
+                    const isAllActive = mesSelecionado === null;
+                    return (
+                      <button
+                        onClick={() => setMesSelecionado(null)}
+                        style={{
+                          padding: '3px 8px', borderRadius: 5, fontSize: 10, fontWeight: isAllActive ? 700 : 500,
+                          color: isAllActive ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                          background: isAllActive ? 'rgba(26,60,255,0.5)' : 'transparent',
+                          border: `1px solid ${isAllActive ? 'rgba(26,60,255,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                          cursor: 'pointer', transition: 'all 0.15s',
+                          letterSpacing: '0.02em',
+                        }}
+                        onMouseEnter={e => { if (!isAllActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; } }}
+                        onMouseLeave={e => { if (!isAllActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; } }}
+                      >
+                        TODOS
+                      </button>
+                    );
+                  })()}
                     const isActive = m.value === mesEfetivo;
                     return (
                       <button
