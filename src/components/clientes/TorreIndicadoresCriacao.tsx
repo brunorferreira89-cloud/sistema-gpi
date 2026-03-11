@@ -113,9 +113,15 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const metasFingerprint = useMemo(() => JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort()), [torreMetas]);
   const coordenadaStale = !!(coordenadaSalva || coordenadaTecnico) && metasSnapshot !== '' && metasFingerprint !== metasSnapshot;
 
-  // ── Load saved coordenada on mount ─────────────────────────
+  // ── Load saved coordenada per month ─────────────────────────
   useEffect(() => {
     let cancelled = false;
+    // Reset state when month changes so stale data from another month is never shown
+    setCoordenadaSalva(null);
+    setCoordenadaTecnico(null);
+    setCoordenadaGeradaEm(null);
+    setMetasSnapshot('');
+
     const loadCoordenada = async () => {
       const { data } = await supabase
         .from('sugestoes_metas_ia')
@@ -124,12 +130,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         .eq('competencia', mesProximo)
         .limit(1)
         .maybeSingle();
-      if (!cancelled && data) {
-        if (data.coordenada_comandante) setCoordenadaSalva(data.coordenada_comandante as string);
-        if ((data as any).coordenada_tecnico) setCoordenadaTecnico((data as any).coordenada_tecnico as string);
-        if (data.coordenada_gerada_em) setCoordenadaGeradaEm(data.coordenada_gerada_em);
-        // Snapshot metas at load time so we can detect changes
-        setMetasSnapshot(metasFingerprint);
+      if (!cancelled) {
+        if (data?.coordenada_comandante) setCoordenadaSalva(data.coordenada_comandante as string);
+        if ((data as any)?.coordenada_tecnico) setCoordenadaTecnico((data as any).coordenada_tecnico as string);
+        if (data?.coordenada_gerada_em) setCoordenadaGeradaEm(data.coordenada_gerada_em);
+        if (data) setMetasSnapshot(metasFingerprint);
       }
     };
     loadCoordenada();
