@@ -929,8 +929,8 @@ export function TorreControleTab({ clienteId }: Props) {
                     {/* META (projetado) */}
                     <td style={{
                       textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
-                      fontWeight: isTotal ? 800 : 400,
-                      color: projetado != null ? (isTotal ? '#FFFFFF' : '#0D1B35') : (isTotal ? '#8A9BBC' : C.txtMuted),
+                      fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
+                      color: projetado != null ? (projetado < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted),
                       padding: '8px 10px',
                       background: isTotal ? '#0D1B35' : '#F6F9FF',
                     }}>
