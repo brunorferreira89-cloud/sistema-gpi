@@ -895,7 +895,8 @@ export function TorreControleTab({ clienteId }: Props) {
                     fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
                     color: projetado != null ? (projetado < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted),
                     padding: '8px 10px',
-                    background: isTotal ? '#0D1B35' : '#F6F9FF',
+                    background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
+                    borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                   }}>
                     {fmtTorre(projetado)}
                   </td>
@@ -932,7 +933,8 @@ export function TorreControleTab({ clienteId }: Props) {
                       fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
                       color: projetado != null ? (projetado < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted),
                       padding: '8px 10px',
-                      background: isTotal ? '#0D1B35' : '#F6F9FF',
+                      background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
+                      borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                     }}>
                       {fmtTorre(projetado)}
                     </td>
@@ -957,7 +959,8 @@ export function TorreControleTab({ clienteId }: Props) {
                       fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
                       color: projVal != null ? (projVal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted),
                       padding: '8px 10px',
-                      background: isTotal ? '#0D1B35' : '#F6F9FF',
+                      background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
+                      borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                     }}>
                       {fmtTorre(projVal)}
                     </td>
@@ -1070,7 +1073,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const projVal = projTotais[key as keyof typeof projTotais];
                 const avPct = projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0;
                 return (
-                  <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: '#0D1B35',
+                  <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: 'rgba(26,60,255,0.18)',
                     color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                   }}>
                     {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({avPct.toFixed(1)}%)</span>
@@ -1089,7 +1092,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       {variacao >= 0 ? '+' : '−'} {fmtTorre(Math.abs(variacao))}
                     </td>
-                    <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: '#0D1B35',
+                    <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: 'rgba(26,60,255,0.18)',
                       color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                     }}>
                       {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
@@ -1119,7 +1122,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 return (
                   <td style={{
                     textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
-                    padding: '11px 10px', background: '#0D1B35',
+                    padding: '11px 10px', background: 'rgba(26,60,255,0.18)',
                     color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                   }}>
                     {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
@@ -1600,9 +1603,9 @@ export function TorreControleTab({ clienteId }: Props) {
                           {modoAnaliseMeta && isSel && !isTodosMode && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
-                              color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                              color: '#1A3CFF', textTransform: 'uppercase', letterSpacing: '0.06em',
                               width: metaColW, minWidth: metaColW,
-                              background: '#F6F9FF',
+                              background: 'rgba(26,60,255,0.06)', borderBottom: '2px solid rgba(26,60,255,0.18)',
                             }}>
                               META
                             </th>
@@ -1615,7 +1618,7 @@ export function TorreControleTab({ clienteId }: Props) {
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: rsColW, minWidth: rsColW }}>
                                 R$
                               </th>
-                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap', background: '#F6F9FF' }}>
+                              <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#1A3CFF', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap', background: 'rgba(26,60,255,0.06)', borderBottom: '2px solid rgba(26,60,255,0.18)' }}>
                                 META {mesSegShort}
                               </th>
                             </>
@@ -1624,9 +1627,9 @@ export function TorreControleTab({ clienteId }: Props) {
                           {hasMetaForMonth && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
-                              color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                              color: '#1A3CFF', textTransform: 'uppercase', letterSpacing: '0.06em',
                               width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap',
-                              background: '#F6F9FF',
+                              background: 'rgba(26,60,255,0.06)', borderBottom: '2px solid rgba(26,60,255,0.18)',
                             }}>
                               META {m.shortLabel}
                             </th>
