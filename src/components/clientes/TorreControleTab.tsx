@@ -939,7 +939,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
                       {avStr || '—'}
                     </td>
                   );
