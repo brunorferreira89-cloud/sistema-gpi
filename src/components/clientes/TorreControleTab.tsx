@@ -262,8 +262,11 @@ const keyframesCSS = `
 @keyframes radarSweep { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
 @keyframes dataPulse { 0%,100%{opacity:0.05} 50%{opacity:0.15} }
 @keyframes scanHorizontal { 0%{left:-30%;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:110%;opacity:0} }
+@keyframes scanHorizontal2 { 0%{left:-20%;opacity:0} 15%{opacity:0.6} 85%{opacity:0.6} 100%{left:115%;opacity:0} }
 @keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:0} 8%{opacity:0.85} 70%{opacity:0.5} 100%{transform:translateY(-150px) scale(0.7);opacity:0} }
 @keyframes floatDrift { 0%{transform:translate(0,0) scale(1);opacity:0} 10%{opacity:0.8} 75%{opacity:0.4} 100%{transform:translate(35px,-130px) scale(0.6);opacity:0} }
+@keyframes glowPulse { 0%,100%{opacity:0.5;filter:drop-shadow(0 0 2px rgba(0,153,230,0.3))} 50%{opacity:1;filter:drop-shadow(0 0 8px rgba(0,153,230,0.8))} }
+@keyframes signalWave { 0%{r:8;opacity:0.6} 100%{r:28;opacity:0} }
 `;
 
 const DATA_PARTICLES = [
