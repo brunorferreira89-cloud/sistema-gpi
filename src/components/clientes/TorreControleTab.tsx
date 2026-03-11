@@ -1624,9 +1624,9 @@ export function TorreControleTab({ clienteId }: Props) {
                           {hasMetaForMonth && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
-                              color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                              color: '#1A3CFF', textTransform: 'uppercase', letterSpacing: '0.06em',
                               width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap',
-                              background: '#F6F9FF',
+                              background: 'rgba(26,60,255,0.06)', borderBottom: '2px solid rgba(26,60,255,0.18)',
                             }}>
                               META {m.shortLabel}
                             </th>
