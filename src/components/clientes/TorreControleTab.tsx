@@ -1177,6 +1177,18 @@ export function TorreControleTab({ clienteId }: Props) {
               }}>
                 {fmtTorre(val)}
               </td>
+
+              {/* AV% after realized in TODOS mode (totalizador) */}
+              {showAV && isTodosMode && (() => {
+                const fat = totals.fat;
+                const avStr = fmtAv(val, fat);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
               {modoAnaliseMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
@@ -1189,6 +1201,20 @@ export function TorreControleTab({ clienteId }: Props) {
                   </td>
                 );
               })()}
+
+              {/* AV% after META in ANÁLISE META (filtered, totalizador) */}
+              {showAV && modoAnaliseMeta && isSel && !isTodosMode && (() => {
+                const projTotais = calcTotaisProjetado();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                const fatMeta = projTotais.fat;
+                const avStr = fmtAv(projVal, fatMeta);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
               {modoMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
@@ -1209,11 +1235,35 @@ export function TorreControleTab({ clienteId }: Props) {
                   </>
                 );
               })()}
+
+              {/* AV% after META in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAV && modoMeta && isSel && !isTodosMode && (() => {
+                const projTotais = calcTotaisProjetado();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                const fatMeta = projTotais.fat;
+                const avStr = fmtAv(projVal, fatMeta);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
+              {/* AV% when no mode active and filtered (totalizador) */}
+              {showAV && !isModoAtivo && !isTodosMode && (() => {
+                const fat = totals.fat;
+                const avStr = fmtAv(val, fat);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {avStr || '—'}
+                  </td>
+                );
+              })()}
+
               {/* TODOS mode: META column for totalizador */}
               {hasMetaForMonth && (() => {
                 const prevComp = getPrevMonth(m.value);
                 const prevMap = getMonthMap(prevComp);
-                // Calculate projected totals using prev month realized + this month's metas
                 const calcTotaisProj = () => {
                   const fat = sumGruposProjetado(gruposPorTipo['receita'] || [], prevMap, metaMapForMonth || {});
                   const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], prevMap, metaMapForMonth || {});
@@ -1235,6 +1285,32 @@ export function TorreControleTab({ clienteId }: Props) {
                     color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                   }}>
                     {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
+                  </td>
+                );
+              })()}
+
+              {/* AV% after META in TODOS mode (totalizador) */}
+              {showAV && isTodosMode && hasMetaForMonth && (() => {
+                const prevComp = getPrevMonth(m.value);
+                const prevMap = getMonthMap(prevComp);
+                const fatMeta = sumGruposProjetado(gruposPorTipo['receita'] || [], prevMap, metaMapForMonth || {});
+                const calcTotaisProj2 = () => {
+                  const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], prevMap, metaMapForMonth || {});
+                  const mc = fatMeta + custos;
+                  const despesas = sumGruposProjetado(gruposPorTipo['despesa_fixa'] || [], prevMap, metaMapForMonth || {});
+                  const ro = mc + despesas;
+                  const invest = sumGruposProjetado(gruposPorTipo['investimento'] || [], prevMap, metaMapForMonth || {});
+                  const rai = ro + invest;
+                  const financ = sumGruposProjetado(gruposPorTipo['financeiro'] || [], prevMap, metaMapForMonth || {});
+                  const gc = rai + financ;
+                  return { fat: fatMeta, MC: mc, RO: ro, RAI: rai, GC: gc };
+                };
+                const projTotais = calcTotaisProj2();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                const avStr = fmtAv(projVal, fatMeta);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: 'rgba(26,60,255,0.18)' }}>
+                    {avStr || '—'}
                   </td>
                 );
               })()}
