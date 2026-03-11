@@ -1100,6 +1100,7 @@ export function TorreControleTab({ clienteId }: Props) {
           );
         })}
         {/* Year total */}
+        {showYearCol && (
         <td style={{
           textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
           padding: '11px 10px', borderLeft: '1px solid #DDE4F0', background: '#0D1B35',
@@ -1123,6 +1124,7 @@ export function TorreControleTab({ clienteId }: Props) {
             return fmtTorre(total);
           })()}
         </td>
+        )}
       </tr>
     );
   };
