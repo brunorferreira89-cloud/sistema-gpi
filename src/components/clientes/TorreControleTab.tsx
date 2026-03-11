@@ -839,7 +839,7 @@ export function TorreControleTab({ clienteId }: Props) {
   };
 
   // ── Table min width calculation ───────────────────────────────
-  const extraColsWidth = modoMeta ? (metaColW + rsColW + metaProjetadoColW + statusColW) : (modoAnaliseMeta ? metaColW : 0);
+  const extraColsWidth = modoMeta ? (metaColW + rsColW + metaProjetadoColW) : (modoAnaliseMeta ? metaColW : 0);
   const tableMinWidth = nameColW + 12 * valColW + valColW + extraColsWidth;
 
   // ══════════════════════════════════════════════════════════════
