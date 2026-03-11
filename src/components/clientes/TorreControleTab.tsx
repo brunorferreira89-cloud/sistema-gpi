@@ -1360,7 +1360,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const projVal = projTotais[key as keyof typeof projTotais];
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: 'rgba(26,60,255,0.18)' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: 'rgba(26,60,255,0.18)' }}>
                     {avStr || '—'}
                   </td>
                 );
