@@ -957,7 +957,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
                       color: projVal != null ? (isTotal ? '#FFFFFF' : C.txtSec) : C.txtMuted,
                       padding: '8px 10px',
-                      background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.03)',
+                      background: isTotal ? '#0D1B35' : '#F6F9FF',
                     }}>
                       {fmtTorre(projVal)}
                     </td>
