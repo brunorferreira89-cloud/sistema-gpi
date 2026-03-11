@@ -501,16 +501,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
                 </div>
 
                 {/* Grid 3 columns */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, fontSize: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, fontSize: 10 }}>
                   <div style={{ textAlign: 'center', borderRight: `1px solid ${C.border}`, padding: '6px 4px' }}>
                     <p style={{ fontSize: 7, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', margin: '0 0 2px' }}>REALIZADO</p>
                     <p style={{ fontFamily: C.mono, fontWeight: 700, color: gcPct < 0 ? C.red : C.green, margin: '0 0 1px' }}>{gcPct.toFixed(1)}%</p>
                     <p style={{ fontFamily: C.mono, fontSize: 9, color: C.txtSec, margin: 0 }}>{fmtR(totais.gc)}</p>
-                  </div>
-                  <div style={{ textAlign: 'center', borderRight: `1px solid ${C.border}`, padding: '6px 4px' }}>
-                    <p style={{ fontSize: 7, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', margin: '0 0 2px' }}>META GPI</p>
-                    <p style={{ fontFamily: C.mono, fontWeight: 700, color: C.amber, margin: '0 0 1px' }}>10.0%</p>
-                    <p style={{ fontFamily: C.mono, fontSize: 9, color: C.txtSec, margin: 0 }}>{fmtR(gcBenchmark10)}</p>
                   </div>
                   <div style={{ textAlign: 'center', padding: '6px 4px' }}>
                     <p style={{ fontSize: 7, fontWeight: 700, color: C.txtMuted, letterSpacing: '0.08em', margin: '0 0 2px' }}>META PROPOSTA</p>
