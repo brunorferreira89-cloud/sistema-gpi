@@ -1542,6 +1542,7 @@ export function TorreControleTab({ clienteId }: Props) {
                       );
                     })}
                     {/* Year total header */}
+                    {showYearCol && (
                     <th style={{
                       padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700,
                       color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -1550,6 +1551,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       {ano}
                     </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
