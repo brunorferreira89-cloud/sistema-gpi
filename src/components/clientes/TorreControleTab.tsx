@@ -939,7 +939,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -951,7 +951,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -989,7 +989,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -1052,7 +1052,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -1883,7 +1883,7 @@ export function TorreControleTab({ clienteId }: Props) {
                           )}
                           {/* AV% header after realized in ANÁLISE META (filtered) */}
                           {showAV && modoAnaliseMeta && isSel && !isTodosMode && (
-                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW, background: 'rgba(26,60,255,0.06)' }}>
                               AV%
                             </th>
                           )}
@@ -1905,7 +1905,7 @@ export function TorreControleTab({ clienteId }: Props) {
                           )}
                           {/* AV% header after realized in CRIAÇÃO DE METAS (filtered) */}
                           {showAV && modoMeta && isSel && !isTodosMode && (
-                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW, background: 'rgba(26,60,255,0.06)' }}>
                               AV%
                             </th>
                           )}
@@ -1930,7 +1930,7 @@ export function TorreControleTab({ clienteId }: Props) {
                           )}
                           {/* AV% header when no mode active and filtered */}
                           {showAV && !isModoAtivo && !isTodosMode && (
-                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW, background: 'rgba(26,60,255,0.06)' }}>
                               AV%
                             </th>
                           )}
