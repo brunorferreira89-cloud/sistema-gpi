@@ -277,7 +277,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const fraseLudica = coordenadaSalva || fraseLudicaLocal;
 
   const gcDelta = totaisMeta.gc - totais.gc;
-  const gcBenchmark10 = totais.fat * 0.1;
+  
 
   // ── Gerar coordenada via IA ───────────────────────────────
   const gerarCoordenada = async () => {
