@@ -129,7 +129,9 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
       const real = realizadoMap[c.id] ?? null;
       const meta = metaMap[c.id] || null;
       if (real != null && meta && meta.meta_valor != null) {
-        map[c.id] = calcProjetado(real, meta);
+        // calcProjetado returns Math.abs — preserve original sign for costs/expenses
+        const projected = calcProjetado(real, meta);
+        map[c.id] = projected !== null ? (real < 0 ? -Math.abs(projected) : projected) : real;
       } else {
         map[c.id] = real;
       }
@@ -232,11 +234,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   // ── DRE Cards config ──────────────────────────────────────
   const dreCards = [
     { key: 'fat', nome: 'Faturamento', tipo: 'receita', barra: C.primary, borda: undefined, real: totais.fat, meta: totaisMeta.fat },
-    { key: 'custo', nome: '− Custos Operacionais', tipo: 'custo', barra: C.red, borda: undefined, real: totais.custos, meta: totaisMeta.custos },
+    { key: 'custo', nome: '− Custos Operacionais', tipo: 'custo', barra: C.red, borda: undefined, real: Math.abs(totais.custos), meta: Math.abs(totaisMeta.custos) },
     { key: 'mc', nome: '= Margem de Contribuição', tipo: 'mc', barra: C.green, borda: C.green, real: totais.mc, meta: totaisMeta.mc },
-    { key: 'desp', nome: '− Despesas Fixas', tipo: 'despesa', barra: C.amber, borda: undefined, real: totais.despesas, meta: totaisMeta.despesas },
+    { key: 'desp', nome: '− Despesas Fixas', tipo: 'despesa', barra: C.amber, borda: undefined, real: Math.abs(totais.despesas), meta: Math.abs(totaisMeta.despesas) },
     { key: 'ro', nome: '= Resultado Operacional', tipo: 'ro', barra: C.primary, borda: C.primary, real: totais.ro, meta: totaisMeta.ro },
-    { key: 'invest', nome: '− Ativ. Investimento', tipo: 'invest', barra: C.red, borda: undefined, real: totais.invest, meta: totaisMeta.invest },
+    { key: 'invest', nome: '− Ativ. Investimento', tipo: 'invest', barra: C.red, borda: undefined, real: Math.abs(totais.invest), meta: Math.abs(totaisMeta.invest) },
     { key: 'financ', nome: '+/− Ativ. Financiamento', tipo: 'financ', barra: C.txtMuted, borda: undefined, real: totais.financ, meta: totaisMeta.financ },
     { key: 'gc', nome: '= Geração de Caixa', tipo: 'gc', barra: C.cyan, borda: C.cyan, real: totais.gc, meta: totaisMeta.gc },
   ];
