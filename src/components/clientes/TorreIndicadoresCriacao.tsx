@@ -107,6 +107,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [coordenadaTecnico, setCoordenadaTecnico] = useState<string | null>(null);
   const [coordenadaGeradaEm, setCoordenadaGeradaEm] = useState<string | null>(null);
   const [coordenadaLoading, setCoordenadaLoading] = useState(false);
+  const [metasSnapshot, setMetasSnapshot] = useState<string>('');
+
+  // Detect if metas changed since last generation
+  const metasFingerprint = useMemo(() => JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort()), [torreMetas]);
+  const coordenadaStale = !!(coordenadaSalva || coordenadaTecnico) && metasSnapshot !== '' && metasFingerprint !== metasSnapshot;
 
   // ── Load saved coordenada on mount ─────────────────────────
   useEffect(() => {
@@ -123,6 +128,8 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         if (data.coordenada_comandante) setCoordenadaSalva(data.coordenada_comandante as string);
         if ((data as any).coordenada_tecnico) setCoordenadaTecnico((data as any).coordenada_tecnico as string);
         if (data.coordenada_gerada_em) setCoordenadaGeradaEm(data.coordenada_gerada_em);
+        // Snapshot metas at load time so we can detect changes
+        setMetasSnapshot(metasFingerprint);
       }
     };
     loadCoordenada();
@@ -301,6 +308,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         setCoordenadaSalva(data.coordenada);
         setCoordenadaTecnico(data.tecnico || null);
         setCoordenadaGeradaEm(data.gerado_em);
+        setMetasSnapshot(metasFingerprint);
       }
     } catch (e) {
       console.error('Erro ao gerar coordenada:', e);
@@ -382,9 +390,13 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
               disabled={coordenadaLoading}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
-                fontSize: 10, fontWeight: 600, color: C.cyan, background: 'none',
-                border: `1px solid ${C.cyan}`, borderRadius: 6, padding: '4px 10px',
+                fontSize: 10, fontWeight: 600,
+                color: coordenadaStale ? '#FFFFFF' : C.cyan,
+                background: coordenadaStale ? C.red : 'none',
+                border: `1px solid ${coordenadaStale ? C.red : C.cyan}`,
+                borderRadius: 6, padding: '4px 10px',
                 cursor: coordenadaLoading ? 'not-allowed' : 'pointer', opacity: coordenadaLoading ? 0.6 : 1,
+                transition: 'all 0.25s ease',
               }}
             >
               {coordenadaLoading ? (
@@ -392,10 +404,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
                   <span style={{ display: 'inline-block', animation: 'radarSweepInst 1s linear infinite' }}>↻</span>
                   Gerando...
                 </>
-              ) : '↻ Atualizar análise'}
+              ) : coordenadaStale ? '⚠ Metas alteradas — Atualizar análise' : '↻ Atualizar análise'}
             </button>
             {coordenadaGeradaEm && (
-              <span style={{ fontSize: 10, color: '#8A9BBC', fontStyle: 'italic' }}>
+              <span style={{ fontSize: 10, color: coordenadaStale ? C.red : '#8A9BBC', fontStyle: 'italic' }}>
+                {coordenadaStale ? 'Análise desatualizada · ' : ''}
                 Gerado em {new Date(coordenadaGeradaEm).toLocaleDateString('pt-BR')} às {new Date(coordenadaGeradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
