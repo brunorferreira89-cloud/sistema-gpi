@@ -493,6 +493,11 @@ export function TorreControleTab({ clienteId }: Props) {
     return ((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1) + '%';
   };
 
+  // AV% semantic color for row cells
+  const avColor = (tipo: string): string => tipo === 'receita' ? '#0D1B35' : '#DC2626';
+  // AV% semantic color for totalizador cells
+  const avTotColor = (v: number): string => v < 0 ? '#FF6B6B' : '#00E68A';
+
   // ── Propagation handler ───────────────────────────────────────
   const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
