@@ -22,15 +22,11 @@ serve(async (req) => {
 
     const { nomeEmpresa, mesProximo, mesBase, gcReal, gcMeta, gcPct, gcMetaPct, ganhoNome, ganhoPct, ganhoValor, fatReal, fatMeta } = dados;
 
-    const systemPrompt = `Você é o Comandante GPI — um comandante de aviação experiente que também é consultor financeiro de elite. Você fala com o dono do negócio como se ele fosse o DONO DO AVIÃO.
-
-Gere UMA ÚNICA FRASE de coordenada de voo (máximo 2 linhas) para o próximo mês. A frase deve:
-- Usar metáfora de aviação de forma natural
-- Ser direta, confiante e acionável
-- Mencionar o principal ajuste financeiro necessário
-- Ser motivadora mas realista
-
-Responda APENAS com a frase, sem aspas, sem prefixo, sem markdown.`;
+    const systemPrompt = `Você é o Comandante GPI — consultor financeiro de elite. Retorne APENAS um JSON válido, sem markdown, sem explicações, exatamente neste formato:
+{
+  "frase": "frase lúdica com linguagem de aviação, máximo 2 frases",
+  "tecnico": "análise técnica direta: cite a meta de maior impacto, o valor exato da variação na GC em R$, e o resultado final projetado. Máximo 2 frases. Sem metáforas."
+}`;
 
     const userPrompt = `Empresa: ${nomeEmpresa}
 Mês base: ${mesBase} → Meta para: ${mesProximo}
@@ -50,7 +46,7 @@ Gere a coordenada de voo para ${mesProximo}.`;
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 300,
+        max_tokens: 400,
         messages: [{ role: "user", content: userPrompt }],
         system: systemPrompt,
       }),
@@ -63,14 +59,26 @@ Gere a coordenada de voo para ${mesProximo}.`;
     }
 
     const aiData = await aiResponse.json();
-    const coordenada = aiData.content?.[0]?.text?.trim() || "";
+    const rawText = (aiData.content?.[0]?.text || "").trim();
 
-    // Upsert only coordenada fields
+    let frase = "";
+    let tecnico = "";
+    try {
+      const cleanedText = rawText.replace(/```json|```/g, "").trim();
+      const resultado = JSON.parse(cleanedText);
+      frase = resultado.frase || "";
+      tecnico = resultado.tecnico || "";
+    } catch {
+      // Fallback: use raw text as frase if JSON parse fails
+      frase = rawText;
+      console.warn("Failed to parse JSON from Claude, using raw text as frase");
+    }
+
+    // Upsert coordenada fields
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check if record exists
     const { data: existing } = await supabase
       .from("sugestoes_metas_ia")
       .select("id")
@@ -83,7 +91,7 @@ Gere a coordenada de voo para ${mesProximo}.`;
     if (existing) {
       await supabase
         .from("sugestoes_metas_ia")
-        .update({ coordenada_comandante: coordenada, coordenada_gerada_em: now })
+        .update({ coordenada_comandante: frase, coordenada_tecnico: tecnico, coordenada_gerada_em: now })
         .eq("id", existing.id);
     } else {
       await supabase
@@ -92,12 +100,13 @@ Gere a coordenada de voo para ${mesProximo}.`;
           cliente_id,
           competencia,
           sugestoes: [],
-          coordenada_comandante: coordenada,
+          coordenada_comandante: frase,
+          coordenada_tecnico: tecnico,
           coordenada_gerada_em: now,
         });
     }
 
-    return new Response(JSON.stringify({ coordenada, gerado_em: now }), {
+    return new Response(JSON.stringify({ coordenada: frase, tecnico, gerado_em: now }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

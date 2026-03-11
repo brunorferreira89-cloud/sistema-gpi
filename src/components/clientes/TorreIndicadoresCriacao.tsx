@@ -42,6 +42,19 @@ const C = {
 const fmtR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const fmtRColor = (v: number) => <span style={{ fontFamily: C.mono, fontWeight: 700, color: v < 0 ? C.red : C.green }}>{fmtR(v)}</span>;
 
+// ── Colorize R$ values in text string ─────────────────────────
+function colorizeReais(text: string): React.ReactNode[] {
+  const parts = text.split(/((?:-\s*)?R\$\s*[\d.,]+)/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^(-?\s*)?R\$\s*([\d.,]+)$/);
+    if (match) {
+      const isNegative = part.trim().startsWith('-');
+      return <span key={i} style={{ fontFamily: C.mono, fontWeight: 700, color: isNegative ? '#DC2626' : '#00A86B' }}>{part}</span>;
+    }
+    return part;
+  });
+}
+
 // ── Keyframes ─────────────────────────────────────────────────
 const keyframesCSS = `
 @keyframes commanderFloat {
@@ -91,6 +104,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<any>('altimetro');
   const [coordenadaSalva, setCoordenadaSalva] = useState<string | null>(null);
+  const [coordenadaTecnico, setCoordenadaTecnico] = useState<string | null>(null);
   const [coordenadaGeradaEm, setCoordenadaGeradaEm] = useState<string | null>(null);
   const [coordenadaLoading, setCoordenadaLoading] = useState(false);
 
@@ -100,14 +114,15 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
     const loadCoordenada = async () => {
       const { data } = await supabase
         .from('sugestoes_metas_ia')
-        .select('coordenada_comandante, coordenada_gerada_em')
+        .select('coordenada_comandante, coordenada_tecnico, coordenada_gerada_em')
         .eq('cliente_id', cliente.id)
         .eq('competencia', mesProximo)
         .limit(1)
         .maybeSingle();
-      if (!cancelled && data?.coordenada_comandante) {
-        setCoordenadaSalva(data.coordenada_comandante);
-        setCoordenadaGeradaEm(data.coordenada_gerada_em);
+      if (!cancelled && data) {
+        if (data.coordenada_comandante) setCoordenadaSalva(data.coordenada_comandante as string);
+        if ((data as any).coordenada_tecnico) setCoordenadaTecnico((data as any).coordenada_tecnico as string);
+        if (data.coordenada_gerada_em) setCoordenadaGeradaEm(data.coordenada_gerada_em);
       }
     };
     loadCoordenada();
@@ -284,6 +299,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
       if (error) throw error;
       if (data?.coordenada) {
         setCoordenadaSalva(data.coordenada);
+        setCoordenadaTecnico(data.tecnico || null);
         setCoordenadaGeradaEm(data.gerado_em);
       }
     } catch (e) {
@@ -347,11 +363,15 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
           {/* Bloco técnico */}
           <div style={{ background: C.bgAlt, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px' }}>
             <p style={{ fontSize: 11.5, color: C.txtSec, fontWeight: 500, margin: 0, lineHeight: 1.6 }}>
-              📌 Meta proposta para {mesProxLabel}: {ganhoRapido.nome ? <>reduzir {ganhoRapido.nome} em {fmtRColor(ganhoRapido.valor)}, mantendo receitas e demais saídas constantes.</> : <>aplicar os ajustes definidos nas metas.</>}
-              {' '}Se atingida, a Geração de Caixa passará de {fmtRColor(totais.gc)} para {fmtRColor(totaisMeta.gc)} — {totais.gc < 0 && totaisMeta.gc >= 0
-                ? 'saindo do vermelho para o positivo'
-                : `de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}%`
-              }.
+              📌{' '}
+              {coordenadaTecnico
+                ? colorizeReais(coordenadaTecnico)
+                : (<>Meta proposta para {mesProxLabel}: {ganhoRapido.nome ? <>reduzir {ganhoRapido.nome} em {fmtRColor(ganhoRapido.valor)}, mantendo receitas e demais saídas constantes.</> : <>aplicar os ajustes definidos nas metas.</>}
+                  {' '}Se atingida, a Geração de Caixa passará de {fmtRColor(totais.gc)} para {fmtRColor(totaisMeta.gc)} — {totais.gc < 0 && totaisMeta.gc >= 0
+                    ? 'saindo do vermelho para o positivo'
+                    : `de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}%`
+                  }.</>)
+              }
             </p>
           </div>
 
