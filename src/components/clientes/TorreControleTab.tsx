@@ -95,7 +95,24 @@ function sumNodeLeafs(node: DreNode, valMap: Record<string, number | null>): num
   return hasAny ? total : null;
 }
 
-function sumNodeProjetado(
+function sumGrupos(grupos: DreNode[], valMap: Record<string, number | null>): number {
+  let total = 0;
+  for (const g of grupos) {
+    const v = sumNodeLeafs(g, valMap);
+    if (v != null) total += v;
+  }
+  return total;
+}
+
+function sumGruposProjetado(grupos: DreNode[], valMap: Record<string, number | null>, mMap: Record<string, TorreMeta>): number {
+  let total = 0;
+  for (const g of grupos) {
+    const v = sumNodeProjetado(g, valMap, mMap);
+    if (v != null) total += v;
+  }
+  return total;
+}
+
   node: DreNode,
   valMap: Record<string, number | null>,
   metaMap: Record<string, TorreMeta>,
