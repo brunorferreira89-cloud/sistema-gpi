@@ -791,6 +791,11 @@ export function TorreControleTab({ clienteId }: Props) {
               ) : <span style={{ width: 18 }} />}
               {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
               <span style={{ letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined }}>{conta.nome}</span>
+              {isPropagated && (
+                <span style={{ fontSize: 8, color: '#0099E6', fontWeight: 700, marginLeft: 6, animation: 'propagateLabel 1.5s ease-out forwards', letterSpacing: '0.04em' }}>
+                  ↑ propagado
+                </span>
+              )}
             </span>
           </td>
 
