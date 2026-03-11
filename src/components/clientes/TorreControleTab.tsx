@@ -1063,7 +1063,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: '#0D1B35',
                       color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                     }}>
-                      {fmtTorre(projVal)}
+                      {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
                     </td>
                   </>
                 );
