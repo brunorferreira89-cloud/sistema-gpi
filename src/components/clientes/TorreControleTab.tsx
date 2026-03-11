@@ -1005,6 +1005,7 @@ export function TorreControleTab({ clienteId }: Props) {
                         TODOS
                       </button>
                     );
+                  })()}
                   {monthsWithData.map(m => {
                     const isActive = m.value === mesEfetivo;
                     return (
