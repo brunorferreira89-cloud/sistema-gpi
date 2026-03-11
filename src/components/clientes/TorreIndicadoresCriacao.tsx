@@ -107,6 +107,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [coordenadaTecnico, setCoordenadaTecnico] = useState<string | null>(null);
   const [coordenadaGeradaEm, setCoordenadaGeradaEm] = useState<string | null>(null);
   const [coordenadaLoading, setCoordenadaLoading] = useState(false);
+  const [metasSnapshot, setMetasSnapshot] = useState<string>('');
+
+  // Detect if metas changed since last generation
+  const metasFingerprint = useMemo(() => JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort()), [torreMetas]);
+  const coordenadaStale = !!(coordenadaSalva || coordenadaTecnico) && metasSnapshot !== '' && metasFingerprint !== metasSnapshot;
 
   // ── Load saved coordenada on mount ─────────────────────────
   useEffect(() => {
