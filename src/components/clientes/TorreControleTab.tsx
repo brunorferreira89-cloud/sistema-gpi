@@ -95,13 +95,23 @@ function sumNodeLeafs(node: DreNode, valMap: Record<string, number | null>): num
   return hasAny ? total : null;
 }
 
-function sumGrupos(grupos: DreNode[], valMap: Record<string, number | null>): number {
-  let total = 0;
-  for (const g of grupos) {
-    const v = sumNodeLeafs(g, valMap);
-    if (v != null) total += v;
+function sumNodeProjetado(
+  node: DreNode,
+  valMap: Record<string, number | null>,
+  metaMap: Record<string, TorreMeta>,
+): number | null {
+  if (node.conta.nivel === 2) {
+    const real = valMap[node.conta.id] ?? null;
+    const meta = metaMap[node.conta.id] || null;
+    if (real == null) return null;
+    return calcProjetado(real, meta);
   }
-  return total;
+  let total = 0, hasAny = false;
+  for (const child of node.children) {
+    const v = sumNodeProjetado(child, valMap, metaMap);
+    if (v != null) { total += v; hasAny = true; }
+  }
+  return hasAny ? total : null;
 }
 
 // ── Status badge ────────────────────────────────────────────────
