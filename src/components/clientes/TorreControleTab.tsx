@@ -1592,6 +1592,28 @@ export function TorreControleTab({ clienteId }: Props) {
         {/* Main content */}
         {hasContas && hasAnyData && !isLoading && (
           <>
+            {/* AV% toggle above table */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setShowAV(v => !v)}
+                style={{
+                  background: showAV ? '#1A3CFF' : '#F0F4FA',
+                  color: showAV ? '#FFFFFF' : '#8A9BBC',
+                  border: `1px solid ${showAV ? '#1A3CFF' : '#DDE4F0'}`,
+                  borderRadius: 6,
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!showAV) (e.currentTarget.style.background = '#E8EEF8'); }}
+                onMouseLeave={e => { if (!showAV) (e.currentTarget.style.background = '#F0F4FA'); }}
+              >
+                AV%
+              </button>
+            </div>
+
             {/* Instrumentos de Criação de Metas — logo abaixo do banner */}
             {modoMeta && mesEfetivo && cliente && (
               <TorreIndicadoresCriacao
