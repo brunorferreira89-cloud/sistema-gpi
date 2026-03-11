@@ -493,6 +493,11 @@ export function TorreControleTab({ clienteId }: Props) {
     return ((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1) + '%';
   };
 
+  // AV% semantic color for row cells
+  const avColor = (tipo: string): string => tipo === 'receita' ? '#0D1B35' : '#DC2626';
+  // AV% semantic color for totalizador cells
+  const avTotColor = (v: number): string => v < 0 ? '#FF6B6B' : '#00E68A';
+
   // ── Propagation handler ───────────────────────────────────────
   const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
@@ -934,7 +939,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -946,7 +951,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -972,7 +977,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fatMeta = projTotais.fat;
                   const avStr = fmtAv(projetado, fatMeta);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -984,7 +989,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -1035,7 +1040,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fatMeta = projTotais.fat;
                   const avStr = fmtAv(projetado, fatMeta);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -1047,7 +1052,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   const fat = getFatForMap(monthMap);
                   const avStr = fmtAv(val, fat);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -1094,7 +1099,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   }
                   const avStr = fmtAv(projVal, fatMeta);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)' }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)' }}>
                       {avStr || '—'}
                     </td>
                   );
@@ -1207,7 +1212,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const fat = totals.fat;
                 const avStr = fmtAv(val, fat);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(val), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
                   </td>
                 );
@@ -1218,7 +1223,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const fat = totals.fat;
                 const avStr = fmtAv(val, fat);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(val), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
                   </td>
                 );
@@ -1244,7 +1249,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const fatMeta = projTotais.fat;
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
                   </td>
                 );
@@ -1255,7 +1260,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const fat = totals.fat;
                 const avStr = fmtAv(val, fat);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(val), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
                   </td>
                 );
@@ -1289,7 +1294,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const fatMeta = projTotais.fat;
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
                   </td>
                 );
@@ -1300,7 +1305,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const fat = totals.fat;
                 const avStr = fmtAv(val, fat);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(val), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {avStr || '—'}
                   </td>
                 );
@@ -1355,7 +1360,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const projVal = projTotais[key as keyof typeof projTotais];
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
-                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: '#8A9BBC', width: avColW, minWidth: avColW, fontWeight: 700, background: 'rgba(26,60,255,0.18)' }}>
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: 'rgba(26,60,255,0.18)' }}>
                     {avStr || '—'}
                   </td>
                 );
