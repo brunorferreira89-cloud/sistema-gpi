@@ -1748,6 +1748,12 @@ export function TorreControleTab({ clienteId }: Props) {
                           }}>
                             {m.shortLabel}
                           </th>
+                          {/* AV% header in TODOS mode after realized */}
+                          {showAV && isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
                           {modoAnaliseMeta && isSel && !isTodosMode && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
@@ -1756,6 +1762,12 @@ export function TorreControleTab({ clienteId }: Props) {
                               background: 'rgba(26,60,255,0.06)', borderBottom: '2px solid rgba(26,60,255,0.18)',
                             }}>
                               META
+                            </th>
+                          )}
+                          {/* AV% header after META in ANÁLISE META (filtered) */}
+                          {showAV && modoAnaliseMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
                             </th>
                           )}
                           {modoMeta && isSel && !isTodosMode && (
@@ -1771,6 +1783,18 @@ export function TorreControleTab({ clienteId }: Props) {
                               </th>
                             </>
                           )}
+                          {/* AV% header after META in CRIAÇÃO DE METAS (filtered) */}
+                          {showAV && modoMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
+                          {/* AV% header when no mode active and filtered */}
+                          {showAV && !isModoAtivo && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
                           {/* TODOS mode: META column header for months with metas */}
                           {hasMetaForMonth && (
                             <th style={{
@@ -1780,6 +1804,12 @@ export function TorreControleTab({ clienteId }: Props) {
                               background: 'rgba(26,60,255,0.06)', borderBottom: '2px solid rgba(26,60,255,0.18)',
                             }}>
                               META {m.shortLabel}
+                            </th>
+                          )}
+                          {/* AV% header after META in TODOS mode */}
+                          {showAV && isTodosMode && hasMetaForMonth && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
                             </th>
                           )}
                         </Fragment>
