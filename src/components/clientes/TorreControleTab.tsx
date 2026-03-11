@@ -1732,6 +1732,22 @@ export function TorreControleTab({ clienteId }: Props) {
         realizadoMap={realizadoMapSel}
         narrativa={narrativa}
       />
+
+      {cliente && mesEfetivo && mesSeg && (
+        <ChatAnalistaDrawer
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          clienteId={clienteId}
+          clienteNome={cliente.razao_social || cliente.nome_empresa}
+          clienteSegmento={cliente.segmento}
+          contas={contas || []}
+          realizadoMap={realizadoMapSel}
+          metaMap={metaMap}
+          mesBase={mesEfetivo}
+          mesProximo={mesSeg}
+          onMetaAtualizada={invalidateMetas}
+        />
+      )}
     </div>
   );
 }
