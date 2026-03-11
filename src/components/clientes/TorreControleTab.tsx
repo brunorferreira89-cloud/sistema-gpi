@@ -864,7 +864,7 @@ export function TorreControleTab({ clienteId }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Header banner — cockpit theme */}
         <div style={{
-          width: '100%', height: 150, position: 'relative', overflow: 'hidden',
+          width: '100%', height: 170, position: 'relative', overflow: 'hidden',
           borderRadius: 12, marginBottom: 0,
           background: 'linear-gradient(135deg, #0A1628 0%, #0D1B35 50%, #0A1628 100%)',
         }}>
