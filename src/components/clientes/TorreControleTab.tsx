@@ -1099,7 +1099,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   }
                   const avStr = fmtAv(projVal, fatMeta);
                   return (
-                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)' }}>
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)' }}>
                       {avStr || '—'}
                     </td>
                   );
