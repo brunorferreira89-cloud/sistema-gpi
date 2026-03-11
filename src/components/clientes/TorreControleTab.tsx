@@ -1130,11 +1130,33 @@ export function TorreControleTab({ clienteId }: Props) {
     );
   };
 
+  // ── META annual column (TODOS + meta modes) ────────────────────
+  const showMetaAnualCol = isTodosMode && isModoAtivo;
+
+  // Pre-compute META annual projected map for mesSeg (next month)
+  const metaAnualProjMap = useMemo(() => {
+    if (!showMetaAnualCol || !contas) return {} as Record<string, number | null>;
+    const map: Record<string, number | null> = {};
+    contas.forEach(c => {
+      const real = realizadoMapSel[c.id] ?? null;
+      if (real == null) { map[c.id] = null; return; }
+      const meta = metaMap[c.id] || null;
+      if (meta && meta.meta_valor != null) {
+        const proj = calcProjetado(real, meta);
+        map[c.id] = proj ?? real;
+      } else {
+        map[c.id] = real;
+      }
+    });
+    return map;
+  }, [showMetaAnualCol, contas, realizadoMapSel, metaMap]);
+
   // ── Table min width calculation ───────────────────────────────
   const todosMetaColsCount = isTodosMode && isModoAtivo ? monthsWithMetas.size : 0;
   const extraColsWidth = (!isTodosMode && modoMeta) ? (metaColW + rsColW + metaProjetadoColW) : (!isTodosMode && modoAnaliseMeta ? metaColW : 0);
   const showYearCol = isTodosMode || !isModoAtivo;
-  const tableMinWidth = nameColW + displayMonths.length * valColW + (showYearCol ? valColW : 0) + extraColsWidth + todosMetaColsCount * metaProjetadoColW;
+  const metaAnualColW = 130;
+  const tableMinWidth = nameColW + displayMonths.length * valColW + (showYearCol ? valColW : 0) + extraColsWidth + todosMetaColsCount * metaProjetadoColW + (showMetaAnualCol ? metaAnualColW : 0);
 
   // ══════════════════════════════════════════════════════════════
   return (
