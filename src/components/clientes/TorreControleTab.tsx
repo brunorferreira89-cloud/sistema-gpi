@@ -978,6 +978,18 @@ export function TorreControleTab({ clienteId }: Props) {
                   );
                 })()}
 
+                {/* AV% after realized in CRIAÇÃO DE METAS (filtered month) */}
+                {showAV && modoMeta && isSel && !isTodosMode && (() => {
+                  const monthMap = getMonthMap(m.value);
+                  const fat = getFatForMap(monthMap);
+                  const avStr = fmtAv(val, fat);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: C.txtSec, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                      {avStr || '—'}
+                    </td>
+                  );
+                })()}
+
                 {/* META mode: AJUSTE + R$ + META columns after selected month (specific month only) */}
                 {modoMeta && isSel && !isTodosMode && (
                   <>
