@@ -414,6 +414,30 @@ export function TorreControleTab({ clienteId }: Props) {
     return map;
   }, [metas]);
 
+  // ── All-year metas (for TODOS mode) ──────────────────────────
+  const { data: metasAno } = useQuery({
+    queryKey: ['torre-metas-ano', clienteId, ano],
+    enabled: !!clienteId && (modoMeta || modoAnaliseMeta) && mesSelecionado === null,
+    queryFn: async () => {
+      const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
+        .eq('cliente_id', clienteId)
+        .gte('competencia', `${ano}-01-01`)
+        .lte('competencia', `${ano}-12-31`);
+      return (data || []) as (TorreMeta & { competencia: string })[];
+    },
+  });
+
+  const metaMapByComp = useMemo(() => {
+    const map: Record<string, Record<string, TorreMeta>> = {};
+    (metasAno || []).forEach(m => {
+      if (!map[m.competencia]) map[m.competencia] = {};
+      map[m.competencia][m.conta_id] = m;
+    });
+    return map;
+  }, [metasAno]);
+
+  const monthsWithMetas = useMemo(() => new Set(Object.keys(metaMapByComp)), [metaMapByComp]);
+
   // ── Tree ──────────────────────────────────────────────────────
   const tree = useMemo(() => contas ? buildDreTree(contas) : [], [contas]);
 
