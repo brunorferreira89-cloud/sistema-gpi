@@ -90,7 +90,29 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<any>('altimetro');
+  const [coordenadaSalva, setCoordenadaSalva] = useState<string | null>(null);
+  const [coordenadaGeradaEm, setCoordenadaGeradaEm] = useState<string | null>(null);
+  const [coordenadaLoading, setCoordenadaLoading] = useState(false);
 
+  // ── Load saved coordenada on mount ─────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const loadCoordenada = async () => {
+      const { data } = await supabase
+        .from('sugestoes_metas_ia')
+        .select('coordenada_comandante, coordenada_gerada_em')
+        .eq('cliente_id', cliente.id)
+        .eq('competencia', mesProximo)
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data?.coordenada_comandante) {
+        setCoordenadaSalva(data.coordenada_comandante);
+        setCoordenadaGeradaEm(data.coordenada_gerada_em);
+      }
+    };
+    loadCoordenada();
+    return () => { cancelled = true; };
+  }, [cliente.id, mesProximo]);
   const mesBaseLabel = fmtCompetencia(competencia);
   const mesProxLabel = fmtCompetencia(mesProximo);
 
