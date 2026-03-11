@@ -863,7 +863,7 @@ export function TorreControleTab({ clienteId }: Props) {
                         clienteId={clienteId}
                         competencia={mesSeg}
                         isTotal={isTotal}
-                        onSaved={invalidateMetas}
+                        onSaved={handleMetaSaved}
                       />
                     </td>
                     {/* R$ */}
