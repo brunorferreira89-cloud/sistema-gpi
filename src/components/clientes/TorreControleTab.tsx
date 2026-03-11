@@ -1052,6 +1052,28 @@ export function TorreControleTab({ clienteId }: Props) {
               {/* Separator */}
               <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
 
+              {/* Year selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(26,60,255,0.08)', borderRadius: 6, padding: '2px 3px', border: '1px solid rgba(26,60,255,0.15)' }}>
+                {years.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => { setAno(y); setMesSelecionado(null); }}
+                    style={{
+                      padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: ano === y ? 700 : 500,
+                      color: ano === y ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                      background: ano === y ? 'rgba(26,60,255,0.5)' : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+
+              {/* Separator */}
+              <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+
               {/* Month selector as buttons */}
               {monthsWithData.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
