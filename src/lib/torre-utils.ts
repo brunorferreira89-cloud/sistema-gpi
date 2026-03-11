@@ -6,8 +6,10 @@ export interface TorreMeta {
 
 export function calcProjetado(anterior: number, meta: TorreMeta | null): number | null {
   if (!meta || meta.meta_valor === null) return null;
-  if (meta.meta_tipo === 'pct') return Math.abs(anterior) * (1 + meta.meta_valor / 100);
-  return Math.abs(meta.meta_valor);
+  if (meta.meta_tipo === 'pct') return anterior * (1 + meta.meta_valor / 100);
+  // valor absoluto: preserve sign from realized
+  const sign = anterior < 0 ? -1 : 1;
+  return sign * Math.abs(meta.meta_valor);
 }
 
 export function calcStatus(realizado: number, projetado: number | null, isReceita: boolean): 'ok' | 'atencao' | 'critico' | 'neutro' {
