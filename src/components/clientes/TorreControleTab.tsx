@@ -985,7 +985,11 @@ export function TorreControleTab({ clienteId }: Props) {
                     background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
                     borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                   }}>
-                    {fmtTorre(projetado)}
+                    {(() => {
+                      const ar = getMetaArrow(projetado, val, conta.tipo);
+                      if (ar) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{fmtTorre(projetado)}</>;
+                      return fmtTorre(projetado);
+                    })()}
                   </td>
                 )}
 
