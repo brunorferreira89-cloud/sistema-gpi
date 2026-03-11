@@ -1830,6 +1830,12 @@ export function TorreControleTab({ clienteId }: Props) {
                               AV%
                             </th>
                           )}
+                          {/* AV% header after realized in ANÁLISE META (filtered) */}
+                          {showAV && modoAnaliseMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AV%
+                            </th>
+                          )}
                           {modoAnaliseMeta && isSel && !isTodosMode && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
