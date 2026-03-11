@@ -286,6 +286,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
       if (error) throw error;
       if (data?.coordenada) {
         setCoordenadaSalva(data.coordenada);
+        setCoordenadaTecnico(data.tecnico || null);
         setCoordenadaGeradaEm(data.gerado_em);
       }
     } catch (e) {
