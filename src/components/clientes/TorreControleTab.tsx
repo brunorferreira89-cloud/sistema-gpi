@@ -968,6 +968,7 @@ export function TorreControleTab({ clienteId }: Props) {
           })}
 
           {/* Year total */}
+          {showYearCol && (
           <td style={{
             textAlign: 'right', fontFamily: 'monospace', fontSize: 12,
             fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400),
@@ -997,6 +998,7 @@ export function TorreControleTab({ clienteId }: Props) {
               return has ? fmtTorre(yearTotal) : '—';
             })()}
           </td>
+          )}
         </tr>
         {!isCollapsedItem && !isTotal && node.children.map(child => renderRow(child, depth + 1))}
       </Fragment>
