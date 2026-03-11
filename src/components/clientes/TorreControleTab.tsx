@@ -1513,7 +1513,7 @@ export function TorreControleTab({ clienteId }: Props) {
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
                               color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
                               width: metaColW, minWidth: metaColW,
-                              background: 'rgba(26,60,255,0.05)',
+                              background: '#F6F9FF',
                             }}>
                               META
                             </th>
