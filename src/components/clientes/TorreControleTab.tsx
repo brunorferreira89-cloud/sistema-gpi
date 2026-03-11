@@ -1015,22 +1015,26 @@ export function TorreControleTab({ clienteId }: Props) {
             {config.nome}
           </span>
         </td>
-        {months.map(m => {
+        {displayMonths.map(m => {
           const monthMap = getMonthMap(m.value);
           const totals = calcTotaisForMap(monthMap);
           const val = totals[key as keyof typeof totals];
           const isSel = isSelectedMonth(m.value);
+
+          // TODOS mode: META column for this month
+          const hasMetaForMonth = isTodosMode && isModoAtivo && monthsWithMetas.has(m.value);
+          const metaMapForMonth = hasMetaForMonth ? metaMapByComp[m.value] : null;
 
           return (
             <Fragment key={m.value}>
               <td style={{
                 textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
                 color: val < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px',
-                background: isSel && (modoMeta || modoAnaliseMeta) ? '#0D1B35' : undefined,
+                background: isSel && isModoAtivo && !isTodosMode ? '#0D1B35' : undefined,
               }}>
                 {fmtTorre(val)}
               </td>
-              {modoAnaliseMeta && isSel && (() => {
+              {modoAnaliseMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
                 return (
@@ -1041,7 +1045,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   </td>
                 );
               })()}
-              {modoMeta && isSel && (() => {
+              {modoMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
                 const variacao = projVal - val;
@@ -1059,6 +1063,35 @@ export function TorreControleTab({ clienteId }: Props) {
                       {fmtTorre(projVal)}
                     </td>
                   </>
+                );
+              })()}
+              {/* TODOS mode: META column for totalizador */}
+              {hasMetaForMonth && (() => {
+                const prevComp = getPrevMonth(m.value);
+                const prevMap = getMonthMap(prevComp);
+                // Calculate projected totals using prev month realized + this month's metas
+                const calcTotaisProj = () => {
+                  const fat = sumGruposProjetado(gruposPorTipo['receita'] || [], prevMap, metaMapForMonth || {});
+                  const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], prevMap, metaMapForMonth || {});
+                  const mc = fat + custos;
+                  const despesas = sumGruposProjetado(gruposPorTipo['despesa_fixa'] || [], prevMap, metaMapForMonth || {});
+                  const ro = mc + despesas;
+                  const invest = sumGruposProjetado(gruposPorTipo['investimento'] || [], prevMap, metaMapForMonth || {});
+                  const rai = ro + invest;
+                  const financ = sumGruposProjetado(gruposPorTipo['financeiro'] || [], prevMap, metaMapForMonth || {});
+                  const gc = rai + financ;
+                  return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
+                };
+                const projTotais = calcTotaisProj();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                return (
+                  <td style={{
+                    textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 800,
+                    padding: '11px 10px', background: '#0D1B35',
+                    color: projVal < 0 ? '#FF6B6B' : '#00E68A',
+                  }}>
+                    {fmtTorre(projVal)}
+                  </td>
                 );
               })()}
             </Fragment>
