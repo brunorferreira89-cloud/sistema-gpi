@@ -1118,25 +1118,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 👨🏻‍✈️ Comandante GPI
               </button>
 
-              {/* Spacer + Year selector pushed right */}
-              <div style={{ flex: 1 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {years.map(y => (
-                  <button
-                    key={y}
-                    onClick={() => { setAno(y); setMesSelecionado(null); }}
-                    style={{
-                      padding: '3px 10px', borderRadius: 5, fontSize: 11, fontWeight: ano === y ? 700 : 500,
-                      color: ano === y ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
-                      background: ano === y ? 'rgba(26,60,255,0.4)' : 'transparent',
-                      border: `1px solid ${ano === y ? 'rgba(26,60,255,0.5)' : 'transparent'}`,
-                      cursor: 'pointer', transition: 'all 0.15s',
-                    }}
-                  >
-                    {y}
-                  </button>
-                ))}
-              </div>
+            </div>
             </div>
           </div>
         </div>
