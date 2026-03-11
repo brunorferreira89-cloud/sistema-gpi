@@ -6,6 +6,7 @@ import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-rea
 import { toast } from 'sonner';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
+import { TorreIndicadoresCriacao } from './TorreIndicadoresCriacao';
 
 // ── Types ───────────────────────────────────────────────────────
 interface DreNode { conta: ContaRow; children: DreNode[] }
