@@ -308,6 +308,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         setCoordenadaSalva(data.coordenada);
         setCoordenadaTecnico(data.tecnico || null);
         setCoordenadaGeradaEm(data.gerado_em);
+        setMetasSnapshot(metasFingerprint);
       }
     } catch (e) {
       console.error('Erro ao gerar coordenada:', e);
