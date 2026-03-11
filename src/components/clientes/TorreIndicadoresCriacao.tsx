@@ -114,7 +114,12 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [metasSnapshot, setMetasSnapshot] = useState<string>('');
 
   // Detect if metas changed since last generation
-  const metasFingerprint = useMemo(() => JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort()), [torreMetas]);
+  const metasFingerprint = useMemo(() => {
+    if (modoTodos && metasAno) {
+      return JSON.stringify(metasAno.map(m => `${m.competencia}:${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort());
+    }
+    return JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort());
+  }, [torreMetas, modoTodos, metasAno]);
   const coordenadaStale = !!(coordenadaSalva || coordenadaTecnico) && metasSnapshot !== '' && metasFingerprint !== metasSnapshot;
 
   // ── Load saved coordenada per month (or annual) ─────────────
