@@ -587,7 +587,9 @@ export function SugestaoMetasDrawer({
   }, [sugestoes]);
 
   const existingCount = sugestoes.filter(s => metasExistentes[s.conta_id]?.meta_valor != null).length;
-  const selectedCount = selected.size;
+  const manualCount = Object.keys(manualMetas).length;
+  const selectedCount = selected.size + manualCount;
+  const totalItems = sugestoes.length;
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -597,9 +599,27 @@ export function SugestaoMetasDrawer({
     });
   };
 
+  const handleManualApply = (contaId: string, m: ManualMeta) => {
+    // Remove from IA selection if present
+    setSelected(prev => { const n = new Set(prev); n.delete(contaId); return n; });
+    setManualMetas(prev => ({ ...prev, [contaId]: m }));
+  };
+
+  const handleManualClear = (contaId: string) => {
+    setManualMetas(prev => { const n = { ...prev }; delete n[contaId]; return n; });
+  };
+
   const handleAplicar = async () => {
     setApplying(true);
-    const selecionadas = sugestoes.filter(s => selected.has(s.conta_id));
+    // Combine IA selections + manual metas into SugestaoMeta[]
+    const selecionadas: SugestaoMeta[] = sugestoes.filter(s => selected.has(s.conta_id));
+    // Add manual metas as SugestaoMeta entries
+    for (const [contaId, m] of Object.entries(manualMetas)) {
+      const sug = sugestaoMap.get(contaId);
+      if (sug) {
+        selecionadas.push({ ...sug, meta_tipo: m.meta_tipo, meta_valor: m.meta_valor });
+      }
+    }
     await onAplicar(selecionadas);
     setApplying(false);
   };
