@@ -484,10 +484,11 @@ export function TorreControleTab({ clienteId }: Props) {
     let hasAny = false;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
-      const meta = metaMap[c.id] || null;
       const base = realizadoMapSel[c.id];
-      const proj = (base != null && meta) ? calcProjetado(base, meta) : null;
-      if (proj != null) { total += (c.tipo === 'receita' ? proj : -proj); hasAny = true; }
+      if (base == null) continue;
+      const meta = metaMap[c.id] || null;
+      const proj = meta ? calcProjetado(base, meta) : base;
+      if (proj != null) { total += proj; hasAny = true; }
     }
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMapSel, modoMeta, modoAnaliseMeta]);
@@ -499,8 +500,9 @@ export function TorreControleTab({ clienteId }: Props) {
       const meta = metaMap[conta.id] || null;
       const real = realizadoMapSel[conta.id] ?? null;
       if (!meta || meta.meta_valor === null || real == null) return null;
-      if (meta.meta_tipo === 'pct') return Math.abs(real) * (meta.meta_valor / 100);
-      return meta.meta_valor - real;
+      const proj = calcProjetado(real, meta);
+      if (proj == null) return null;
+      return proj - real;
     }
     let total = 0;
     let hasAny = false;
