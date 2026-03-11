@@ -963,7 +963,7 @@ export function SugestaoMetasDrawer({
               padding: '16px 24px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
-              <span style={{ fontSize: 11, color: C.txtMuted }}>{selectedCount} de {sugestoes.length} selecionadas</span>
+              <span style={{ fontSize: 11, color: C.txtMuted }}>{selectedCount} de {totalItems} selecionadas{manualCount > 0 ? ` (${manualCount} manual)` : ''}</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.txtSec, fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                   Cancelar
