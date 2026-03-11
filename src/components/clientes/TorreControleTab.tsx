@@ -1119,8 +1119,6 @@ export function TorreControleTab({ clienteId }: Props) {
               </button>
 
             </div>
-            </div>
-            </div>
           </div>
         </div>
 
