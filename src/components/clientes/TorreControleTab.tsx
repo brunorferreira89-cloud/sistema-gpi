@@ -714,6 +714,13 @@ export function TorreControleTab({ clienteId }: Props) {
     }
     toast.success(`${selecionadas.length} metas aplicadas com sucesso`);
     setDrawerSugestaoOpen(false);
+
+    // Run bottom-up propagation for all N2 (category) metas applied
+    const categoriasAplicadas = selecionadas.filter(s => s.nivel === 2);
+    for (const cat of categoriasAplicadas) {
+      await handleMetaSaved(cat.conta_id, cat.meta_tipo, cat.meta_valor);
+    }
+
     invalidateMetas();
   };
 
