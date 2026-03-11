@@ -1545,6 +1545,20 @@ export function TorreControleTab({ clienteId }: Props) {
                 👨🏻‍✈️ Comandante GPI
               </button>
 
+              {/* Chat Analista */}
+              <button
+                onClick={() => setChatOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                  background: 'rgba(0,153,230,0.15)', border: '1px solid rgba(0,153,230,0.3)',
+                  color: '#7BC8FF', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                  transition: 'all 0.15s',
+                }}
+              >
+                💬 Chat Analista
+              </button>
+
             </div>
           </div>
         </div>
