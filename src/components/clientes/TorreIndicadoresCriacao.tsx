@@ -152,11 +152,21 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   // ── Build maps ────────────────────────────────────────────
   const realizadoMap = useMemo(() => {
     const map: Record<string, number | null> = {};
-    valoresMensais.forEach(v => {
-      if (v.competencia === competencia) map[v.conta_id] = v.valor_realizado;
-    });
+    if (modoTodos && mwdProp) {
+      // Annual: sum realized across all months with data
+      planoDeContas.forEach(c => { map[c.id] = null; });
+      valoresMensais.forEach(v => {
+        if (mwdProp.includes(v.competencia) && v.valor_realizado != null) {
+          map[v.conta_id] = (map[v.conta_id] ?? 0) + v.valor_realizado;
+        }
+      });
+    } else {
+      valoresMensais.forEach(v => {
+        if (v.competencia === competencia) map[v.conta_id] = v.valor_realizado;
+      });
+    }
     return map;
-  }, [valoresMensais, competencia]);
+  }, [valoresMensais, competencia, modoTodos, mwdProp, planoDeContas]);
 
   const metaMap = useMemo(() => {
     const map: Record<string, TorreMeta> = {};
@@ -182,19 +192,59 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   // ── Calculate meta values ─────────────────────────────────
   const metaValoresMap = useMemo(() => {
     const map: Record<string, number | null> = {};
-    planoDeContas.forEach(c => {
-      const real = realizadoMap[c.id] ?? null;
-      const meta = metaMap[c.id] || null;
-      if (real != null && meta && meta.meta_valor != null) {
-        // calcProjetado returns Math.abs — preserve original sign for costs/expenses
-        const projected = calcProjetado(real, meta);
-        map[c.id] = projected !== null ? (real < 0 ? -Math.abs(projected) : projected) : real;
-      } else {
-        map[c.id] = real;
+
+    if (modoTodos && metasAno && mwdProp) {
+      // Annual projection: for each month with data, apply that month's metas
+      // then sum across all months
+      planoDeContas.forEach(c => { map[c.id] = null; });
+
+      // Group metasAno by competencia
+      const metasByComp: Record<string, Record<string, TorreMeta>> = {};
+      metasAno.forEach(m => {
+        if (!metasByComp[m.competencia]) metasByComp[m.competencia] = {};
+        metasByComp[m.competencia][m.conta_id] = m;
+      });
+
+      // For each month with data, compute projected values
+      for (const comp of mwdProp) {
+        // The meta competencia is the NEXT month after the data month
+        const d = new Date(comp + 'T00:00:00');
+        d.setMonth(d.getMonth() + 1);
+        const metaComp = d.toISOString().slice(0, 7) + '-01';
+        const monthMetas = metasByComp[metaComp] || {};
+
+        planoDeContas.forEach(c => {
+          // Get realized value for this specific month
+          let real: number | null = null;
+          valoresMensais.forEach(v => {
+            if (v.competencia === comp && v.conta_id === c.id) real = v.valor_realizado;
+          });
+
+          if (real == null) return;
+
+          const meta = monthMetas[c.id] || null;
+          let projected = real;
+          if (meta && meta.meta_valor != null) {
+            const p = calcProjetado(real, meta);
+            projected = p !== null ? (real < 0 ? -Math.abs(p) : p) : real;
+          }
+          map[c.id] = (map[c.id] ?? 0) + projected;
+        });
       }
-    });
+    } else {
+      planoDeContas.forEach(c => {
+        const real = realizadoMap[c.id] ?? null;
+        const meta = metaMap[c.id] || null;
+        if (real != null && meta && meta.meta_valor != null) {
+          const projected = calcProjetado(real, meta);
+          map[c.id] = projected !== null ? (real < 0 ? -Math.abs(projected) : projected) : real;
+        } else {
+          map[c.id] = real;
+        }
+      });
+    }
     return map;
-  }, [planoDeContas, realizadoMap, metaMap]);
+  }, [planoDeContas, realizadoMap, metaMap, modoTodos, metasAno, mwdProp, valoresMensais]);
 
   const totaisMeta = useMemo(() => {
     const fat = sumByTipo(tree, 'receita', metaValoresMap);
