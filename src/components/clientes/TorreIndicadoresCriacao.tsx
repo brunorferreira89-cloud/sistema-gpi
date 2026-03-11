@@ -91,6 +91,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<any>('altimetro');
   const [coordenadaSalva, setCoordenadaSalva] = useState<string | null>(null);
+  const [coordenadaTecnico, setCoordenadaTecnico] = useState<string | null>(null);
   const [coordenadaGeradaEm, setCoordenadaGeradaEm] = useState<string | null>(null);
   const [coordenadaLoading, setCoordenadaLoading] = useState(false);
 
@@ -100,14 +101,15 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
     const loadCoordenada = async () => {
       const { data } = await supabase
         .from('sugestoes_metas_ia')
-        .select('coordenada_comandante, coordenada_gerada_em')
+        .select('coordenada_comandante, coordenada_tecnico, coordenada_gerada_em')
         .eq('cliente_id', cliente.id)
         .eq('competencia', mesProximo)
         .limit(1)
         .maybeSingle();
-      if (!cancelled && data?.coordenada_comandante) {
-        setCoordenadaSalva(data.coordenada_comandante);
-        setCoordenadaGeradaEm(data.coordenada_gerada_em);
+      if (!cancelled && data) {
+        if (data.coordenada_comandante) setCoordenadaSalva(data.coordenada_comandante as string);
+        if ((data as any).coordenada_tecnico) setCoordenadaTecnico((data as any).coordenada_tecnico as string);
+        if (data.coordenada_gerada_em) setCoordenadaGeradaEm(data.coordenada_gerada_em);
       }
     };
     loadCoordenada();
