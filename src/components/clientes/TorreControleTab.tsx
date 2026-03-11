@@ -113,19 +113,20 @@ function sumGruposProjetado(grupos: DreNode[], valMap: Record<string, number | n
   return total;
 }
 
+function sumNodeProjetado(
   node: DreNode,
   valMap: Record<string, number | null>,
-  metaMap: Record<string, TorreMeta>,
+  mMap: Record<string, TorreMeta>,
 ): number | null {
   if (node.conta.nivel === 2) {
     const real = valMap[node.conta.id] ?? null;
-    const meta = metaMap[node.conta.id] || null;
+    const meta = mMap[node.conta.id] || null;
     if (real == null) return null;
     return calcProjetado(real, meta);
   }
   let total = 0, hasAny = false;
   for (const child of node.children) {
-    const v = sumNodeProjetado(child, valMap, metaMap);
+    const v = sumNodeProjetado(child, valMap, mMap);
     if (v != null) { total += v; hasAny = true; }
   }
   return hasAny ? total : null;
