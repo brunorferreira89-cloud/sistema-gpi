@@ -247,13 +247,52 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
 
   const openModal = (tipo: any) => { setModalTipo(tipo); setModalOpen(true); };
 
-  // ── Frase lúdica ──────────────────────────────────────────
-  const fraseLudica = ganhoRapido.nome
+  // ── Frase lúdica (fallback local) ──────────────────────────
+  const fraseLudicaLocal = ganhoRapido.nome
     ? `Comandante, reduza ${ganhoRapido.nome} em ${ganhoRapido.pct.toFixed(0)}% e liberamos ${fmtR(ganhoRapido.valor)} de altitude financeira em ${mesProxLabel}. Esse é o ajuste que muda a rota.`
     : `Comandante, aplique os ajustes propostos e a Geração de Caixa passa de ${gcPct.toFixed(1)}% para ${gcMetaPct.toFixed(1)}% em ${mesProxLabel}.`;
 
+  const fraseLudica = coordenadaSalva || fraseLudicaLocal;
+
   const gcDelta = totaisMeta.gc - totais.gc;
   const gcBenchmark10 = totais.fat * 0.1;
+
+  // ── Gerar coordenada via IA ───────────────────────────────
+  const gerarCoordenada = async () => {
+    setCoordenadaLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gerar-coordenada', {
+        body: {
+          cliente_id: cliente.id,
+          competencia: mesProximo,
+          dados: {
+            nomeEmpresa: cliente.razao_social || cliente.nome_empresa,
+            mesProximo: mesProxLabel,
+            mesBase: mesBaseLabel,
+            gcReal: totais.gc.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            gcMeta: totaisMeta.gc.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            gcPct: gcPct.toFixed(1),
+            gcMetaPct: gcMetaPct.toFixed(1),
+            fatReal: totais.fat.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            fatMeta: totaisMeta.fat.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+            ganhoNome: ganhoRapido.nome,
+            ganhoPct: ganhoRapido.pct.toFixed(0),
+            ganhoValor: ganhoRapido.valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+          },
+        },
+      });
+      if (error) throw error;
+      if (data?.coordenada) {
+        setCoordenadaSalva(data.coordenada);
+        setCoordenadaGeradaEm(data.gerado_em);
+      }
+    } catch (e) {
+      console.error('Erro ao gerar coordenada:', e);
+      toast.error('Não foi possível gerar a análise. Tente novamente.');
+    } finally {
+      setCoordenadaLoading(false);
+    }
+  };
 
   // ── DRE Cards config ──────────────────────────────────────
   const dreCards = [
