@@ -1249,12 +1249,12 @@ export function TorreControleTab({ clienteId }: Props) {
 
 
             {/* Instrumentos de Criação de Metas (only in criação mode with a month selected) */}
-            {modoMeta && mesSelecionado && cliente && (
+            {modoMeta && mesEfetivo && cliente && (
               <TorreIndicadoresCriacao
                 cliente={cliente}
-                competencia={mesSelecionado}
+                competencia={mesEfetivo}
                 mesProximo={(() => {
-                  const d = new Date(mesSelecionado + 'T00:00:00');
+                  const d = new Date(mesEfetivo + 'T00:00:00');
                   d.setMonth(d.getMonth() + 1);
                   return d.toISOString().slice(0, 7) + '-01';
                 })()}
