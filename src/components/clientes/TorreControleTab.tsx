@@ -498,6 +498,24 @@ export function TorreControleTab({ clienteId }: Props) {
   // AV% semantic color for totalizador cells
   const avTotColor = (v: number): string => v < 0 ? '#FF6B6B' : '#00E68A';
 
+  // Direction arrow for META columns: compares meta vs realized
+  const getMetaArrow = (metaVal: number | null, realVal: number | null, tipo: string): { arrow: string; color: string } | null => {
+    if (metaVal == null || realVal == null) return null;
+    if (tipo === 'financeiro') return null;
+    const isReceita = tipo === 'receita';
+    if (metaVal === realVal) return { arrow: '→', color: '#8A9BBC' };
+    if (isReceita) {
+      return metaVal > realVal ? { arrow: '↑', color: '#00A86B' } : { arrow: '↓', color: '#DC2626' };
+    }
+    // custo_variavel, despesa_fixa, investimento: lower is better
+    return metaVal < realVal ? { arrow: '↓', color: '#00A86B' } : { arrow: '↑', color: '#DC2626' };
+  };
+  // Direction arrow for totalizador META: higher is always better
+  const getTotArrow = (metaVal: number, realVal: number): { arrow: string; color: string } | null => {
+    if (metaVal === realVal) return { arrow: '→', color: '#8A9BBC' };
+    return metaVal > realVal ? { arrow: '↑', color: '#00A86B' } : { arrow: '↓', color: '#DC2626' };
+  };
+
   // ── Propagation handler ───────────────────────────────────────
   const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
@@ -967,7 +985,11 @@ export function TorreControleTab({ clienteId }: Props) {
                     background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
                     borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                   }}>
-                    {fmtTorre(projetado)}
+                    {(() => {
+                      const ar = getMetaArrow(projetado, val, conta.tipo);
+                      if (ar) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{fmtTorre(projetado)}</>;
+                      return fmtTorre(projetado);
+                    })()}
                   </td>
                 )}
 
@@ -978,7 +1000,11 @@ export function TorreControleTab({ clienteId }: Props) {
                   const avStr = fmtAv(projetado, fatMeta);
                   return (
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
-                      {avStr || '—'}
+                      {(() => {
+                        const ar = getMetaArrow(projetado, val, conta.tipo);
+                        if (ar && avStr) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</>;
+                        return avStr || '—';
+                      })()}
                     </td>
                   );
                 })()}
@@ -1029,7 +1055,11 @@ export function TorreControleTab({ clienteId }: Props) {
                       background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
                       borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                     }}>
-                      {fmtTorre(projetado)}
+                      {(() => {
+                        const ar = getMetaArrow(projetado, val, conta.tipo);
+                        if (ar) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{fmtTorre(projetado)}</>;
+                        return fmtTorre(projetado);
+                      })()}
                     </td>
                   </>
                 )}
@@ -1041,7 +1071,11 @@ export function TorreControleTab({ clienteId }: Props) {
                   const avStr = fmtAv(projetado, fatMeta);
                   return (
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
-                      {avStr || '—'}
+                      {(() => {
+                        const ar = getMetaArrow(projetado, val, conta.tipo);
+                        if (ar && avStr) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</>;
+                        return avStr || '—';
+                      })()}
                     </td>
                   );
                 })()}
@@ -1079,7 +1113,11 @@ export function TorreControleTab({ clienteId }: Props) {
                       background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)',
                       borderLeft: isTotal ? undefined : '1px solid rgba(26,60,255,0.10)',
                     }}>
-                      {fmtTorre(projVal)}
+                      {(() => {
+                        const ar = getMetaArrow(projVal, val, conta.tipo);
+                        if (ar) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{fmtTorre(projVal)}</>;
+                        return fmtTorre(projVal);
+                      })()}
                     </td>
                   );
                 })()}
@@ -1100,7 +1138,11 @@ export function TorreControleTab({ clienteId }: Props) {
                   const avStr = fmtAv(projVal, fatMeta);
                   return (
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? 'rgba(26,60,255,0.18)' : 'rgba(26,60,255,0.03)' }}>
-                      {avStr || '—'}
+                      {(() => {
+                        const ar = getMetaArrow(projVal, val, conta.tipo);
+                        if (ar && avStr) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</>;
+                        return avStr || '—';
+                      })()}
                     </td>
                   );
                 })()}
@@ -1237,7 +1279,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: 'rgba(26,60,255,0.18)',
                     color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                   }}>
-                    {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({avPct.toFixed(1)}%)</span>
+                    {(() => { const ar = getTotArrow(projVal, val); return ar ? <span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span> : null; })()}{fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({avPct.toFixed(1)}%)</span>
                   </td>
                 );
               })()}
@@ -1250,7 +1292,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
                   <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
-                    {avStr || '—'}
+                    {(() => { const ar = getTotArrow(projVal, val); return ar && avStr ? <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</> : (avStr || '—'); })()}
                   </td>
                 );
               })()}
@@ -1281,7 +1323,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: 'rgba(26,60,255,0.18)',
                       color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                     }}>
-                      {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
+                      {(() => { const ar = getTotArrow(projVal, val); return ar ? <span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span> : null; })()}{fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
                     </td>
                   </>
                 );
@@ -1295,7 +1337,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
                   <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
-                    {avStr || '—'}
+                    {(() => { const ar = getTotArrow(projVal, val); return ar && avStr ? <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</> : (avStr || '—'); })()}
                   </td>
                 );
               })()}
@@ -1335,7 +1377,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     padding: '11px 10px', background: 'rgba(26,60,255,0.18)',
                     color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                   }}>
-                    {fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
+                    {(() => { const ar = getTotArrow(projVal, val); return ar ? <span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span> : null; })()}{fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
                   </td>
                 );
               })()}
@@ -1361,7 +1403,7 @@ export function TorreControleTab({ clienteId }: Props) {
                 const avStr = fmtAv(projVal, fatMeta);
                 return (
                   <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: 'rgba(26,60,255,0.18)' }}>
-                    {avStr || '—'}
+                    {(() => { const ar = getTotArrow(projVal, val); return ar && avStr ? <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</> : (avStr || '—'); })()}
                   </td>
                 );
               })()}
