@@ -1323,7 +1323,7 @@ export function TorreControleTab({ clienteId }: Props) {
                     <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: 'rgba(26,60,255,0.18)',
                       color: projVal < 0 ? '#FF6B6B' : '#00E68A',
                     }}>
-                      {(() => { const ar = getTotArrow(projVal, val); return ar ? <span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span> : null; })()}{fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
+                      {(() => { const ar = getTotArrow(projVal, val); return ar ? <span style={{ fontSize: 14, fontWeight: 700, color: ar.color, marginRight: 4 }}>{ar.arrow}</span> : null; })()}{fmtTorre(projVal)} <span style={{ fontSize: 10, color: '#8A9BBC', fontWeight: 400 }}>({(projTotais.fat !== 0 ? (Math.abs(projVal) / Math.abs(projTotais.fat)) * 100 : 0).toFixed(1)}%)</span>
                     </td>
                   </>
                 );
