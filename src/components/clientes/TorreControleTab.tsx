@@ -973,8 +973,8 @@ export function TorreControleTab({ clienteId }: Props) {
 
             {/* Middle row: title + subtitle */}
             <div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Torre de Controle</h2>
-              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '3px 0 0', letterSpacing: '0.04em' }}>Monitoramento · Metas · Projeções</p>
+              <h2 style={{ fontSize: 40, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1, textShadow: '0 0 20px rgba(26,60,255,0.5), 0 0 40px rgba(26,60,255,0.2)' }}>Torre de Controle</h2>
+              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '4px 0 0', letterSpacing: '0.06em' }}>Monitoramento · Metas · Projeções</p>
             </div>
 
             {/* Bottom row: controls */}
