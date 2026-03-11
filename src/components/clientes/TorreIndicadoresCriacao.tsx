@@ -390,9 +390,13 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
               disabled={coordenadaLoading}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
-                fontSize: 10, fontWeight: 600, color: C.cyan, background: 'none',
-                border: `1px solid ${C.cyan}`, borderRadius: 6, padding: '4px 10px',
+                fontSize: 10, fontWeight: 600,
+                color: coordenadaStale ? '#FFFFFF' : C.cyan,
+                background: coordenadaStale ? C.red : 'none',
+                border: `1px solid ${coordenadaStale ? C.red : C.cyan}`,
+                borderRadius: 6, padding: '4px 10px',
                 cursor: coordenadaLoading ? 'not-allowed' : 'pointer', opacity: coordenadaLoading ? 0.6 : 1,
+                transition: 'all 0.25s ease',
               }}
             >
               {coordenadaLoading ? (
@@ -400,10 +404,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
                   <span style={{ display: 'inline-block', animation: 'radarSweepInst 1s linear infinite' }}>↻</span>
                   Gerando...
                 </>
-              ) : '↻ Atualizar análise'}
+              ) : coordenadaStale ? '⚠ Metas alteradas — Atualizar análise' : '↻ Atualizar análise'}
             </button>
             {coordenadaGeradaEm && (
-              <span style={{ fontSize: 10, color: '#8A9BBC', fontStyle: 'italic' }}>
+              <span style={{ fontSize: 10, color: coordenadaStale ? C.red : '#8A9BBC', fontStyle: 'italic' }}>
+                {coordenadaStale ? 'Análise desatualizada · ' : ''}
                 Gerado em {new Date(coordenadaGeradaEm).toLocaleDateString('pt-BR')} às {new Date(coordenadaGeradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
