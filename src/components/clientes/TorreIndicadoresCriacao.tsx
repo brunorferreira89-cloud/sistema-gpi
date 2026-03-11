@@ -491,14 +491,6 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
                       const largeArc = angle > 90 ? 1 : 0;
                       return <path d={`M 20 100 A 70 70 0 ${largeArc} 1 ${x} ${y}`} fill="none" stroke="rgba(26,60,255,0.35)" strokeWidth="6" strokeLinecap="round" strokeDasharray="4 4" />;
                     })()}
-                    {/* Meta GPI 10% marker */}
-                    {(() => {
-                      const angle = (10 / 15) * 180;
-                      const rad = (angle * Math.PI) / 180;
-                      const x = 90 - 70 * Math.cos(rad);
-                      const y = 100 - 70 * Math.sin(rad);
-                      return <circle cx={x} cy={y} r="5" fill={C.amber} style={{ filter: 'drop-shadow(0 0 4px rgba(217,119,6,0.5))' }} />;
-                    })()}
                     {/* Center value */}
                     <text x="90" y="80" textAnchor="middle" style={{ fontFamily: C.mono, fontSize: 22, fontWeight: 700, fill: gcPct < 0 ? C.red : C.green }}>{gcPct.toFixed(1)}%</text>
                     <text x="90" y="96" textAnchor="middle" style={{ fontSize: 8.5, fill: C.txtMuted }}>GC / FAT</text>
