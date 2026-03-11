@@ -559,7 +559,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const metaColW = 90;
   const rsColW = 90;
   const metaProjetadoColW = 110;
-  const statusColW = modoMeta ? 80 : 0;
+  
 
   // Sticky cell style
   const stickyTd = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
