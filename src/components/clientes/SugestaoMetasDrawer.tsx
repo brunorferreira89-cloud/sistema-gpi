@@ -513,22 +513,28 @@ export function SugestaoMetasDrawer({
     return map;
   }, [tree]);
 
-  // ── Projected values (accounts with selected suggestions get delta applied) ──
+  // ── Projected values (accounts with selected suggestions or manual metas get delta applied) ──
   const projetadoMap = useMemo(() => {
     const m: Record<string, number> = {};
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
       const real = realizadoMap[c.id] ?? 0;
-      const sug = sugestaoMap.get(c.id);
-      if (sug && selected.has(c.id)) {
-        const delta = calcDelta(real, sug.meta_tipo, sug.meta_valor);
+      const manual = manualMetas[c.id];
+      if (manual) {
+        const delta = calcDelta(real, manual.meta_tipo, manual.meta_valor);
         m[c.id] = real + delta;
       } else {
-        m[c.id] = real;
+        const sug = sugestaoMap.get(c.id);
+        if (sug && selected.has(c.id)) {
+          const delta = calcDelta(real, sug.meta_tipo, sug.meta_valor);
+          m[c.id] = real + delta;
+        } else {
+          m[c.id] = real;
+        }
       }
     }
     return m;
-  }, [contas, realizadoMap, sugestaoMap, selected]);
+  }, [contas, realizadoMap, sugestaoMap, selected, manualMetas]);
 
   // Sum projected for node
   function sumProj(node: DreNode): number {
