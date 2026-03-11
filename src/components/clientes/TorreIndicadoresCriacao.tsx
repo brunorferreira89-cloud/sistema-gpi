@@ -27,6 +27,10 @@ interface Props {
   valoresMensais: ValorMensal[];
   torreMetas: TorreMeta[];
   planoDeContas: ContaRow[];
+  modoTodos?: boolean;
+  metasAno?: (TorreMeta & { competencia: string })[];
+  monthsWithData?: string[];
+  ano?: string;
 }
 
 // ── Colors ────────────────────────────────────────────────────
@@ -99,7 +103,7 @@ function sumByTipo(tree: DreNode[], tipo: string, valMap: Record<string, number 
 }
 
 // ══════════════════════════════════════════════════════════════
-export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valoresMensais, torreMetas, planoDeContas }: Props) {
+export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valoresMensais, torreMetas, planoDeContas, modoTodos, metasAno, monthsWithData: mwdProp, ano }: Props) {
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<any>('altimetro');
@@ -110,13 +114,19 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const [metasSnapshot, setMetasSnapshot] = useState<string>('');
 
   // Detect if metas changed since last generation
-  const metasFingerprint = useMemo(() => JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort()), [torreMetas]);
+  const metasFingerprint = useMemo(() => {
+    if (modoTodos && metasAno) {
+      return JSON.stringify(metasAno.map(m => `${m.competencia}:${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort());
+    }
+    return JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort());
+  }, [torreMetas, modoTodos, metasAno]);
   const coordenadaStale = !!(coordenadaSalva || coordenadaTecnico) && metasSnapshot !== '' && metasFingerprint !== metasSnapshot;
 
-  // ── Load saved coordenada per month ─────────────────────────
+  // ── Load saved coordenada per month (or annual) ─────────────
+  const coordenadaKey = modoTodos && ano ? `${ano}-12-31` : mesProximo;
+
   useEffect(() => {
     let cancelled = false;
-    // Reset state when month changes so stale data from another month is never shown
     setCoordenadaSalva(null);
     setCoordenadaTecnico(null);
     setCoordenadaGeradaEm(null);
@@ -127,7 +137,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         .from('sugestoes_metas_ia')
         .select('coordenada_comandante, coordenada_tecnico, coordenada_gerada_em')
         .eq('cliente_id', cliente.id)
-        .eq('competencia', mesProximo)
+        .eq('competencia', coordenadaKey)
         .limit(1)
         .maybeSingle();
       if (!cancelled) {
@@ -139,18 +149,29 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
     };
     loadCoordenada();
     return () => { cancelled = true; };
-  }, [cliente.id, mesProximo]);
-  const mesBaseLabel = fmtCompetencia(competencia);
-  const mesProxLabel = fmtCompetencia(mesProximo);
+  }, [cliente.id, coordenadaKey]);
+
+  const mesBaseLabel = modoTodos ? `Acumulado ${ano}` : fmtCompetencia(competencia);
+  const mesProxLabel = modoTodos ? `Projeção Anual ${ano}` : fmtCompetencia(mesProximo);
 
   // ── Build maps ────────────────────────────────────────────
   const realizadoMap = useMemo(() => {
     const map: Record<string, number | null> = {};
-    valoresMensais.forEach(v => {
-      if (v.competencia === competencia) map[v.conta_id] = v.valor_realizado;
-    });
+    if (modoTodos && mwdProp) {
+      // Annual: sum realized across all months with data
+      planoDeContas.forEach(c => { map[c.id] = null; });
+      valoresMensais.forEach(v => {
+        if (mwdProp.includes(v.competencia) && v.valor_realizado != null) {
+          map[v.conta_id] = (map[v.conta_id] ?? 0) + v.valor_realizado;
+        }
+      });
+    } else {
+      valoresMensais.forEach(v => {
+        if (v.competencia === competencia) map[v.conta_id] = v.valor_realizado;
+      });
+    }
     return map;
-  }, [valoresMensais, competencia]);
+  }, [valoresMensais, competencia, modoTodos, mwdProp, planoDeContas]);
 
   const metaMap = useMemo(() => {
     const map: Record<string, TorreMeta> = {};
@@ -176,19 +197,59 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   // ── Calculate meta values ─────────────────────────────────
   const metaValoresMap = useMemo(() => {
     const map: Record<string, number | null> = {};
-    planoDeContas.forEach(c => {
-      const real = realizadoMap[c.id] ?? null;
-      const meta = metaMap[c.id] || null;
-      if (real != null && meta && meta.meta_valor != null) {
-        // calcProjetado returns Math.abs — preserve original sign for costs/expenses
-        const projected = calcProjetado(real, meta);
-        map[c.id] = projected !== null ? (real < 0 ? -Math.abs(projected) : projected) : real;
-      } else {
-        map[c.id] = real;
+
+    if (modoTodos && metasAno && mwdProp) {
+      // Annual projection: for each month with data, apply that month's metas
+      // then sum across all months
+      planoDeContas.forEach(c => { map[c.id] = null; });
+
+      // Group metasAno by competencia
+      const metasByComp: Record<string, Record<string, TorreMeta>> = {};
+      metasAno.forEach(m => {
+        if (!metasByComp[m.competencia]) metasByComp[m.competencia] = {};
+        metasByComp[m.competencia][m.conta_id] = m;
+      });
+
+      // For each month with data, compute projected values
+      for (const comp of mwdProp) {
+        // The meta competencia is the NEXT month after the data month
+        const d = new Date(comp + 'T00:00:00');
+        d.setMonth(d.getMonth() + 1);
+        const metaComp = d.toISOString().slice(0, 7) + '-01';
+        const monthMetas = metasByComp[metaComp] || {};
+
+        planoDeContas.forEach(c => {
+          // Get realized value for this specific month
+          let real: number | null = null;
+          valoresMensais.forEach(v => {
+            if (v.competencia === comp && v.conta_id === c.id) real = v.valor_realizado;
+          });
+
+          if (real == null) return;
+
+          const meta = monthMetas[c.id] || null;
+          let projected = real;
+          if (meta && meta.meta_valor != null) {
+            const p = calcProjetado(real, meta);
+            projected = p !== null ? (real < 0 ? -Math.abs(p) : p) : real;
+          }
+          map[c.id] = (map[c.id] ?? 0) + projected;
+        });
       }
-    });
+    } else {
+      planoDeContas.forEach(c => {
+        const real = realizadoMap[c.id] ?? null;
+        const meta = metaMap[c.id] || null;
+        if (real != null && meta && meta.meta_valor != null) {
+          const projected = calcProjetado(real, meta);
+          map[c.id] = projected !== null ? (real < 0 ? -Math.abs(projected) : projected) : real;
+        } else {
+          map[c.id] = real;
+        }
+      });
+    }
     return map;
-  }, [planoDeContas, realizadoMap, metaMap]);
+  }, [planoDeContas, realizadoMap, metaMap, modoTodos, metasAno, mwdProp, valoresMensais]);
 
   const totaisMeta = useMemo(() => {
     const fat = sumByTipo(tree, 'receita', metaValoresMap);
@@ -291,7 +352,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
       const { data, error } = await supabase.functions.invoke('gerar-coordenada', {
         body: {
           cliente_id: cliente.id,
-          competencia: mesProximo,
+          competencia: coordenadaKey,
           dados: {
             nomeEmpresa: cliente.razao_social || cliente.nome_empresa,
             mesProximo: mesProxLabel,

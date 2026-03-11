@@ -1472,6 +1472,10 @@ export function TorreControleTab({ clienteId }: Props) {
                 valoresMensais={valoresAnuais || []}
                 torreMetas={metas || []}
                 planoDeContas={contas || []}
+                modoTodos={isTodosMode}
+                metasAno={metasAno || []}
+                monthsWithData={monthsWithData.map(m => m.value)}
+                ano={ano}
               />
             )}
 
