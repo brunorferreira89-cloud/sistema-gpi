@@ -447,7 +447,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (proj != null) { total += (c.tipo === 'receita' ? proj : -proj); hasAny = true; }
     }
     return hasAny ? total : null;
-  }, [contas, metaMap, realizadoMapSel, modoMeta]);
+  }, [contas, metaMap, realizadoMapSel, modoMeta, modoAnaliseMeta]);
 
   // ── Variation (R$) helper ─────────────────────────────────────
   const calcVariacao = useCallback((node: DreNode): number | null => {
