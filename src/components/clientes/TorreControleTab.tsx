@@ -1071,7 +1071,11 @@ export function TorreControleTab({ clienteId }: Props) {
                   const avStr = fmtAv(projetado, fatMeta);
                   return (
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color: avColor(conta.tipo), width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
-                      {avStr || '—'}
+                      {(() => {
+                        const ar = getMetaArrow(projetado, val, conta.tipo);
+                        if (ar && avStr) return <><span style={{ fontSize: 11, fontWeight: 600, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</>;
+                        return avStr || '—';
+                      })()}
                     </td>
                   );
                 })()}
