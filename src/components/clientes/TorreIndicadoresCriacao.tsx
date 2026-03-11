@@ -117,10 +117,11 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
   const metasFingerprint = useMemo(() => JSON.stringify(torreMetas.map(m => `${m.conta_id}:${m.meta_tipo}:${m.meta_valor}`).sort()), [torreMetas]);
   const coordenadaStale = !!(coordenadaSalva || coordenadaTecnico) && metasSnapshot !== '' && metasFingerprint !== metasSnapshot;
 
-  // ── Load saved coordenada per month ─────────────────────────
+  // ── Load saved coordenada per month (or annual) ─────────────
+  const coordenadaKey = modoTodos && ano ? `${ano}-12-31` : mesProximo;
+
   useEffect(() => {
     let cancelled = false;
-    // Reset state when month changes so stale data from another month is never shown
     setCoordenadaSalva(null);
     setCoordenadaTecnico(null);
     setCoordenadaGeradaEm(null);
@@ -131,7 +132,7 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
         .from('sugestoes_metas_ia')
         .select('coordenada_comandante, coordenada_tecnico, coordenada_gerada_em')
         .eq('cliente_id', cliente.id)
-        .eq('competencia', mesProximo)
+        .eq('competencia', coordenadaKey)
         .limit(1)
         .maybeSingle();
       if (!cancelled) {
@@ -143,9 +144,10 @@ export function TorreIndicadoresCriacao({ cliente, competencia, mesProximo, valo
     };
     loadCoordenada();
     return () => { cancelled = true; };
-  }, [cliente.id, mesProximo]);
-  const mesBaseLabel = fmtCompetencia(competencia);
-  const mesProxLabel = fmtCompetencia(mesProximo);
+  }, [cliente.id, coordenadaKey]);
+
+  const mesBaseLabel = modoTodos ? `Acumulado ${ano}` : fmtCompetencia(competencia);
+  const mesProxLabel = modoTodos ? `Projeção Anual ${ano}` : fmtCompetencia(mesProximo);
 
   // ── Build maps ────────────────────────────────────────────
   const realizadoMap = useMemo(() => {
