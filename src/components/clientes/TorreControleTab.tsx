@@ -1486,23 +1486,24 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       CONTA DRE
                     </th>
-                    {months.map(m => {
+                    {displayMonths.map(m => {
                       const isSel = isSelectedMonth(m.value);
-                      const selHeaderBg = isSel && (modoMeta || modoAnaliseMeta) ? 'rgba(26,60,255,0.1)' : undefined;
+                      const selHeaderBg = isSel && isModoAtivo && !isTodosMode ? 'rgba(26,60,255,0.1)' : undefined;
+                      const hasMetaForMonth = isTodosMode && isModoAtivo && monthsWithMetas.has(m.value);
 
                       return (
                         <Fragment key={m.value}>
                           <th style={{
                             padding: '10px 12px', textAlign: 'right', fontSize: 11,
-                            fontWeight: isSel && (modoMeta || modoAnaliseMeta) ? 700 : 600,
+                            fontWeight: isSel && isModoAtivo && !isTodosMode ? 700 : 600,
                             color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
                             width: valColW, minWidth: valColW, whiteSpace: 'nowrap',
                             background: selHeaderBg,
-                            borderBottom: isSel && (modoMeta || modoAnaliseMeta) ? '2px solid #1A3CFF' : undefined,
+                            borderBottom: isSel && isModoAtivo && !isTodosMode ? '2px solid #1A3CFF' : undefined,
                           }}>
                             {m.shortLabel}
                           </th>
-                          {modoAnaliseMeta && isSel && (
+                          {modoAnaliseMeta && isSel && !isTodosMode && (
                             <th style={{
                               padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
                               color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -1512,7 +1513,7 @@ export function TorreControleTab({ clienteId }: Props) {
                               META
                             </th>
                           )}
-                          {modoMeta && isSel && (
+                          {modoMeta && isSel && !isTodosMode && (
                             <>
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaColW, minWidth: metaColW }}>
                                 AJUSTE
@@ -1524,6 +1525,17 @@ export function TorreControleTab({ clienteId }: Props) {
                                 META {mesSegShort}
                               </th>
                             </>
+                          )}
+                          {/* TODOS mode: META column header for months with metas */}
+                          {hasMetaForMonth && (
+                            <th style={{
+                              padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600,
+                              color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                              width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap',
+                              background: 'rgba(26,60,255,0.05)',
+                            }}>
+                              META {m.shortLabel}
+                            </th>
                           )}
                         </Fragment>
                       );
