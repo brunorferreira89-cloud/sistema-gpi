@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, Fragment, useCallback } from 'rea
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { type ContaRow } from '@/lib/plano-contas-utils';
-import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
 import { SugestaoMetasDrawer, type SugestaoMeta } from './SugestaoMetasDrawer';
@@ -259,6 +259,9 @@ const keyframesCSS = `
 @keyframes spin     { to{transform:rotate(360deg)} }
 @keyframes scanLine { 0%{top:0;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{top:100%;opacity:0} }
 @keyframes fadeUp   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes radarSweep { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+@keyframes dataPulse { 0%,100%{opacity:0.05} 50%{opacity:0.15} }
+@keyframes scanHorizontal { 0%{left:-30%;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{left:110%;opacity:0} }
 `;
 
 // ══════════════════════════════════════════════════════════════════
@@ -840,7 +843,7 @@ export function TorreControleTab({ clienteId }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Header banner — cockpit theme */}
         <div style={{
-          width: '100%', height: 120, position: 'relative', overflow: 'hidden',
+          width: '100%', height: 150, position: 'relative', overflow: 'hidden',
           borderRadius: 12, marginBottom: 0,
           background: 'linear-gradient(135deg, #0A1628 0%, #0D1B35 50%, #0A1628 100%)',
         }}>
@@ -856,6 +859,26 @@ export function TorreControleTab({ clienteId }: Props) {
           </div>
           {/* Layer 2 — blue glow */}
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 80% at 30% 50%, rgba(26,60,255,0.18) 0%, rgba(0,153,230,0.08) 40%, transparent 70%)', pointerEvents: 'none' }} />
+
+          {/* Layer — scanning beam effect */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+            <div style={{
+              position: 'absolute', top: 0, bottom: 0, width: '30%',
+              background: 'linear-gradient(90deg, transparent, rgba(26,60,255,0.08), rgba(0,153,230,0.12), rgba(26,60,255,0.08), transparent)',
+              animation: 'scanHorizontal 3s ease-in-out infinite',
+            }} />
+          </div>
+
+          {/* Layer — radar pulse circles */}
+          <div style={{ position: 'absolute', right: 100, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <div style={{ position: 'relative', width: 80, height: 80 }}>
+              <div style={{ position: 'absolute', inset: 0, border: '1px solid rgba(0,153,230,0.15)', borderRadius: '50%', animation: 'dataPulse 2s ease infinite' }} />
+              <div style={{ position: 'absolute', inset: 10, border: '1px solid rgba(26,60,255,0.2)', borderRadius: '50%', animation: 'dataPulse 2s ease 0.4s infinite' }} />
+              <div style={{ position: 'absolute', inset: 20, border: '1px solid rgba(0,153,230,0.25)', borderRadius: '50%', animation: 'dataPulse 2s ease 0.8s infinite' }} />
+              <div style={{ position: 'absolute', inset: 0, borderTop: '2px solid rgba(0,153,230,0.4)', borderRadius: '50%', animation: 'radarSweep 3s linear infinite' }} />
+            </div>
+          </div>
+
           {/* Layer 3 — tower SVG */}
           <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.12 }}>
             <svg viewBox="0 0 220 140" style={{ width: 160, height: 100 }}>
@@ -880,7 +903,7 @@ export function TorreControleTab({ clienteId }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ color: '#0099E6', fontSize: 14 }}>◈</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: '#0099E6', letterSpacing: '0.22em' }}>TORRE DE CONTROLE · GPI INTELIGÊNCIA FINANCEIRA</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#0099E6', letterSpacing: '0.22em' }}>GPI INTELIGÊNCIA FINANCEIRA</span>
               </div>
               <span style={{ fontSize: 9, fontWeight: 600, color: '#00A86B', background: 'rgba(0,168,107,0.12)', border: '1px solid rgba(0,168,107,0.25)', borderRadius: 6, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00A86B', animation: 'pulse 2s infinite', boxShadow: '0 0 6px rgba(0,168,107,0.8)' }} />
@@ -890,8 +913,8 @@ export function TorreControleTab({ clienteId }: Props) {
 
             {/* Middle row: title + subtitle */}
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', margin: 0, letterSpacing: '-0.01em' }}>Torre de Controle</h2>
-              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '1px 0 0', letterSpacing: '0.04em' }}>Monitoramento · Metas · Projeções</p>
+              <h2 style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Torre de Controle</h2>
+              <p style={{ fontSize: 11, color: 'rgba(138,155,188,0.7)', margin: '3px 0 0', letterSpacing: '0.04em' }}>Monitoramento · Metas · Projeções</p>
             </div>
 
             {/* Bottom row: controls */}
@@ -926,26 +949,30 @@ export function TorreControleTab({ clienteId }: Props) {
               {/* Separator */}
               <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
 
-              {/* Month selector */}
+              {/* Month selector as buttons */}
               {monthsWithData.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    onClick={() => navMesSel(-1)}
-                    disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0}
-                    style={{ background: 'none', border: 'none', color: 'rgba(138,155,188,0.6)', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? 0.3 : 1 }}
-                  >
-                    <ChevronLeft style={{ width: 14, height: 14 }} />
-                  </button>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FFFFFF', minWidth: 80, textAlign: 'center' }}>
-                    {mesEfetivo ? fmtCompetencia(mesEfetivo) : '—'}
-                  </span>
-                  <button
-                    onClick={() => navMesSel(1)}
-                    disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1}
-                    style={{ background: 'none', border: 'none', color: 'rgba(138,155,188,0.6)', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? 0.3 : 1 }}
-                  >
-                    <ChevronRight style={{ width: 14, height: 14 }} />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {monthsWithData.map(m => {
+                    const isActive = m.value === mesEfetivo;
+                    return (
+                      <button
+                        key={m.value}
+                        onClick={() => setMesSelecionado(m.value)}
+                        style={{
+                          padding: '3px 8px', borderRadius: 5, fontSize: 10, fontWeight: isActive ? 700 : 500,
+                          color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                          background: isActive ? 'rgba(0,153,230,0.5)' : 'transparent',
+                          border: `1px solid ${isActive ? 'rgba(0,153,230,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                          cursor: 'pointer', transition: 'all 0.15s',
+                          letterSpacing: '0.02em',
+                        }}
+                        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; } }}
+                        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; } }}
+                      >
+                        {m.shortLabel}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
