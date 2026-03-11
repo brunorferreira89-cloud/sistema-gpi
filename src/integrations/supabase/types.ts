@@ -707,6 +707,7 @@ export type Database = {
           competencia: string
           coordenada_comandante: string | null
           coordenada_gerada_em: string | null
+          coordenada_tecnico: string | null
           gerado_em: string | null
           id: string
           narrativa: string | null
@@ -717,6 +718,7 @@ export type Database = {
           competencia: string
           coordenada_comandante?: string | null
           coordenada_gerada_em?: string | null
+          coordenada_tecnico?: string | null
           gerado_em?: string | null
           id?: string
           narrativa?: string | null
@@ -727,6 +729,7 @@ export type Database = {
           competencia?: string
           coordenada_comandante?: string | null
           coordenada_gerada_em?: string | null
+          coordenada_tecnico?: string | null
           gerado_em?: string | null
           id?: string
           narrativa?: string | null
