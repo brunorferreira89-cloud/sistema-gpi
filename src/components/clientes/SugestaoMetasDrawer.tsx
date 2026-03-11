@@ -751,19 +751,21 @@ export function SugestaoMetasDrawer({
     const real = realizadoMap[conta.id] ?? 0;
     const sug = sugestaoMap.get(conta.id);
     const hasSug = !!sug;
-    const isSel = selected.has(conta.id);
+    const hasManual = !!manualMetas[conta.id];
+    const isActive = hasSug || hasManual;
+    const isSel = selected.has(conta.id) || hasManual;
     const proj = projetadoMap[conta.id] ?? real;
     const delta = proj - real;
 
     rows.push(
       <tr key={`c-${conta.id}`} style={{
-        background: hasSug ? '#FFFFFF' : '#FAFCFF',
-        borderLeft: hasSug ? `3px solid ${isSel ? C.primary : 'rgba(26,60,255,0.2)'}` : 'none',
+        background: isActive ? '#FFFFFF' : '#FAFCFF',
+        borderLeft: isActive ? `3px solid ${isSel ? C.primary : 'rgba(26,60,255,0.2)'}` : 'none',
       }}>
         <td style={{
           fontSize: 11,
-          fontWeight: hasSug ? 500 : 400,
-          color: hasSug ? C.txt : C.txtSec,
+          fontWeight: isActive ? 500 : 400,
+          color: isActive ? C.txt : C.txtSec,
           padding: '6px 12px 6px 32px',
         }}>
           {conta.nome}
@@ -776,8 +778,11 @@ export function SugestaoMetasDrawer({
             <MetaIACell
               sugestao={sug!}
               isReceita={isReceita}
-              isSelected={isSel}
+              isSelected={selected.has(conta.id)}
               onToggle={() => toggleSelect(conta.id)}
+              manualMeta={manualMetas[conta.id] ?? null}
+              onManualApply={(m) => handleManualApply(conta.id, m)}
+              onManualClear={() => handleManualClear(conta.id)}
             />
           ) : (
             <span style={{ color: C.txtMuted }}>—</span>
@@ -785,17 +790,17 @@ export function SugestaoMetasDrawer({
         </td>
         <td style={{
           textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '6px 12px', width: 90,
-          color: hasSug ? (deltaColor(delta, isReceita)) : C.txtMuted,
+          color: isActive ? (deltaColor(delta, isReceita)) : C.txtMuted,
         }}>
-          {hasSug ? fmtDelta(delta) : '—'}
+          {isActive ? fmtDelta(delta) : '—'}
         </td>
         <td style={{
           textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '6px 12px', width: 110,
-          fontWeight: hasSug ? 500 : 400,
-          color: hasSug ? C.txt : C.txtSec,
+          fontWeight: isActive ? 500 : 400,
+          color: isActive ? C.txt : C.txtSec,
         }}>
           {fmtVal(proj)}
-          {hasSug ? renderArrow(real, proj, isReceita) : <span style={{ color: C.txtMuted, marginLeft: 4, fontSize: 10 }}>→</span>}
+          {isActive ? renderArrow(real, proj, isReceita) : <span style={{ color: C.txtMuted, marginLeft: 4, fontSize: 10 }}>→</span>}
         </td>
       </tr>
     );
