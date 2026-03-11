@@ -559,7 +559,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const metaColW = 90;
   const rsColW = 90;
   const metaProjetadoColW = 110;
-  const statusColW = modoMeta ? 80 : 0;
+  
 
   // Sticky cell style
   const stickyTd = (bg: string, extra?: React.CSSProperties): React.CSSProperties => ({
@@ -727,10 +727,6 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       {fmtTorre(projetado)}
                     </td>
-                    {/* STATUS */}
-                    <td style={{ textAlign: 'center', padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>
-                      {isCat && !isTotal ? <StatusBadge status={status} /> : null}
-                    </td>
                   </>
                 )}
               </Fragment>
@@ -843,7 +839,7 @@ export function TorreControleTab({ clienteId }: Props) {
   };
 
   // ── Table min width calculation ───────────────────────────────
-  const extraColsWidth = modoMeta ? (metaColW + rsColW + metaProjetadoColW + statusColW) : (modoAnaliseMeta ? metaColW : 0);
+  const extraColsWidth = modoMeta ? (metaColW + rsColW + metaProjetadoColW) : (modoAnaliseMeta ? metaColW : 0);
   const tableMinWidth = nameColW + 12 * valColW + valColW + extraColsWidth;
 
   // ══════════════════════════════════════════════════════════════
@@ -1223,9 +1219,6 @@ export function TorreControleTab({ clienteId }: Props) {
                               </th>
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaProjetadoColW, minWidth: metaProjetadoColW, whiteSpace: 'nowrap' }}>
                                 META {mesSegShort}
-                              </th>
-                              <th style={{ padding: '10px 6px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: statusColW, minWidth: statusColW }}>
-                                STATUS
                               </th>
                             </>
                           )}
