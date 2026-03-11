@@ -1253,6 +1253,19 @@ export function TorreControleTab({ clienteId }: Props) {
                 </tbody>
               </table>
             </div>
+
+
+            {/* Instrumentos de Criação de Metas (only in criação mode with a month selected) */}
+            {modoMeta && mesSelecionado && mesEfetivo && cliente && (
+              <TorreIndicadoresCriacao
+                cliente={cliente}
+                competencia={mesEfetivo}
+                mesProximo={mesSeg}
+                valoresMensais={valoresAnuais || []}
+                torreMetas={metas || []}
+                planoDeContas={contas || []}
+              />
+            )}
           </>
         )}
       </div>
