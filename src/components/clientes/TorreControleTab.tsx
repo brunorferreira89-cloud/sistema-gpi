@@ -765,10 +765,17 @@ export function TorreControleTab({ clienteId }: Props) {
     // The meta stored is for mesSeg (projetado). For ANÁLISE META we need the meta that was set for the selected month.
     // Actually let's re-read: ANÁLISE META shows meta column and colors the realized cell.
 
+    const isPropagated = propagatedCells.has(conta.id);
+
     return (
       <Fragment key={conta.id}>
         <tr
-          style={{ background: rowBg, borderTop, borderBottom, transition: 'background 0.1s ease' }}
+          style={{
+            background: rowBg, borderTop, borderBottom, transition: 'background 0.1s ease',
+            borderLeft: isPropagated ? '2px solid #0099E6' : '2px solid transparent',
+            animation: isPropagated ? 'propagateBorder 1.2s ease-out forwards' : undefined,
+            position: 'relative',
+          }}
           onMouseEnter={e => { if (!isTotal) e.currentTarget.style.background = '#F6F9FF'; }}
           onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
         >
