@@ -42,6 +42,19 @@ const C = {
 const fmtR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const fmtRColor = (v: number) => <span style={{ fontFamily: C.mono, fontWeight: 700, color: v < 0 ? C.red : C.green }}>{fmtR(v)}</span>;
 
+// ── Colorize R$ values in text string ─────────────────────────
+function colorizeReais(text: string): React.ReactNode[] {
+  const parts = text.split(/((?:-\s*)?R\$\s*[\d.,]+)/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^(-?\s*)?R\$\s*([\d.,]+)$/);
+    if (match) {
+      const isNegative = part.trim().startsWith('-');
+      return <span key={i} style={{ fontFamily: C.mono, fontWeight: 700, color: isNegative ? '#DC2626' : '#00A86B' }}>{part}</span>;
+    }
+    return part;
+  });
+}
+
 // ── Keyframes ─────────────────────────────────────────────────
 const keyframesCSS = `
 @keyframes commanderFloat {
