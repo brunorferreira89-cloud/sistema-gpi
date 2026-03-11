@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { type TorreMeta, calcProjetado, fmtCompetencia } from '@/lib/torre-utils';
 import { TorreIndicadorModal } from './TorreIndicadorModal';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Cliente {
