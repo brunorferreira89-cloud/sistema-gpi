@@ -153,7 +153,8 @@ function StatusBadge({ status }: { status: 'ok' | 'atencao' | 'critico' | 'neutr
 function EditableMetaCell({
   meta, contaId, clienteId, competencia, isTotal, onSaved,
 }: {
-  meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean; onSaved: () => void;
+  meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean;
+  onSaved: (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [localTipo, setLocalTipo] = useState<'pct' | 'valor'>(meta?.meta_tipo || 'pct');
@@ -170,7 +171,7 @@ function EditableMetaCell({
       { onConflict: 'cliente_id,conta_id,competencia' }
     );
     if (error) { toast.error('Erro ao salvar meta'); return; }
-    onSaved();
+    onSaved(contaId, tipo, valor);
   };
 
   const commit = () => {
@@ -297,6 +298,8 @@ const keyframesCSS = `
 @keyframes floatDrift { 0%{transform:translate(0,0) scale(1);opacity:0} 10%{opacity:0.8} 75%{opacity:0.4} 100%{transform:translate(35px,-130px) scale(0.6);opacity:0} }
 @keyframes glowPulse { 0%,100%{opacity:0.5;filter:drop-shadow(0 0 2px rgba(0,153,230,0.3))} 50%{opacity:1;filter:drop-shadow(0 0 8px rgba(0,153,230,0.8))} }
 @keyframes signalWave { 0%{r:8;opacity:0.6} 100%{r:28;opacity:0} }
+@keyframes propagateBorder { 0%{border-left-color:rgba(0,153,230,0.9)} 100%{border-left-color:transparent} }
+@keyframes propagateLabel { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
 `;
 
 const DATA_PARTICLES = [
@@ -332,6 +335,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [sugestaoGeradaEm, setSugestaoGeradaEm] = useState<string | null>(null);
   const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
   const [narrativa, setNarrativa] = useState<string | null>(null);
+  const [propagatedCells, setPropagatedCells] = useState<Set<string>>(new Set());
+  const propagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const months = useMemo(() => getMonthsForYear(ano), [ano]);
 
@@ -432,7 +437,103 @@ export function TorreControleTab({ clienteId }: Props) {
   // Realized map for selected month (for meta calculations)
   const realizadoMapSel = useMemo(() => mesEfetivo ? getMonthMap(mesEfetivo) : {}, [mesEfetivo, getMonthMap]);
 
-  // ── Totalizador calc per month ────────────────────────────────
+  // ── Propagation handler ───────────────────────────────────────
+  const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
+    if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
+    const conta = contas.find(c => c.id === contaId);
+    if (!conta || metaValor === null) { invalidateMetas(); return; }
+
+    const newPropagated = new Set<string>();
+    const updatedMetaMap: Record<string, TorreMeta> = { ...metaMap, [contaId]: { conta_id: contaId, meta_tipo: metaTipo, meta_valor: metaValor } };
+
+    if (conta.nivel === 2) {
+      // ── BOTTOM-UP: category → subgroup → group ──
+      const parent = contas.find(c => c.id === conta.conta_pai_id);
+      if (parent) {
+        const siblings = contas.filter(c => c.conta_pai_id === parent.id);
+        let sumMeta = 0, sumReal = 0;
+        for (const sib of siblings) {
+          const real = realizadoMapSel[sib.id] ?? 0;
+          sumReal += real;
+          const m = updatedMetaMap[sib.id] || null;
+          const proj = m ? calcProjetado(real, m) : null;
+          sumMeta += proj ?? real;
+        }
+        const pctParent = sumReal !== 0 ? Math.round(((sumMeta / sumReal) - 1) * 10000) / 100 : 0;
+        await supabase.from('torre_metas').upsert({
+          cliente_id: clienteId, conta_id: parent.id, competencia: mesSeg,
+          meta_tipo: 'pct', meta_valor: pctParent, updated_at: new Date().toISOString(),
+        }, { onConflict: 'cliente_id,conta_id,competencia' });
+        newPropagated.add(parent.id);
+        updatedMetaMap[parent.id] = { conta_id: parent.id, meta_tipo: 'pct', meta_valor: pctParent };
+
+        const grandparent = contas.find(c => c.id === parent.conta_pai_id);
+        if (grandparent) {
+          const uncles = contas.filter(c => c.conta_pai_id === grandparent.id);
+          let sumMetaGP = 0, sumRealGP = 0;
+          for (const uncle of uncles) {
+            const nephews = contas.filter(c => c.conta_pai_id === uncle.id);
+            for (const neph of nephews) {
+              const r = realizadoMapSel[neph.id] ?? 0;
+              sumRealGP += r;
+              const m = updatedMetaMap[neph.id] || null;
+              const proj = m ? calcProjetado(r, m) : null;
+              sumMetaGP += proj ?? r;
+            }
+          }
+          const pctGP = sumRealGP !== 0 ? Math.round(((sumMetaGP / sumRealGP) - 1) * 10000) / 100 : 0;
+          await supabase.from('torre_metas').upsert({
+            cliente_id: clienteId, conta_id: grandparent.id, competencia: mesSeg,
+            meta_tipo: 'pct', meta_valor: pctGP, updated_at: new Date().toISOString(),
+          }, { onConflict: 'cliente_id,conta_id,competencia' });
+          newPropagated.add(grandparent.id);
+        }
+      }
+    } else {
+      // ── TOP-DOWN: group/subgroup → children (+ grandchildren if grupo) ──
+      let pctToApply: number;
+      if (metaTipo === 'pct') {
+        pctToApply = metaValor;
+      } else {
+        const findNode = (nodes: DreNode[], id: string): DreNode | null => {
+          for (const n of nodes) { if (n.conta.id === id) return n; const f = findNode(n.children, id); if (f) return f; } return null;
+        };
+        const node = findNode(tree, contaId);
+        const nodeReal = node ? sumNodeLeafs(node, realizadoMapSel) : null;
+        if (nodeReal && nodeReal !== 0) {
+          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: 'valor', meta_valor: metaValor });
+          pctToApply = proj != null ? Math.round(((proj / nodeReal) - 1) * 10000) / 100 : 0;
+        } else {
+          pctToApply = 0;
+        }
+      }
+
+      const children = contas.filter(c => c.conta_pai_id === contaId);
+      const upserts: { cliente_id: string; conta_id: string; competencia: string; meta_tipo: string; meta_valor: number; updated_at: string }[] = [];
+      for (const child of children) {
+        upserts.push({ cliente_id: clienteId, conta_id: child.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctToApply, updated_at: new Date().toISOString() });
+        newPropagated.add(child.id);
+        if (conta.nivel === 0) {
+          const grandchildren = contas.filter(c => c.conta_pai_id === child.id);
+          for (const gc of grandchildren) {
+            upserts.push({ cliente_id: clienteId, conta_id: gc.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctToApply, updated_at: new Date().toISOString() });
+            newPropagated.add(gc.id);
+          }
+        }
+      }
+      if (upserts.length > 0) {
+        await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+      }
+    }
+
+    if (newPropagated.size > 0) {
+      setPropagatedCells(newPropagated);
+      if (propagateTimerRef.current) clearTimeout(propagateTimerRef.current);
+      propagateTimerRef.current = setTimeout(() => setPropagatedCells(new Set()), 1500);
+    }
+    invalidateMetas();
+  }, [contas, clienteId, mesSeg, realizadoMapSel, metaMap, tree, invalidateMetas]);
+
   const calcTotaisForMap = useCallback((valMap: Record<string, number | null>) => {
     const fat = sumGrupos(gruposPorTipo['receita'] || [], valMap);
     const custos = sumGrupos(gruposPorTipo['custo_variavel'] || [], valMap);
@@ -664,10 +765,17 @@ export function TorreControleTab({ clienteId }: Props) {
     // The meta stored is for mesSeg (projetado). For ANÁLISE META we need the meta that was set for the selected month.
     // Actually let's re-read: ANÁLISE META shows meta column and colors the realized cell.
 
+    const isPropagated = propagatedCells.has(conta.id);
+
     return (
       <Fragment key={conta.id}>
         <tr
-          style={{ background: rowBg, borderTop, borderBottom, transition: 'background 0.1s ease' }}
+          style={{
+            background: rowBg, borderTop, borderBottom, transition: 'background 0.1s ease',
+            borderLeft: isPropagated ? '2px solid #0099E6' : '2px solid transparent',
+            animation: isPropagated ? 'propagateBorder 1.2s ease-out forwards' : undefined,
+            position: 'relative',
+          }}
           onMouseEnter={e => { if (!isTotal) e.currentTarget.style.background = '#F6F9FF'; }}
           onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
         >
@@ -683,6 +791,11 @@ export function TorreControleTab({ clienteId }: Props) {
               ) : <span style={{ width: 18 }} />}
               {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
               <span style={{ letterSpacing, textTransform: isGrupo && !isTotal ? textTransform : undefined }}>{conta.nome}</span>
+              {isPropagated && (
+                <span style={{ fontSize: 8, color: '#0099E6', fontWeight: 700, marginLeft: 6, animation: 'propagateLabel 1.5s ease-out forwards', letterSpacing: '0.04em' }}>
+                  ↑ propagado
+                </span>
+              )}
             </span>
           </td>
 
@@ -750,7 +863,7 @@ export function TorreControleTab({ clienteId }: Props) {
                         clienteId={clienteId}
                         competencia={mesSeg}
                         isTotal={isTotal}
-                        onSaved={invalidateMetas}
+                        onSaved={handleMetaSaved}
                       />
                     </td>
                     {/* R$ */}
