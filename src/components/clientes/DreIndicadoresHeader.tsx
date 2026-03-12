@@ -5,6 +5,7 @@ import type { ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
 import { AnaliseCompletaModal } from './AnaliseCompletaModal';
+import { mesAnterior, fmtCompetencia } from '@/lib/torre-utils';
 
 /* ──────── types ──────── */
 interface Props {
@@ -157,18 +158,131 @@ function MiniSparkLine({ data, color, w = 48, h = 32 }: { data: number[]; color:
   );
 }
 
+/* ──────── CardFooter ──────── */
+function CardFooter({ prevValue, currentValue, isPercent, semantics, prevCompLabel }: {
+  prevValue: number | null;
+  currentValue: number;
+  isPercent: boolean;
+  semantics: 'positive_good' | 'negative_good' | 'neutral';
+  prevCompLabel: string;
+}) {
+  if (prevValue == null) return null;
+
+  const fmtVal = isPercent
+    ? `${Math.abs(prevValue).toFixed(1).replace('.', ',')}%`
+    : fmtCurrency(prevValue);
+
+  let deltaLabel = '';
+  let deltaIcon = '';
+  let isPositive = true;
+  let isNew = false;
+
+  if (prevValue === 0 && !isPercent) {
+    isNew = true;
+  } else if (isPercent) {
+    const pp = currentValue - prevValue;
+    isPositive = pp >= 0;
+    deltaIcon = isPositive ? '▲' : '▼';
+    deltaLabel = `${isPositive ? '+' : ''}${pp.toFixed(1).replace('.', ',')}pp`;
+  } else {
+    if (prevValue === 0) {
+      isNew = true;
+    } else {
+      const pctChange = ((currentValue - prevValue) / Math.abs(prevValue)) * 100;
+      isPositive = pctChange >= 0;
+      deltaIcon = isPositive ? '▲' : '▼';
+      deltaLabel = `${isPositive ? '+' : ''}${pctChange.toFixed(1).replace('.', ',')}%`;
+    }
+  }
+
+  const isNeutral = semantics === 'neutral';
+  let badgeBg: string, badgeColor: string, badgeBorder: string;
+
+  if (isNew || isNeutral) {
+    badgeBg = 'rgba(138,155,188,0.10)';
+    badgeColor = '#8A9BBC';
+    badgeBorder = '1px solid rgba(138,155,188,0.22)';
+  } else {
+    const isGood = semantics === 'positive_good' ? isPositive : !isPositive;
+    if (isGood) {
+      badgeBg = 'rgba(0,168,107,0.12)';
+      badgeColor = '#00A86B';
+      badgeBorder = '1px solid rgba(0,168,107,0.22)';
+    } else {
+      badgeBg = 'rgba(220,38,38,0.08)';
+      badgeColor = '#DC2626';
+      badgeBorder = '1px solid rgba(220,38,38,0.20)';
+    }
+  }
+
+  return (
+    <>
+      <div>
+        <div style={{ fontSize: 8, color: '#8A9BBC', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          {prevCompLabel}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#4A5E80', fontFamily: "'Courier New', monospace" }}>
+          {fmtVal}
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          padding: '2px 8px', borderRadius: 100,
+          display: 'inline-flex', alignItems: 'center', gap: 3,
+          background: badgeBg, color: badgeColor, border: badgeBorder,
+        }}>
+          {isNew ? 'novo' : `${deltaIcon} ${deltaLabel}`}
+        </span>
+        <span style={{ fontSize: 8, color: '#8A9BBC' }}>vs mês ant.</span>
+      </div>
+    </>
+  );
+}
+
 /* ──────── card wrapper ──────── */
-function IndicatorCard({ index, color, label, children, hasData, onClick }: {
-  index: number; color: string; label: string; hasData: boolean; children: React.ReactNode; onClick?: () => void;
+function IndicatorCard({ index, color, label, children, hasData, onClick, footer }: {
+  index: number; color: string; label: string; hasData: boolean; children: React.ReactNode; onClick?: () => void; footer?: React.ReactNode;
 }) {
   const [visible, setVisible] = useState(false);
-  const [lineWidth, setLineWidth] = useState(0);
   const [hovered, setHovered] = useState(false);
   useEffect(() => {
     const t1 = setTimeout(() => setVisible(true), index * 60);
-    const t2 = setTimeout(() => setLineWidth(100), index * 60 + 100);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => clearTimeout(t1);
   }, [index]);
+
+  const theme = color === '#1A3CFF' ? 'Blue' : color === '#DC2626' ? 'Red' : color === '#00A86B' ? 'Green' : color === '#D97706' ? 'Amber' : color === '#0099E6' ? 'Cyan' : 'Blue';
+
+  const barGradients: Record<string, string> = {
+    Blue: 'linear-gradient(90deg, #1A3CFF, #0099E6, #1A3CFF)',
+    Red: 'linear-gradient(90deg, #DC2626, #f87171, #DC2626)',
+    Green: 'linear-gradient(90deg, #00A86B, #34d399, #00A86B)',
+    Amber: 'linear-gradient(90deg, #D97706, #fbbf24, #D97706)',
+    Cyan: 'linear-gradient(90deg, #0099E6, #38bdf8, #0099E6)',
+  };
+  const barShadows: Record<string, string> = {
+    Blue: '0 0 8px rgba(26,60,255,0.45)',
+    Red: '0 0 8px rgba(220,38,38,0.40)',
+    Green: '0 0 8px rgba(0,168,107,0.40)',
+    Amber: '0 0 8px rgba(217,119,6,0.40)',
+    Cyan: '0 0 8px rgba(0,153,230,0.40)',
+  };
+  const hoverShadows: Record<string, string> = {
+    Blue: '0 8px 28px rgba(26,60,255,0.18)',
+    Red: '0 8px 28px rgba(220,38,38,0.16)',
+    Green: '0 8px 28px rgba(0,168,107,0.16)',
+    Amber: '0 8px 28px rgba(217,119,6,0.16)',
+    Cyan: '0 8px 28px rgba(0,153,230,0.16)',
+  };
+  const hoverBorders: Record<string, string> = {
+    Blue: 'rgba(26,60,255,0.35)',
+    Red: 'rgba(220,38,38,0.30)',
+    Green: 'rgba(0,168,107,0.30)',
+    Amber: 'rgba(217,119,6,0.30)',
+    Cyan: 'rgba(0,153,230,0.30)',
+  };
+
+  const shimmerDelays = [0, 0.7, 1.4, 2.1, 2.8, 0.4, 1.1, 1.8, 2.5, 3.2];
 
   return (
     <div
@@ -179,21 +293,63 @@ function IndicatorCard({ index, color, label, children, hasData, onClick }: {
         background: '#FFFFFF',
         border: '1px solid #DDE4F0',
         borderRadius: 12,
-        padding: 16,
         position: 'relative',
         overflow: 'hidden',
         minHeight: 88,
         opacity: visible ? 1 : 0,
-        transform: visible ? (hovered ? 'translateY(-1px)' : 'translateY(0)') : 'translateY(8px)',
-        transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 200ms ease, box-shadow 200ms ease',
+        transform: visible ? (hovered ? 'translateY(-2px)' : 'translateY(0)') : 'translateY(8px)',
+        transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
         cursor: onClick ? 'pointer' : 'default',
-        boxShadow: hovered && onClick ? '0 4px 16px #1A3CFF14' : 'none',
+        animation: visible ? `dre-breath${theme} 4s ease-in-out infinite` : 'none',
+        animationDelay: `${index * 0.5}s`,
+        animationPlayState: hovered ? 'paused' : 'running',
+        ...(hovered ? { boxShadow: hoverShadows[theme], borderColor: hoverBorders[theme] } : {}),
       }}
     >
+      {/* Radial gradient overlay */}
       <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 100% 0%, ${color}0F, transparent 70%)`, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, borderRadius: '12px 12px 0 0', background: color, width: `${lineWidth}%`, transition: 'width 400ms cubic-bezier(0.16,1,0.3,1)' }} />
-      <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.05em', color: '#8A9BBC', fontWeight: 600, marginBottom: 4, position: 'relative' }}>{label}</div>
-      <div style={{ position: 'relative' }}>{children}</div>
+
+      {/* Animated gradient bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '12px 12px 0 0',
+        background: barGradients[theme] || barGradients.Blue,
+        backgroundSize: '200% 100%',
+        animation: 'dre-barFlow 3s linear infinite',
+        boxShadow: barShadows[theme] || barShadows.Blue,
+      }} />
+
+      {/* Ambient shimmer */}
+      <div style={{
+        position: 'absolute', top: 0, left: '-60%', width: '40%', height: '100%',
+        background: hovered
+          ? 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.30) 50%, transparent 70%)'
+          : 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)',
+        pointerEvents: 'none',
+        animation: hovered ? 'dre-hoverShimmer 0.55s ease forwards' : `dre-ambientShimmer 5s ease-in-out infinite`,
+        animationDelay: hovered ? '0s' : `${shimmerDelays[index] || 0}s`,
+        zIndex: 2,
+      }} />
+
+      {/* Content */}
+      <div style={{ padding: 16, position: 'relative', zIndex: 1 }}>
+        <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.05em', color: '#8A9BBC', fontWeight: 600, marginBottom: 4 }}>{label}</div>
+        <div>{children}</div>
+      </div>
+
+      {/* Glassmorphism footer */}
+      {footer && (
+        <div style={{
+          background: 'rgba(240,244,250,0.82)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderTop: '1px solid rgba(221,228,240,0.55)',
+          padding: '9px 14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          position: 'relative', zIndex: 1,
+        }}>
+          {footer}
+        </div>
+      )}
     </div>
   );
 }
@@ -312,6 +468,35 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
 
   const monthLabel = latestMonth ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '') : '';
   const monthLabelFull = latestMonth ? new Date(latestMonth.value + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+
+  /* ── previous month calculations ── */
+  const prevComp = latestMonth ? mesAnterior(latestMonth.value) : '';
+  const prevCompLabel = prevComp ? fmtCompetencia(prevComp) : '';
+  const prevCalcMap = useMemo(() => {
+    if (!prevComp) return {} as Record<string, number | null>;
+    const m: Record<string, number | null> = {};
+    contas.forEach(c => { m[c.id] = valoresMap[c.id]?.[prevComp] ?? null; });
+    return m;
+  }, [contas, valoresMap, prevComp]);
+
+  const prevFat = prevComp ? calcIndicatorValue(leafs, prevCalcMap, ['receita']) : 0;
+  const prevCustosVar = prevComp ? sumByTipo(leafs, prevCalcMap, 'custo_variavel') : 0;
+  const prevMc = prevComp ? calcIndicatorValue(leafs, prevCalcMap, ['receita', 'custo_variavel']) : 0;
+  const prevMcPct = prevFat ? (prevMc / prevFat) * 100 : 0;
+  const prevDespesasFixas = prevComp ? sumByTipo(leafs, prevCalcMap, 'despesa_fixa') : 0;
+  const prevDespFixasPct = prevFat ? (prevDespesasFixas / prevFat) * 100 : 0;
+  const prevRo = prevComp ? calcIndicatorValue(leafs, prevCalcMap, ['receita', 'custo_variavel', 'despesa_fixa']) : 0;
+  const prevRoPct = prevFat ? (prevRo / prevFat) * 100 : 0;
+  const prevInvestimentos = prevComp ? sumByTipo(leafs, prevCalcMap, 'investimento') : 0;
+  const prevFinanceiro = prevComp ? sumByTipo(leafs, prevCalcMap, 'financeiro') : 0;
+  const prevRai = prevComp ? calcIndicatorValue(leafs, prevCalcMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']) : 0;
+  const prevRaiPct = prevFat ? (prevRai / prevFat) * 100 : 0;
+  const prevGc = prevComp ? calcIndicatorValue(leafs, prevCalcMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']) : 0;
+  const prevGcPct = prevFat ? (prevGc / prevFat) * 100 : 0;
+  const prevMcDecimal = prevFat ? prevMc / prevFat : 0;
+  const prevPeMinimo = prevMcDecimal ? prevDespesasFixas / prevMcDecimal : 0;
+
+  const hasPrev = prevComp && hasData;
 
   const openDrawer = (titulo: string, dados: AnaliseDrawerDados) => {
     setDrawerTitulo(titulo);
@@ -523,31 +708,36 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
       {/* Linha 1 — DRE Operacional */}
       <div className="dre-header-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
         {/* 1. Faturamento */}
-        <IndicatorCard index={0} color={BLUE} label="Faturamento" hasData={hasData} onClick={hasData ? handleFatClick : undefined}>
+        <IndicatorCard index={0} color={BLUE} label="Faturamento" hasData={hasData} onClick={hasData ? handleFatClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevFat} currentValue={fat} isPercent={false} semantics="positive_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animFat, true, BLUE)}
           {cardBottom(monthLabel, histFat, BLUE)}
         </IndicatorCard>
 
         {/* 2. Custos Operacionais */}
-        <IndicatorCard index={1} color={custosColor} label="Custos Operacionais" hasData={hasData} onClick={hasData ? handleCustosClick : undefined}>
+        <IndicatorCard index={1} color={custosColor} label="Custos Operacionais" hasData={hasData} onClick={hasData ? handleCustosClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevCustosVar} currentValue={custosVar} isPercent={false} semantics="negative_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animCustos, true, custosColor)}
           {cardBottom(`${fmtPct(custosVarPct)} fat. atual`, histCustos, custosColor)}
         </IndicatorCard>
 
         {/* 3. Margem de Contribuição */}
-        <IndicatorCard index={2} color={mcColor} label="Margem de Contribuição" hasData={hasData} onClick={hasData ? handleMcClick : undefined}>
+        <IndicatorCard index={2} color={mcColor} label="Margem de Contribuição" hasData={hasData} onClick={hasData ? handleMcClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevMcPct} currentValue={mcPct} isPercent={true} semantics="positive_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animMcPct, false, mcColor)}
           {cardBottom(`${fmtCurrency(mc)} abs.`, histMC, mcColor)}
         </IndicatorCard>
 
         {/* 4. Despesas Fixas */}
-        <IndicatorCard index={3} color={despColor} label="Despesas Fixas" hasData={hasData} onClick={hasData ? handleDespClick : undefined}>
+        <IndicatorCard index={3} color={despColor} label="Despesas Fixas" hasData={hasData} onClick={hasData ? handleDespClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevDespesasFixas} currentValue={despesasFixas} isPercent={false} semantics="negative_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animDesp, true, despColor)}
           {cardBottom(`${fmtPct(despFixasPct)} fat. atual`, histDesp, despColor)}
         </IndicatorCard>
 
         {/* 5. Resultado Operacional */}
-        <IndicatorCard index={4} color={roColor} label="Resultado Operacional" hasData={hasData} onClick={hasData ? handleRoClick : undefined}>
+        <IndicatorCard index={4} color={roColor} label="Resultado Operacional" hasData={hasData} onClick={hasData ? handleRoClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevRoPct} currentValue={roPct} isPercent={true} semantics="positive_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animRoPct, false, roColor)}
           {cardBottom(`${fmtCurrency(ro)} abs.`, histRO, roColor)}
         </IndicatorCard>
@@ -556,31 +746,36 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
       {/* Linha 2 — Fluxo de Caixa e Equilíbrio */}
       <div className="dre-header-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginTop: 12 }}>
         {/* 6. Ativ. Investimento */}
-        <IndicatorCard index={5} color={INVEST_BLUE} label="Ativ. Investimento" hasData={hasData} onClick={hasData ? handleInvestClick : undefined}>
+        <IndicatorCard index={5} color={INVEST_BLUE} label="Ativ. Investimento" hasData={hasData} onClick={hasData ? handleInvestClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevInvestimentos} currentValue={investimentos} isPercent={false} semantics="negative_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animInvest, true, INVEST_BLUE)}
           {cardBottom(`${fmtPct(investPct)} fat. atual`, histInvest, INVEST_BLUE)}
         </IndicatorCard>
 
         {/* 7. Ativ. Financiamento */}
-        <IndicatorCard index={6} color={finColor} label="Ativ. Financiamento" hasData={hasData} onClick={hasData ? handleFinClick : undefined}>
+        <IndicatorCard index={6} color={finColor} label="Ativ. Financiamento" hasData={hasData} onClick={hasData ? handleFinClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevFinanceiro} currentValue={financeiro} isPercent={false} semantics="neutral" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animFin, true, finColor)}
           {cardBottom(`${fmtPct(financeiroPct)} fat. atual`, histFin, finColor)}
         </IndicatorCard>
 
         {/* 8. Resultado após Invest. */}
-        <IndicatorCard index={7} color={raiColor} label="Resultado após Invest." hasData={hasData} onClick={hasData ? handleRaiClick : undefined}>
+        <IndicatorCard index={7} color={raiColor} label="Resultado após Invest." hasData={hasData} onClick={hasData ? handleRaiClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevRaiPct} currentValue={raiPct} isPercent={true} semantics="positive_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animRaiPct, false, raiColor)}
           {cardBottom(`${fmtCurrency(rai)} abs.`, histRAI, raiColor)}
         </IndicatorCard>
 
         {/* 9. Geração de Caixa */}
-        <IndicatorCard index={8} color={gcColor} label="Geração de Caixa" hasData={hasData} onClick={hasData ? handleGcClick : undefined}>
+        <IndicatorCard index={8} color={gcColor} label="Geração de Caixa" hasData={hasData} onClick={hasData ? handleGcClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevGcPct} currentValue={gcPct} isPercent={true} semantics="positive_good" prevCompLabel={prevCompLabel} /> : undefined}>
           {cardValue(animGcPct, false, gcColor)}
           {cardBottom(`${fmtCurrency(gc)} abs.`, histGC, gcColor)}
         </IndicatorCard>
 
         {/* 10. Ponto de Equilíbrio */}
-        <IndicatorCard index={9} color={peColor} label="Ponto de Equilíbrio" hasData={hasData} onClick={hasData ? handlePeClick : undefined}>
+        <IndicatorCard index={9} color={peColor} label="Ponto de Equilíbrio" hasData={hasData} onClick={hasData ? handlePeClick : undefined}
+          footer={hasPrev ? <CardFooter prevValue={prevPeMinimo} currentValue={peMinimo} isPercent={false} semantics="neutral" prevCompLabel={prevCompLabel} /> : undefined}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: '#8A9BBC', marginBottom: 1 }}>Mínimo</div>
@@ -631,8 +826,43 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
         </div>
       )}
 
-      {/* Responsive overrides */}
+      {/* DRE card effect keyframes + responsive */}
       <style>{`
+        @keyframes dre-barFlow {
+          0%   { background-position: 0% 0%; }
+          100% { background-position: 200% 0%; }
+        }
+        @keyframes dre-breathBlue {
+          0%,100% { box-shadow: 0 2px 8px rgba(26,60,255,0.06); border-color: #DDE4F0; }
+          50%     { box-shadow: 0 4px 18px rgba(26,60,255,0.14); border-color: rgba(26,60,255,0.25); }
+        }
+        @keyframes dre-breathRed {
+          0%,100% { box-shadow: 0 2px 8px rgba(220,38,38,0.05); border-color: #DDE4F0; }
+          50%     { box-shadow: 0 4px 18px rgba(220,38,38,0.13); border-color: rgba(220,38,38,0.22); }
+        }
+        @keyframes dre-breathGreen {
+          0%,100% { box-shadow: 0 2px 8px rgba(0,168,107,0.05); border-color: #DDE4F0; }
+          50%     { box-shadow: 0 4px 18px rgba(0,168,107,0.13); border-color: rgba(0,168,107,0.22); }
+        }
+        @keyframes dre-breathAmber {
+          0%,100% { box-shadow: 0 2px 8px rgba(217,119,6,0.05); border-color: #DDE4F0; }
+          50%     { box-shadow: 0 4px 18px rgba(217,119,6,0.13); border-color: rgba(217,119,6,0.22); }
+        }
+        @keyframes dre-breathCyan {
+          0%,100% { box-shadow: 0 2px 8px rgba(0,153,230,0.05); border-color: #DDE4F0; }
+          50%     { box-shadow: 0 4px 18px rgba(0,153,230,0.13); border-color: rgba(0,153,230,0.22); }
+        }
+        @keyframes dre-ambientShimmer {
+          0%   { left: -60%; opacity: 0; }
+          10%  { opacity: 1; }
+          60%  { left: 120%; opacity: 1; }
+          70%  { opacity: 0; }
+          100% { left: 120%; opacity: 0; }
+        }
+        @keyframes dre-hoverShimmer {
+          from { left: -60%; }
+          to   { left: 120%; }
+        }
         @media (max-width: 1200px) and (min-width: 768px) {
           .dre-header-grid { grid-template-columns: repeat(3, 1fr) !important; }
         }
