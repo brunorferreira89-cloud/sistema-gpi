@@ -120,7 +120,7 @@ serve(async (req) => {
 
     const nomeCliente = cliente.razao_social || cliente.nome_empresa;
 
-    const hasDiretriz = typeof diretriz === 'string' && diretriz.trim().length > 0;
+    // hasDiretriz already declared above
 
     // Conditional system prompt
     const systemPrompt = hasDiretriz
