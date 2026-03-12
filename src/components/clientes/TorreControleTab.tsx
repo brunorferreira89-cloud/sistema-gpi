@@ -349,6 +349,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [modoAnaliseMeta, setModoAnaliseMeta] = useState(false);
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
   const [showAV, setShowAV] = useState(false);
+  const [showAH, setShowAH] = useState(false);
   const [drawerSugestaoOpen, setDrawerSugestaoOpen] = useState(false);
   const [sugestoes, setSugestoes] = useState<SugestaoMeta[]>([]);
   const [loadingSugestao, setLoadingSugestao] = useState(false);
@@ -498,6 +499,25 @@ export function TorreControleTab({ clienteId }: Props) {
   const avColor = (tipo: string): string => tipo === 'receita' ? '#0D1B35' : '#DC2626';
   // AV% semantic color for totalizador cells
   const avTotColor = (v: number): string => v < 0 ? '#FF6B6B' : '#00E68A';
+
+  // AH% (Horizontal Analysis) helpers
+  const fmtAh = (valAtual: number | null, valAnterior: number | null): string | null => {
+    if (valAtual == null || valAnterior == null || valAnterior === 0) return null;
+    return (((valAtual - valAnterior) / Math.abs(valAnterior)) * 100).toFixed(1) + '%';
+  };
+  const ahColor = (valAtual: number | null, valAnterior: number | null, tipo: string): string => {
+    if (valAtual == null || valAnterior == null) return C.txtMuted;
+    const diff = valAtual - valAnterior;
+    if (diff === 0) return C.txtMuted;
+    const isReceita = tipo === 'receita';
+    if (isReceita) return diff > 0 ? '#00A86B' : '#DC2626';
+    return diff < 0 ? '#00A86B' : '#DC2626';
+  };
+  const ahTotColor = (valAtual: number, valAnterior: number): string => {
+    const diff = valAtual - valAnterior;
+    if (diff === 0) return C.txtMuted;
+    return diff > 0 ? '#00E68A' : '#FF6B6B';
+  };
 
   // Direction arrow for META columns: compares meta vs realized
   const getMetaArrow = (metaVal: number | null, realVal: number | null, tipo: string): { arrow: string; color: string } | null => {
@@ -1023,6 +1043,20 @@ export function TorreControleTab({ clienteId }: Props) {
                   );
                 })()}
 
+                {/* AH% after realized in CRIAÇÃO DE METAS (filtered month) */}
+                {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                  const prevComp = getPrevMonth(m.value);
+                  const prevMap = getMonthMap(prevComp);
+                  const prevVal = isCat ? (prevMap[conta.id] ?? null) : sumNodeLeafs(node, prevMap);
+                  const ahStr = fmtAh(val, prevVal);
+                  const color = isTotal ? (val != null && prevVal != null ? ahTotColor(val, prevVal) : C.txtMuted) : ahColor(val, prevVal, conta.tipo);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
+                      {ahStr || '—'}
+                    </td>
+                  );
+                })()}
+
                 {/* META mode: AJUSTE + R$ + META columns after selected month (specific month only) */}
                 {modoMeta && isSel && !isTodosMode && (
                   <>
@@ -1078,6 +1112,17 @@ export function TorreControleTab({ clienteId }: Props) {
                         if (ar && avStr) return <><span style={{ fontSize: 14, fontWeight: 700, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</>;
                         return avStr || '—';
                       })()}
+                    </td>
+                  );
+                })()}
+
+                {/* AH% after META in CRIAÇÃO DE METAS (filtered month) */}
+                {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                  const ahStr = fmtAh(projetado, val);
+                  const color = isTotal ? (projetado != null && val != null ? ahTotColor(projetado, val) : C.txtMuted) : ahColor(projetado, val, conta.tipo);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                      {ahStr || '—'}
                     </td>
                   );
                 })()}
@@ -1310,6 +1355,20 @@ export function TorreControleTab({ clienteId }: Props) {
                 );
               })()}
 
+              {/* AH% after realized in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                const prevComp = getPrevMonth(m.value);
+                const prevMap = getMonthMap(prevComp);
+                const prevTotals = calcTotaisForMap(prevMap);
+                const prevVal = prevTotals[key as keyof typeof prevTotals];
+                const ahStr = fmtAh(val, prevVal);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: ahTotColor(val, prevVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {ahStr || '—'}
+                  </td>
+                );
+              })()}
+
               {modoMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
@@ -1340,6 +1399,18 @@ export function TorreControleTab({ clienteId }: Props) {
                 return (
                   <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: avTotColor(projVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
                     {(() => { const ar = getTotArrow(projVal, val); return ar && avStr ? <><span style={{ fontSize: 14, fontWeight: 700, color: ar.color, marginRight: 4 }}>{ar.arrow}</span>{avStr}</> : (avStr || '—'); })()}
+                  </td>
+                );
+              })()}
+
+              {/* AH% after META in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                const projTotais = calcTotaisProjetado();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                const ahStr = fmtAh(projVal, val);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: ahTotColor(projVal, val), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {ahStr || '—'}
                   </td>
                 );
               })()}
@@ -1504,7 +1575,9 @@ export function TorreControleTab({ clienteId }: Props) {
   // AV% column count: in month-filtered mode with AV on, 1 AV col after META; in TODOS mode, 1 per displayed month + 1 per meta month
   const avColsCount = showAV ? (isTodosMode ? displayMonths.length + todosMetaColsCount : 1) : 0;
   const avExtraForMeta = showAV && !isTodosMode && isModoAtivo ? avColW : 0; // AV% after META in filtered mode
-  const tableMinWidth = nameColW + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
+  const ahExtraForRealizado = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after realized in CRIAÇÃO
+  const ahExtraForMeta = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after META in CRIAÇÃO
+  const tableMinWidth = nameColW + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + ahExtraForRealizado + ahExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
 
   // ══════════════════════════════════════════════════════════════
   return (
@@ -1863,6 +1936,24 @@ export function TorreControleTab({ clienteId }: Props) {
               >
                 AV%
               </button>
+              <button
+                onClick={() => setShowAH(v => !v)}
+                style={{
+                  background: showAH ? '#1A3CFF' : '#F0F4FA',
+                  color: showAH ? '#FFFFFF' : '#8A9BBC',
+                  border: `1px solid ${showAH ? '#1A3CFF' : '#DDE4F0'}`,
+                  borderRadius: 6,
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!showAH) (e.currentTarget.style.background = '#E8EEF8'); }}
+                onMouseLeave={e => { if (!showAH) (e.currentTarget.style.background = '#F0F4FA'); }}
+              >
+                AH%
+              </button>
             </div>
 
             {/* Instrumentos de Criação de Metas — logo abaixo do banner */}
@@ -1953,6 +2044,12 @@ export function TorreControleTab({ clienteId }: Props) {
                               AV%
                             </th>
                           )}
+                          {/* AH% header after realized in CRIAÇÃO DE METAS (filtered) */}
+                          {showAH && modoMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW, background: 'rgba(26,60,255,0.06)' }}>
+                              AH%
+                            </th>
+                          )}
                           {modoMeta && isSel && !isTodosMode && (
                             <>
                               <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em', width: metaColW, minWidth: metaColW }}>
@@ -1970,6 +2067,12 @@ export function TorreControleTab({ clienteId }: Props) {
                           {showAV && modoMeta && isSel && !isTodosMode && (
                             <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
                               AV%
+                            </th>
+                          )}
+                          {/* AH% header after META in CRIAÇÃO DE METAS (filtered) */}
+                          {showAH && modoMeta && isSel && !isTodosMode && (
+                            <th style={{ padding: '10px 6px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: C.txtMuted, width: avColW, minWidth: avColW }}>
+                              AH%
                             </th>
                           )}
                           {/* AV% header when no mode active and filtered */}
