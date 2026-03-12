@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.gerar-analise-consultiva]
 verify_jwt = false
+
+[functions.criar-usuario]
+verify_jwt = false

@@ -21,6 +21,7 @@ import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
 import { fetchKpiData } from '@/lib/kpi-utils';
 import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
+import { PortalTab } from '@/components/clientes/PortalTab';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
@@ -206,6 +207,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="portal">Portal</TabsTrigger>
           <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
         </TabsList>
 
@@ -298,6 +300,11 @@ export default function ClienteFichaPage() {
         {/* Contato */}
         <TabsContent value="contato">
           <ContatoTab clienteId={clienteId!} cliente={cliente} />
+        </TabsContent>
+
+        {/* Portal */}
+        <TabsContent value="portal">
+          <PortalTab clienteId={clienteId!} />
         </TabsContent>
 
         {/* Visão do Cliente */}

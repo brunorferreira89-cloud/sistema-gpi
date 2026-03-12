@@ -3,23 +3,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Não autenticado");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ success: false, error: "Não autenticado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller is admin or consultor
+    // Verify caller
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -38,46 +42,87 @@ serve(async (req) => {
       throw new Error("Sem permissão");
     }
 
-    const { email, senha, nome, role, cliente_id, portal_ativo } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
-    if (!email || !senha || !nome || !role) {
-      throw new Error("Campos obrigatórios: email, senha, nome, role");
+    // ─── DELETE ───
+    if (action === "delete") {
+      const { user_id } = body;
+      if (!user_id) throw new Error("user_id é obrigatório");
+
+      await adminClient.from("profiles").delete().eq("id", user_id);
+      const { error: deleteErr } = await adminClient.auth.admin.deleteUser(user_id);
+      if (deleteErr) throw deleteErr;
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    if (!["consultor", "cliente"].includes(role)) {
-      throw new Error("Role deve ser 'consultor' ou 'cliente'");
+    // ─── CREATE ───
+    const { email, password, nome, cliente_id, usar_convite } = body;
+
+    if (!email || !nome || !cliente_id) {
+      throw new Error("Campos obrigatórios: email, nome, cliente_id");
+    }
+    if (!usar_convite && !password) {
+      throw new Error("Senha é obrigatória quando não usar convite");
     }
 
-    if (role === "cliente" && !cliente_id) {
-      throw new Error("cliente_id é obrigatório para usuários do tipo cliente");
+    let newUserId: string;
+
+    if (usar_convite) {
+      const { data: invited, error: invErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: { nome },
+      });
+      if (invErr) {
+        if (invErr.message?.includes("already been registered") || invErr.message?.includes("already exists")) {
+          return new Response(
+            JSON.stringify({ success: false, error: "email_exists" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw invErr;
+      }
+      newUserId = invited.user.id;
+    } else {
+      const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { nome },
+      });
+      if (createErr) {
+        if (createErr.message?.includes("already been registered") || createErr.message?.includes("already exists")) {
+          return new Response(
+            JSON.stringify({ success: false, error: "email_exists" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw createErr;
+      }
+      newUserId = created.user.id;
     }
 
-    // Create auth user
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password: senha,
-      email_confirm: true,
-      user_metadata: { nome },
-    });
-
-    if (createError) throw createError;
-
-    // Update profile (created by trigger with default role='consultor')
-    const updates: Record<string, any> = { nome, role };
-    if (role === "cliente") {
-      updates.cliente_id = cliente_id;
-      updates.portal_ativo = portal_ativo ?? false;
-    }
+    // Update profile (trigger creates it with role='consultor')
+    // Small delay to let trigger fire
+    await new Promise((r) => setTimeout(r, 500));
 
     const { error: profileError } = await adminClient
       .from("profiles")
-      .update(updates)
-      .eq("id", newUser.user!.id);
+      .update({ nome, role: "cliente", cliente_id, portal_ativo: false })
+      .eq("id", newUserId);
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      // Rollback: delete auth user
+      await adminClient.auth.admin.deleteUser(newUserId);
+      throw new Error("Erro ao criar perfil: " + profileError.message);
+    }
 
+    // Get email for response
     return new Response(
-      JSON.stringify({ success: true, user_id: newUser.user!.id }),
+      JSON.stringify({ success: true, profile: { id: newUserId, nome, email } }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
