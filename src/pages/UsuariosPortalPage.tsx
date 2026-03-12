@@ -381,7 +381,7 @@ function CriarUsuarioModal({
 
       toast({ title: 'Acesso criado!' });
       onOpenChange(false);
-      onCreated({ nome: nome.trim(), email: email.trim(), senha });
+      onCreated({ nome: nome.trim(), email: email.trim(), senha }, newUserId);
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
