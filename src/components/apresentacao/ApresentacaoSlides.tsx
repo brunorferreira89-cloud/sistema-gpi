@@ -64,6 +64,8 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
   const [prepData, setPrepData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [torreMetas, setTorreMetas] = useState<any[]>([]);
+  const [nextCompValMap, setNextCompValMap] = useState<Record<string, number | null>>({});
 
   // Load all data
   useEffect(() => {
