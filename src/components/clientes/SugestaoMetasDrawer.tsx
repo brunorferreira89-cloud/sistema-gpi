@@ -40,12 +40,13 @@ interface SugestaoMetasDrawerProps {
   metasExistentes: Record<string, { meta_tipo: string; meta_valor: number | null }>;
   onAplicar: (selecionadas: SugestaoMeta[]) => Promise<void>;
   loading: boolean;
-  onRegenerar?: () => void;
+  onRegenerar?: (diretriz?: string) => void;
   geradoEm?: string | null;
   fromCache?: boolean;
   contas?: ContaRow[];
   realizadoMap?: Record<string, number | null>;
   narrativa?: string | null;
+  diretrizSalva?: string | null;
 }
 
 // ── Colors ───────────────────────────────────────────────────────
@@ -397,6 +398,7 @@ function MetaIACell({ sugestao, isReceita, isSelected, onToggle, manualMeta, onM
 
 // ── Narrativa Comandante GPI ─────────────────────────────────────
 const iconesSecao: Record<string, string> = {
+  'Missão recebida':                '🎯',
   'Leitura dos Instrumentos':       '🎛️',
   'Destino e Altitude Alvo':        '✈️',
   'Por que estes ajustes nos controles': '🕹️',
@@ -404,9 +406,12 @@ const iconesSecao: Record<string, string> = {
   'Checklist antes da decolagem':   '✅',
 };
 
-function NarrativaComandante({ texto }: { texto: string }) {
+function NarrativaComandante({ texto, forceExpand }: { texto: string; forceExpand?: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
+  useEffect(() => {
+    if (forceExpand) setExpanded(true);
+  }, [forceExpand]);
   // Parse sections: split by **Title**
   const sections = useMemo(() => {
     const parts: { titulo: string; corpo: string }[] = [];
@@ -480,11 +485,44 @@ function NarrativaComandante({ texto }: { texto: string }) {
 export function SugestaoMetasDrawer({
   open, onClose, cliente, competencia, sugestoes, metasExistentes,
   onAplicar, loading, onRegenerar, geradoEm, fromCache,
-  contas = [], realizadoMap = {}, narrativa,
+  contas = [], realizadoMap = {}, narrativa, diretrizSalva,
 }: SugestaoMetasDrawerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
   const [manualMetas, setManualMetas] = useState<Record<string, ManualMeta>>({});
+  const [diretrizText, setDiretrizText] = useState('');
+  const [diretrizMode, setDiretrizMode] = useState<'input' | 'active'>(diretrizSalva ? 'active' : 'input');
+  const [comandanteAutoExpand, setComandanteAutoExpand] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Sync diretriz mode with prop
+  useEffect(() => {
+    if (diretrizSalva) {
+      setDiretrizMode('active');
+    } else {
+      setDiretrizMode('input');
+    }
+  }, [diretrizSalva]);
+
+  // Loading messages
+  const [loadingMsg, setLoadingMsg] = useState(0);
+  useEffect(() => {
+    if (!loading) { setLoadingMsg(0); return; }
+    const msgs = [0, 1, 2];
+    let idx = 0;
+    setLoadingMsg(0);
+    const interval = setInterval(() => {
+      idx = Math.min(idx + 1, msgs.length - 1);
+      setLoadingMsg(idx);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const loadingMessages = [
+    'Lendo os instrumentos de voo...',
+    'Calculando rota para o objetivo...',
+    'Ajustando os controles...',
+  ];
 
   // Initialize selections when sugestoes change
   useMemo(() => {
@@ -883,7 +921,7 @@ export function SugestaoMetasDrawer({
               )}
               {onRegenerar && (
                 <button
-                  onClick={onRegenerar} disabled={loading}
+                  onClick={() => onRegenerar?.(diretrizSalva || undefined)} disabled={loading}
                   style={{
                     marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5,
                     padding: '4px 10px', borderRadius: 5, border: `1px solid ${C.borderStr}`,
@@ -904,7 +942,7 @@ export function SugestaoMetasDrawer({
         {loading && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 }}>
             <div style={{ width: 36, height: 36, border: `3px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ fontSize: 13, color: C.txtSec, margin: 0 }}>A IA está analisando os dados financeiros...</p>
+            <p style={{ fontSize: 13, color: C.txtSec, margin: 0 }}>{loadingMessages[loadingMsg]}</p>
             <p style={{ fontSize: 11, color: C.txtMuted, margin: 0 }}>Isso pode levar alguns segundos</p>
           </div>
         )}
@@ -922,8 +960,89 @@ export function SugestaoMetasDrawer({
               <span style={{ fontSize: 10, color: C.txtMuted }}>{sugestoes.length} sugestões · {existingCount} já têm meta</span>
             </div>
 
+            {/* Diretriz Panel */}
+            <div style={{ padding: '12px 24px 0' }}>
+              {diretrizMode === 'active' && diretrizSalva ? (
+                <div style={{
+                  background: 'rgba(26,60,255,0.04)',
+                  border: '1px solid rgba(26,60,255,0.18)',
+                  borderRadius: 12, padding: '12px 16px', marginBottom: 16,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <span style={{ fontSize: 13 }}>🎯</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: C.primary }}>
+                      OBJETIVO DESTA ANÁLISE
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13, color: C.txt, fontStyle: 'italic', margin: '0 0 8px' }}>
+                    "{diretrizSalva}"
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 10, color: C.txtMuted }}>
+                      {geradoEm ? new Date(geradoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' } as any) : ''}
+                    </span>
+                    <button
+                      onClick={() => { setDiretrizMode('input'); setDiretrizText(''); }}
+                      style={{ background: 'none', border: 'none', fontSize: 11, color: C.primary, cursor: 'pointer', fontFamily: "'DM Sans', system-ui" }}
+                    >
+                      ✏️ Nova diretriz
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  background: '#F6F9FF',
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13 }}>🎯</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: C.txtSec }}>
+                      DIRETRIZ DO CONSULTOR
+                    </span>
+                  </div>
+                  <textarea
+                    value={diretrizText}
+                    onChange={e => setDiretrizText(e.target.value)}
+                    placeholder="Ex: quero que o Resultado Operacional seja positivo em R$ 10.000. Analise os números e sugira os ajustes necessários."
+                    style={{
+                      width: '100%', minHeight: 72, maxHeight: 120, resize: 'vertical',
+                      border: `1px solid ${C.border}`, borderRadius: 8,
+                      padding: '10px 12px', fontSize: 13, color: C.txt,
+                      background: '#FFFFFF', fontFamily: "'DM Sans', sans-serif",
+                      outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.08)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                    <span style={{ fontSize: 10, color: C.txtMuted, fontStyle: 'italic' }}>
+                      Seja específico: mencione o indicador e o valor desejado
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (!diretrizText.trim() || !onRegenerar) return;
+                        setComandanteAutoExpand(true);
+                        onRegenerar(diretrizText.trim());
+                      }}
+                      disabled={!diretrizText.trim() || loading}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none',
+                        background: C.primary, color: '#fff', fontSize: 12, fontWeight: 600,
+                        cursor: !diretrizText.trim() || loading ? 'not-allowed' : 'pointer',
+                        opacity: !diretrizText.trim() || loading ? 0.45 : 1,
+                        fontFamily: "'DM Sans', system-ui",
+                      }}
+                    >
+                      ▶ Analisar com este objetivo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Narrativa Comandante GPI */}
-            {narrativa && <NarrativaComandante texto={narrativa} />}
+            {narrativa && <NarrativaComandante texto={narrativa} forceExpand={comandanteAutoExpand && !!diretrizSalva} />}
 
             {/* Table */}
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>

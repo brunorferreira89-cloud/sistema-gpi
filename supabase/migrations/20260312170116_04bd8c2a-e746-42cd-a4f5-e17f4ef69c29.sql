@@ -1,0 +1,1 @@
+ALTER TABLE public.sugestoes_metas_ia ADD COLUMN IF NOT EXISTS diretriz text;

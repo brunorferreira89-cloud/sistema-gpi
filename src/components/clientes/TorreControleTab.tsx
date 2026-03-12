@@ -355,6 +355,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [sugestaoGeradaEm, setSugestaoGeradaEm] = useState<string | null>(null);
   const [sugestaoFromCache, setSugestaoFromCache] = useState(false);
   const [narrativa, setNarrativa] = useState<string | null>(null);
+  const [diretrizSalva, setDiretrizSalva] = useState<string | null>(null);
   const [propagatedCells, setPropagatedCells] = useState<Set<string>>(new Set());
   const [chatOpen, setChatOpen] = useState(false);
   const propagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -694,21 +695,21 @@ export function TorreControleTab({ clienteId }: Props) {
   }, [metaMap, realizadoMapSel]);
 
   // ── Sugestão metas handler ────────────────────────────────────
-  const handleSugerirMetas = async (forcarRegeneracao = false) => {
+  const handleSugerirMetas = async (forcarRegeneracao = false, diretriz?: string) => {
     if (!cliente || !mesEfetivo) return;
     setLoadingSugestao(true);
     setDrawerSugestaoOpen(true);
     if (forcarRegeneracao) setSugestoes([]);
     try {
       const mesAnt = (() => { const d = new Date(mesEfetivo + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() - 1); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`; })();
-      const { data, error } = await supabase.functions.invoke('sugerir-metas', {
-        body: {
-          cliente_id: cliente.id,
-          competencia: mesEfetivo,
-          competencia_anterior: mesAnt,
-          force: forcarRegeneracao,
-        },
-      });
+      const body: any = {
+        cliente_id: cliente.id,
+        competencia: mesEfetivo,
+        competencia_anterior: mesAnt,
+        force: forcarRegeneracao,
+      };
+      if (diretriz) body.diretriz = diretriz;
+      const { data, error } = await supabase.functions.invoke('sugerir-metas', { body });
       if (error) throw error;
       const contaMap = new Map((contas || []).map(c => [c.id, c]));
       const enriched: SugestaoMeta[] = (data?.sugestoes || []).map((s: any) => ({
@@ -725,6 +726,7 @@ export function TorreControleTab({ clienteId }: Props) {
       setNarrativa(data?.narrativa || null);
       setSugestaoGeradaEm(data?.gerado_em || null);
       setSugestaoFromCache(data?.cached || false);
+      setDiretrizSalva(data?.diretriz || null);
     } catch (err) {
       console.error('Erro ao sugerir metas:', err);
       toast.error('Erro ao obter sugestões de metas');
@@ -2043,12 +2045,13 @@ export function TorreControleTab({ clienteId }: Props) {
         metasExistentes={metaMap}
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
-        onRegenerar={() => handleSugerirMetas(true)}
+        onRegenerar={(dir?: string) => handleSugerirMetas(true, dir)}
         geradoEm={sugestaoGeradaEm}
         fromCache={sugestaoFromCache}
         contas={contas || []}
         realizadoMap={realizadoMapSel}
         narrativa={narrativa}
+        diretrizSalva={diretrizSalva}
       />
 
       {cliente && mesEfetivo && mesSeg && (
