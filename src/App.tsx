@@ -74,7 +74,7 @@ const App = () => (
 
             {/* Portal do Cliente (requires portal_ativo) */}
             <Route element={<PortalRoute />}>
-              <Route element={<ClienteLayout />}>
+              <Route element={<PortalLayout />}>
                 <Route path="/cliente" element={<ClientePortalPage />} />
               </Route>
             </Route>
