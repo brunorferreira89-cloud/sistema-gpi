@@ -1575,7 +1575,9 @@ export function TorreControleTab({ clienteId }: Props) {
   // AV% column count: in month-filtered mode with AV on, 1 AV col after META; in TODOS mode, 1 per displayed month + 1 per meta month
   const avColsCount = showAV ? (isTodosMode ? displayMonths.length + todosMetaColsCount : 1) : 0;
   const avExtraForMeta = showAV && !isTodosMode && isModoAtivo ? avColW : 0; // AV% after META in filtered mode
-  const tableMinWidth = nameColW + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
+  const ahExtraForRealizado = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after realized in CRIAÇÃO
+  const ahExtraForMeta = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after META in CRIAÇÃO
+  const tableMinWidth = nameColW + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + ahExtraForRealizado + ahExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
 
   // ══════════════════════════════════════════════════════════════
   return (
