@@ -198,7 +198,7 @@ export default function ClienteFichaPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="visao-geral" onValueChange={() => {}}>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="importacao">Importação</TabsTrigger>
