@@ -898,8 +898,26 @@ export function DreAnualTab({ clienteId }: Props) {
     transition: 'all 0.15s',
   });
 
+  // Banner financial data
+  const bannerData = useMemo(() => {
+    if (!mesEfetivo || !leafContas.length) return { faturamento: null, mcPct: null, gcPct: null };
+    const mMap = getMonthMap(mesEfetivo);
+    const fat = leafContas.filter(c => c.tipo === 'receita').reduce((s, c) => s + (mMap[c.id] ?? 0), 0);
+    if (!fat) return { faturamento: null, mcPct: null, gcPct: null };
+    const mc = calcIndicadorValue(leafContas, mMap, ['receita', 'custo_variavel']);
+    const gc = calcIndicadorValue(leafContas, mMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
+    return {
+      faturamento: fat,
+      mcPct: mc != null ? (mc / Math.abs(fat)) * 100 : null,
+      gcPct: gc != null ? (gc / Math.abs(fat)) * 100 : null,
+    };
+  }, [mesEfetivo, leafContas, getMonthMap]);
+
   return (
     <div className="space-y-4">
+      {/* Cockpit Banner */}
+      <DreBanner faturamento={bannerData.faturamento} mcPct={bannerData.mcPct} gcPct={bannerData.gcPct} />
+
       {/* Indicadores Header */}
       {hasContas && contas && valoresAnuais && (
         <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} clienteId={clienteId} />
