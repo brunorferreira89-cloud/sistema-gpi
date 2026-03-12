@@ -311,10 +311,10 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
 
       {/* Animated gradient bar */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '12px 12px 0 0',
+        position: 'absolute', top: 0, left: 0, right: 0, height: 4, borderRadius: '12px 12px 0 0',
         background: barGradients[theme] || barGradients.Blue,
-        backgroundSize: '200% 100%',
-        animation: 'dre-barFlow 3s linear infinite',
+        backgroundSize: '300% 100%',
+        animation: 'dre-barFlow 2.5s linear infinite',
         boxShadow: barShadows[theme] || barShadows.Blue,
       }} />
 
