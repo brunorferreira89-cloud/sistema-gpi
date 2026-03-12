@@ -223,7 +223,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
   const handleGenerate = async (campo?: string) => {
     setGenerating(campo || 'all');
     try {
-      const payload = await buildPayload();
+      const payload: any = await buildPayload();
       if (campo) payload.campo = campo;
 
       const { data, error } = await supabase.functions.invoke('gerar-analise-consultiva', { body: payload });

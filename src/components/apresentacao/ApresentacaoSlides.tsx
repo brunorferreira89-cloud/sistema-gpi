@@ -70,9 +70,9 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
       const { data: cli } = await supabase.from('clientes').select('*').eq('id', clienteId).single();
       setCliente(cli);
 
-      const { data: contasData } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
-      setContas(contasData || []);
-      const ids = (contasData || []).map((c: any) => c.id);
+      const { data: contasRaw } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
+      const contasData = (contasRaw || []) as ContaRow[];
+      setContas(contasData);
 
       const { data: valores } = await supabase.from('valores_mensais').select('conta_id, valor_realizado, competencia').in('conta_id', ids);
       const vm: Record<string, number | null> = {};
