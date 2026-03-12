@@ -43,7 +43,7 @@ const fmtMonth = (comp: string) => {
 };
 
 export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) {
-  const { id: clienteId } = useParams();
+  const { clienteId } = useParams();
   const [analise, setAnalise] = useState<AnaliseResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasCheckedCache, setHasCheckedCache] = useState(false);
