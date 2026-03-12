@@ -78,16 +78,16 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
 
       // Build indicator summary
       try {
-        const { data: contas } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
+        const { data: contasRaw } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
+        const contasTyped = (contasRaw || []) as ContaRow[];
         const { data: valores } = await supabase.from('valores_mensais').select('conta_id, valor_realizado')
-          .in('conta_id', (contas || []).map(c => c.id)).eq('competencia', competencia);
+          .in('conta_id', contasTyped.map(c => c.id)).eq('competencia', competencia);
         const valMap: Record<string, number | null> = {};
         (valores || []).forEach((v: any) => { valMap[v.conta_id] = v.valor_realizado; });
-        const leafs = getLeafContas(contas || []);
-        const fat = sumLeafByTipo(contas || [], valMap, 'receita');
-        const mc = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel']);
-        const ro = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel', 'despesa_fixa']);
-        const gc = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
+        const fat = sumLeafByTipo(contasTyped, valMap, 'receita');
+        const mc = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel']);
+        const ro = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel', 'despesa_fixa']);
+        const gc = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
         const fmtR = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
         const fmtP = (v: number, base: number) => base ? `${((v / Math.abs(base)) * 100).toFixed(1)}%` : '—';
         setIndicadorSummary([
