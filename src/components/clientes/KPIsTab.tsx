@@ -518,6 +518,17 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
     onError: () => toast.error('Erro ao restaurar'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (isOverride) {
+        const { error } = await supabase.from('kpi_indicadores' as any).delete().eq('id', indicador.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success('Indicador apagado'); onSaved(); },
+    onError: () => toast.error('Erro ao apagar indicador'),
+  });
+
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
       <DialogContent style={{ minWidth: 520, maxWidth: 580 }} className="w-[95vw] sm:w-auto">
