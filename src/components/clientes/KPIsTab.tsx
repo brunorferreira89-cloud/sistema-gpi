@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ChevronDown, Pencil, RotateCcw } from 'lucide-react';
+import { ChevronDown, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo } from '@/lib/dre-indicadores';
@@ -518,6 +518,17 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
     onError: () => toast.error('Erro ao restaurar'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (isOverride) {
+        const { error } = await supabase.from('kpi_indicadores' as any).delete().eq('id', indicador.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success('Indicador apagado'); onSaved(); },
+    onError: () => toast.error('Erro ao apagar indicador'),
+  });
+
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
       <DialogContent style={{ minWidth: 520, maxWidth: 580 }} className="w-[95vw] sm:w-auto">
@@ -707,11 +718,27 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
 
         <DialogFooter>
           <div className="flex w-full items-center justify-between">
-            <div>
+            <div className="flex gap-2">
               {isOverride && (
                 <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
                   Restaurar padrão GPI
+                </Button>
+              )}
+              {isOverride && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                  onClick={() => {
+                    if (window.confirm('Tem certeza que deseja apagar este indicador? Esta ação não pode ser desfeita.')) {
+                      deleteMutation.mutate();
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Apagar
                 </Button>
               )}
             </div>
