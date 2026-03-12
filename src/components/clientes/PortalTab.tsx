@@ -24,6 +24,8 @@ export function PortalTab({ clienteId, cliente }: Props) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [togglingPortal, setTogglingPortal] = useState(false);
+  const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Temporary credentials state (after creation)
   const [createdEmail, setCreatedEmail] = useState<string | null>(null);
