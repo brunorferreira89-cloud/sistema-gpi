@@ -74,6 +74,7 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
       const contasData = (contasRaw || []) as ContaRow[];
       setContas(contasData);
 
+      const ids = contasData.map(c => c.id);
       const { data: valores } = await supabase.from('valores_mensais').select('conta_id, valor_realizado, competencia').in('conta_id', ids);
       const vm: Record<string, number | null> = {};
       (valores || []).filter((v: any) => v.competencia === competencia).forEach((v: any) => { vm[v.conta_id] = v.valor_realizado; });
