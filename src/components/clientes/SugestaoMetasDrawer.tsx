@@ -1107,8 +1107,72 @@ export function SugestaoMetasDrawer({
         {/* No suggestions */}
         {!loading && sugestoes.length === 0 && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40 }}>
+            {/* Diretriz Panel when no suggestions */}
+            <div style={{ width: '100%', maxWidth: 500 }}>
+              <div style={{
+                background: '#F6F9FF',
+                border: `1px solid ${C.border}`,
+                borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 13 }}>🎯</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: C.txtSec }}>
+                    DIRETRIZ DO CONSULTOR
+                  </span>
+                </div>
+                <textarea
+                  value={diretrizText}
+                  onChange={e => setDiretrizText(e.target.value)}
+                  placeholder="Ex: quero que o Resultado Operacional seja positivo em R$ 10.000. Analise os números e sugira os ajustes necessários."
+                  style={{
+                    width: '100%', minHeight: 72, maxHeight: 120, resize: 'vertical',
+                    border: `1px solid ${C.border}`, borderRadius: 8,
+                    padding: '10px 12px', fontSize: 13, color: C.txt,
+                    background: '#FFFFFF', fontFamily: "'DM Sans', sans-serif",
+                    outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.08)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                  <span style={{ fontSize: 10, color: C.txtMuted, fontStyle: 'italic' }}>
+                    Seja específico: mencione o indicador e o valor desejado
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (!diretrizText.trim() || !onRegenerar) return;
+                      setComandanteAutoExpand(true);
+                      onRegenerar(diretrizText.trim());
+                    }}
+                    disabled={!diretrizText.trim() || loading}
+                    style={{
+                      padding: '8px 16px', borderRadius: 8, border: 'none',
+                      background: C.primary, color: '#fff', fontSize: 12, fontWeight: 600,
+                      cursor: !diretrizText.trim() || loading ? 'not-allowed' : 'pointer',
+                      opacity: !diretrizText.trim() || loading ? 0.45 : 1,
+                      fontFamily: "'DM Sans', system-ui",
+                    }}
+                  >
+                    ▶ Analisar com este objetivo
+                  </button>
+                </div>
+              </div>
+            </div>
             <p style={{ fontSize: 13, color: C.txtSec }}>Nenhuma sugestão disponível.</p>
-            <p style={{ fontSize: 11, color: C.txtMuted }}>Verifique se há dados importados para este período.</p>
+            <p style={{ fontSize: 11, color: C.txtMuted }}>Verifique se há dados importados para este período ou use a diretriz acima.</p>
+            {onRegenerar && (
+              <button
+                onClick={() => onRegenerar?.(diretrizSalva || undefined)}
+                disabled={loading}
+                style={{
+                  marginTop: 8, display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '8px 16px', borderRadius: 6, border: `1px solid ${C.borderStr}`,
+                  background: 'transparent', color: C.primary, fontSize: 12, fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1,
+                  fontFamily: "'DM Sans', system-ui",
+                }}
+              >🔄 Regenerar sugestões</button>
+            )}
           </div>
         )}
       </div>
