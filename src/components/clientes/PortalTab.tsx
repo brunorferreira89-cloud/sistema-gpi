@@ -4,14 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Key, Pencil, Trash2, Globe, Calendar, ChevronDown, Copy, Check, MessageCircle } from 'lucide-react';
+import { UserPlus, Key, Pencil, Trash2, Globe, Calendar, ChevronDown, Copy, Check, MessageCircle, Link as LinkIcon, ExternalLink } from 'lucide-react';
 
 interface Props {
   clienteId: string;
