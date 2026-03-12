@@ -1403,6 +1403,18 @@ export function TorreControleTab({ clienteId }: Props) {
                 );
               })()}
 
+              {/* AH% after META in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                const projTotais = calcTotaisProjetado();
+                const projVal = projTotais[key as keyof typeof projTotais];
+                const ahStr = fmtAh(projVal, val);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: ahTotColor(projVal, val), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {ahStr || '—'}
+                  </td>
+                );
+              })()}
+
               {/* AV% when no mode active and filtered (totalizador) */}
               {showAV && !isModoAtivo && !isTodosMode && (() => {
                 const fat = totals.fat;
