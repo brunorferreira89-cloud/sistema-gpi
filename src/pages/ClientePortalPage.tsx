@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchKpiData } from '@/lib/kpi-utils';
 import { fetchMergedIndicadores, calcularIndicadores } from '@/lib/kpi-indicadores-utils';
-import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw } from 'lucide-react';
 import gpiLogo from '@/assets/gpi-logo-dark.png';
 
 function getCompetenciaAtual() {
@@ -38,6 +38,13 @@ function saudacao() {
   return 'Boa noite';
 }
 
+interface EmpresaOption {
+  cliente_id: string;
+  nome_empresa: string;
+  razao_social: string | null;
+  empresa_padrao: boolean;
+}
+
 interface ClientePortalPageProps {
   clienteId?: string;
   espelho?: boolean;
@@ -47,16 +54,96 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const { profile } = useAuth();
   const competencia = getCompetenciaAtual();
 
+  // Multi-empresa state
+  const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
+  const [clienteIdSelecionado, setClienteIdSelecionado] = useState<string | null>(null);
+  const [loadingEmpresas, setLoadingEmpresas] = useState(!propClienteId);
+  const [noAccess, setNoAccess] = useState(false);
+
+  // Dashboard state
   const [cliente, setCliente] = useState<any>(null);
   const [kpi, setKpi] = useState<any>(null);
   const [kpiAnterior, setKpiAnterior] = useState<any>(null);
   const [score, setScore] = useState<number | null>(null);
   const [alertas, setAlertas] = useState<any[]>([]);
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const resolvedClienteId = propClienteId || profile?.cliente_id;
+  // If prop clienteId (espelho mode), skip empresa selection
+  const resolvedClienteId = propClienteId || clienteIdSelecionado;
 
+  // Load empresas for the logged-in user
+  useEffect(() => {
+    if (propClienteId) return; // espelho mode
+    if (!profile?.id) return;
+
+    const loadEmpresas = async () => {
+      setLoadingEmpresas(true);
+      try {
+        // Query portal_usuario_clientes
+        const { data: links, error } = await supabase
+          .from('portal_usuario_clientes' as any)
+          .select('cliente_id, empresa_padrao')
+          .eq('usuario_id', profile.id)
+          .eq('ativo', true);
+
+        if (error) throw error;
+
+        if (links && (links as any[]).length > 0) {
+          const clienteIds = (links as any[]).map((l: any) => l.cliente_id);
+          const { data: clientes } = await supabase
+            .from('clientes')
+            .select('id, nome_empresa, razao_social')
+            .in('id', clienteIds);
+
+          const empresasList: EmpresaOption[] = (clientes || []).map((c) => {
+            const link = (links as any[]).find((l: any) => l.cliente_id === c.id);
+            return {
+              cliente_id: c.id,
+              nome_empresa: c.nome_empresa,
+              razao_social: c.razao_social,
+              empresa_padrao: link?.empresa_padrao ?? false,
+            };
+          });
+
+          // Sort: empresa_padrao first, then by razao_social
+          empresasList.sort((a, b) => {
+            if (a.empresa_padrao && !b.empresa_padrao) return -1;
+            if (!a.empresa_padrao && b.empresa_padrao) return 1;
+            return (a.razao_social || a.nome_empresa).localeCompare(b.razao_social || b.nome_empresa);
+          });
+
+          setEmpresas(empresasList);
+
+          if (empresasList.length === 1) {
+            setClienteIdSelecionado(empresasList[0].cliente_id);
+          }
+          // If 2+, show selection screen (clienteIdSelecionado stays null)
+        } else {
+          // Fallback: legacy profiles.cliente_id
+          if (profile.cliente_id) {
+            setClienteIdSelecionado(profile.cliente_id as string);
+            setEmpresas([]);
+          } else {
+            setNoAccess(true);
+          }
+        }
+      } catch {
+        // Fallback to legacy
+        if (profile.cliente_id) {
+          setClienteIdSelecionado(profile.cliente_id as string);
+        } else {
+          setNoAccess(true);
+        }
+      } finally {
+        setLoadingEmpresas(false);
+      }
+    };
+
+    loadEmpresas();
+  }, [propClienteId, profile?.id, profile?.cliente_id]);
+
+  // Load dashboard data when clienteId is resolved
   useEffect(() => {
     if (!resolvedClienteId) return;
     const clienteId = resolvedClienteId;
@@ -64,7 +151,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     const load = async () => {
       setLoading(true);
       try {
-        // Fetch cliente info
         const { data: cli } = await supabase
           .from('clientes')
           .select('*')
@@ -72,7 +158,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .single();
         setCliente(cli);
 
-        // KPI data current + previous
         const [kpiCurr, kpiPrev] = await Promise.all([
           fetchKpiData(clienteId, competencia),
           fetchKpiData(clienteId, getCompetenciaAnterior(competencia)),
@@ -80,7 +165,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         setKpi(kpiCurr);
         setKpiAnterior(kpiPrev);
 
-        // Score
         try {
           const { data: contasRaw } = await supabase
             .from('plano_de_contas')
@@ -109,7 +193,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           }
         } catch { /* score optional */ }
 
-        // Alertas
         const { data: alertasData } = await supabase
           .from('alertas_semanais')
           .select('*')
@@ -119,7 +202,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .limit(3);
         setAlertas(alertasData || []);
 
-        // Próxima reunião
         const hoje = new Date().toISOString().split('T')[0];
         const { data: reuniaoData } = await supabase
           .from('reunioes')
@@ -129,6 +211,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .order('data_reuniao', { ascending: true })
           .limit(1);
         if (reuniaoData?.length) setProximaReuniao(reuniaoData[0]);
+        else setProximaReuniao(null);
       } catch {
         /* errors handled gracefully */
       } finally {
@@ -139,6 +222,69 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     load();
   }, [resolvedClienteId, competencia]);
 
+  // Loading empresas
+  if (loadingEmpresas) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1A3CFF] border-t-transparent" />
+      </div>
+    );
+  }
+
+  // No access
+  if (noAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <img src={gpiLogo} alt="GPI" className="h-10 w-auto" />
+        <p className="text-[#4A5E80] text-sm text-center max-w-sm">
+          Nenhuma empresa vinculada ao seu usuário. Entre em contato com a GPI para solicitar acesso.
+        </p>
+      </div>
+    );
+  }
+
+  // Empresa selection screen (2+ empresas, none selected yet)
+  if (!propClienteId && !clienteIdSelecionado && empresas.length >= 2) {
+    return (
+      <div className="flex flex-col items-center py-12 px-4">
+        <img src={gpiLogo} alt="GPI" className="h-10 w-auto mb-8" />
+        <h1 className="text-xl font-bold text-[#0D1B35] mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+          Selecione a empresa
+        </h1>
+        <p className="text-sm text-[#4A5E80] mb-8">
+          Você tem acesso a {empresas.length} empresas
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-[600px]">
+          {empresas.map((e) => (
+            <button
+              key={e.cliente_id}
+              onClick={() => setClienteIdSelecionado(e.cliente_id)}
+              className={`relative rounded-xl bg-white p-6 text-left shadow-sm transition-all hover:shadow-md hover:scale-[1.01] ${
+                e.empresa_padrao
+                  ? 'border-2 border-[#1A3CFF]'
+                  : 'border border-[#DDE4F0]'
+              }`}
+            >
+              {e.empresa_padrao && (
+                <span className="absolute top-3 right-3 rounded-full bg-[#EBF0FF] px-2 py-0.5 text-[10px] font-semibold text-[#1A3CFF]">
+                  ★ Principal
+                </span>
+              )}
+              <span className="text-2xl mb-3 block">🏢</span>
+              <p className="text-sm font-bold text-[#0D1B35] mb-4">
+                {e.razao_social || e.nome_empresa}
+              </p>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#1A3CFF]">
+                Acessar <ArrowRight className="h-3 w-3" />
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Dashboard loading
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -162,6 +308,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     ? `https://wa.me/55${cliente.responsavel_whatsapp.replace(/\D/g, '')}`
     : '#';
 
+  const showTrocarEmpresa = !propClienteId && empresas.length >= 2;
+
   return (
     <div className="max-w-[1100px] mx-auto space-y-6">
       {/* Header */}
@@ -175,7 +323,26 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               </span>
             )}
           </h1>
-          <p className="text-sm text-[#4A5E80]">{cliente?.razao_social || cliente?.nome_empresa}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-[#4A5E80]">{cliente?.razao_social || cliente?.nome_empresa}</p>
+            {showTrocarEmpresa && (
+              <button
+                onClick={() => {
+                  setClienteIdSelecionado(null);
+                  setCliente(null);
+                  setKpi(null);
+                  setKpiAnterior(null);
+                  setScore(null);
+                  setAlertas([]);
+                  setProximaReuniao(null);
+                }}
+                className="inline-flex items-center gap-1 rounded-full bg-[#EBF0FF] px-2.5 py-1 text-[11px] font-semibold text-[#1A3CFF] hover:bg-[#D6E0FF] transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Trocar empresa
+              </button>
+            )}
+          </div>
         </div>
         <span className="rounded-full bg-[#EBF0FF] px-3 py-1 text-xs font-semibold text-[#1A3CFF]">
           {fmtMesAno(competencia)}
@@ -232,7 +399,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80] mb-3">
             Score de Saúde Financeira
           </p>
-          {/* Gauge semicircular */}
           <div className="relative w-[120px] h-[65px]">
             <svg viewBox="0 0 120 65" className="w-full h-full">
               <path
