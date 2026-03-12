@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { nomeExibido } from '@/lib/clientes-utils';
 import { fmtCompetencia } from '@/lib/torre-utils';
+import { buildIndicadorPayload } from '@/lib/analise-completa-utils';
+import type { ContaRow } from '@/lib/plano-contas-utils';
 
 /* ── types ── */
 interface Cliente {
