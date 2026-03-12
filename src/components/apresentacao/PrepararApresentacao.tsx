@@ -132,8 +132,9 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
   };
 
   const buildPayload = async () => {
-    const { data: contas } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
-    const contaIds = (contas || []).map(c => c.id);
+    const { data: contasRaw2 } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
+    const contasAll = (contasRaw2 || []) as ContaRow[];
+    const contaIds = contasAll.map(c => c.id);
     const { data: valores } = await supabase.from('valores_mensais').select('conta_id, valor_realizado, competencia')
       .in('conta_id', contaIds);
     const valMap: Record<string, number | null> = {};
