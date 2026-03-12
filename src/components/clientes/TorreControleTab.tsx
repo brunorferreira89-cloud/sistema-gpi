@@ -1043,6 +1043,20 @@ export function TorreControleTab({ clienteId }: Props) {
                   );
                 })()}
 
+                {/* AH% after realized in CRIAÇÃO DE METAS (filtered month) */}
+                {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                  const prevComp = getPrevMonth(m.value);
+                  const prevMap = getMonthMap(prevComp);
+                  const prevVal = isCat ? (prevMap[conta.id] ?? null) : sumNodeLeafs(node, prevMap);
+                  const ahStr = fmtAh(val, prevVal);
+                  const color = isTotal ? (val != null && prevVal != null ? ahTotColor(val, prevVal) : C.txtMuted) : ahColor(val, prevVal, conta.tipo);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : 'rgba(26,60,255,0.06)' }}>
+                      {ahStr || '—'}
+                    </td>
+                  );
+                })()}
+
                 {/* META mode: AJUSTE + R$ + META columns after selected month (specific month only) */}
                 {modoMeta && isSel && !isTodosMode && (
                   <>
