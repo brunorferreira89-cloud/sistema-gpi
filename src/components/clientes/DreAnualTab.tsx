@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { DreIndicadoresHeader } from './DreIndicadoresHeader';
 import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
+import { KpiPainelDre } from './KpiPainelDre';
 
 // --- helpers ---
 
@@ -901,6 +902,11 @@ export function DreAnualTab({ clienteId }: Props) {
       {/* Indicadores Header */}
       {hasContas && contas && valoresAnuais && (
         <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} clienteId={clienteId} />
+      )}
+
+      {/* KPI Health Panel */}
+      {hasContas && mesEfetivo && (
+        <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} />
       )}
 
       {/* Month selector */}
