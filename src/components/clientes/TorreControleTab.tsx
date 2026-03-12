@@ -2045,12 +2045,13 @@ export function TorreControleTab({ clienteId }: Props) {
         metasExistentes={metaMap}
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
-        onRegenerar={() => handleSugerirMetas(true)}
+        onRegenerar={(dir?: string) => handleSugerirMetas(true, dir)}
         geradoEm={sugestaoGeradaEm}
         fromCache={sugestaoFromCache}
         contas={contas || []}
         realizadoMap={realizadoMapSel}
         narrativa={narrativa}
+        diretrizSalva={diretrizSalva}
       />
 
       {cliente && mesEfetivo && mesSeg && (
