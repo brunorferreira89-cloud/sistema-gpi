@@ -254,32 +254,32 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
   const theme = color === '#1A3CFF' ? 'Blue' : color === '#DC2626' ? 'Red' : color === '#00A86B' ? 'Green' : color === '#D97706' ? 'Amber' : color === '#0099E6' ? 'Cyan' : 'Blue';
 
   const barGradients: Record<string, string> = {
-    Blue: 'linear-gradient(90deg, #1A3CFF, #0099E6, #1A3CFF)',
-    Red: 'linear-gradient(90deg, #DC2626, #f87171, #DC2626)',
-    Green: 'linear-gradient(90deg, #00A86B, #34d399, #00A86B)',
-    Amber: 'linear-gradient(90deg, #D97706, #fbbf24, #D97706)',
-    Cyan: 'linear-gradient(90deg, #0099E6, #38bdf8, #0099E6)',
+    Blue: 'linear-gradient(90deg, #1A3CFF, #5B8DEF, #0099E6, #5B8DEF, #1A3CFF)',
+    Red: 'linear-gradient(90deg, #DC2626, #f87171, #fca5a5, #f87171, #DC2626)',
+    Green: 'linear-gradient(90deg, #00A86B, #34d399, #6ee7b7, #34d399, #00A86B)',
+    Amber: 'linear-gradient(90deg, #D97706, #fbbf24, #fde68a, #fbbf24, #D97706)',
+    Cyan: 'linear-gradient(90deg, #0099E6, #38bdf8, #7dd3fc, #38bdf8, #0099E6)',
   };
   const barShadows: Record<string, string> = {
-    Blue: '0 0 8px rgba(26,60,255,0.45)',
-    Red: '0 0 8px rgba(220,38,38,0.40)',
-    Green: '0 0 8px rgba(0,168,107,0.40)',
-    Amber: '0 0 8px rgba(217,119,6,0.40)',
-    Cyan: '0 0 8px rgba(0,153,230,0.40)',
+    Blue: '0 0 14px rgba(26,60,255,0.6), 0 0 4px rgba(26,60,255,0.3)',
+    Red: '0 0 14px rgba(220,38,38,0.55), 0 0 4px rgba(220,38,38,0.3)',
+    Green: '0 0 14px rgba(0,168,107,0.55), 0 0 4px rgba(0,168,107,0.3)',
+    Amber: '0 0 14px rgba(217,119,6,0.55), 0 0 4px rgba(217,119,6,0.3)',
+    Cyan: '0 0 14px rgba(0,153,230,0.55), 0 0 4px rgba(0,153,230,0.3)',
   };
   const hoverShadows: Record<string, string> = {
-    Blue: '0 8px 28px rgba(26,60,255,0.18)',
-    Red: '0 8px 28px rgba(220,38,38,0.16)',
-    Green: '0 8px 28px rgba(0,168,107,0.16)',
-    Amber: '0 8px 28px rgba(217,119,6,0.16)',
-    Cyan: '0 8px 28px rgba(0,153,230,0.16)',
+    Blue: '0 10px 36px rgba(26,60,255,0.28), 0 0 12px rgba(26,60,255,0.12)',
+    Red: '0 10px 36px rgba(220,38,38,0.24), 0 0 12px rgba(220,38,38,0.10)',
+    Green: '0 10px 36px rgba(0,168,107,0.24), 0 0 12px rgba(0,168,107,0.10)',
+    Amber: '0 10px 36px rgba(217,119,6,0.24), 0 0 12px rgba(217,119,6,0.10)',
+    Cyan: '0 10px 36px rgba(0,153,230,0.24), 0 0 12px rgba(0,153,230,0.10)',
   };
   const hoverBorders: Record<string, string> = {
-    Blue: 'rgba(26,60,255,0.35)',
-    Red: 'rgba(220,38,38,0.30)',
-    Green: 'rgba(0,168,107,0.30)',
-    Amber: 'rgba(217,119,6,0.30)',
-    Cyan: 'rgba(0,153,230,0.30)',
+    Blue: 'rgba(26,60,255,0.50)',
+    Red: 'rgba(220,38,38,0.45)',
+    Green: 'rgba(0,168,107,0.45)',
+    Amber: 'rgba(217,119,6,0.45)',
+    Cyan: 'rgba(0,153,230,0.45)',
   };
 
   const shimmerDelays = [0, 0.7, 1.4, 2.1, 2.8, 0.4, 1.1, 1.8, 2.5, 3.2];
@@ -300,7 +300,7 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
         transform: visible ? (hovered ? 'translateY(-2px)' : 'translateY(0)') : 'translateY(8px)',
         transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
         cursor: onClick ? 'pointer' : 'default',
-        animation: visible ? `dre-breath${theme} 4s ease-in-out infinite` : 'none',
+        animation: visible ? `dre-breath${theme} 3s ease-in-out infinite` : 'none',
         animationDelay: `${index * 0.5}s`,
         animationPlayState: hovered ? 'paused' : 'running',
         ...(hovered ? { boxShadow: hoverShadows[theme], borderColor: hoverBorders[theme] } : {}),
@@ -311,21 +311,21 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
 
       {/* Animated gradient bar */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '12px 12px 0 0',
+        position: 'absolute', top: 0, left: 0, right: 0, height: 4, borderRadius: '12px 12px 0 0',
         background: barGradients[theme] || barGradients.Blue,
-        backgroundSize: '200% 100%',
-        animation: 'dre-barFlow 3s linear infinite',
+        backgroundSize: '300% 100%',
+        animation: 'dre-barFlow 2.5s linear infinite',
         boxShadow: barShadows[theme] || barShadows.Blue,
       }} />
 
       {/* Ambient shimmer */}
       <div style={{
-        position: 'absolute', top: 0, left: '-60%', width: '40%', height: '100%',
+        position: 'absolute', top: 0, left: '-60%', width: '50%', height: '100%',
         background: hovered
-          ? 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.30) 50%, transparent 70%)'
-          : 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)',
+          ? 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.50) 50%, rgba(255,255,255,0.45) 55%, transparent 80%)'
+          : 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.28) 45%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.28) 55%, transparent 80%)',
         pointerEvents: 'none',
-        animation: hovered ? 'dre-hoverShimmer 0.55s ease forwards' : `dre-ambientShimmer 5s ease-in-out infinite`,
+        animation: hovered ? 'dre-hoverShimmer 0.5s ease forwards' : `dre-ambientShimmer 4s ease-in-out infinite`,
         animationDelay: hovered ? '0s' : `${shimmerDelays[index] || 0}s`,
         zIndex: 2,
       }} />
@@ -830,38 +830,38 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
       <style>{`
         @keyframes dre-barFlow {
           0%   { background-position: 0% 0%; }
-          100% { background-position: 200% 0%; }
+          100% { background-position: 300% 0%; }
         }
         @keyframes dre-breathBlue {
-          0%,100% { box-shadow: 0 2px 8px rgba(26,60,255,0.06); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(26,60,255,0.14); border-color: rgba(26,60,255,0.25); }
+          0%,100% { box-shadow: 0 2px 10px rgba(26,60,255,0.08), 0 0 2px rgba(26,60,255,0.04); border-color: rgba(26,60,255,0.12); }
+          50%     { box-shadow: 0 6px 28px rgba(26,60,255,0.22), 0 0 6px rgba(26,60,255,0.10); border-color: rgba(26,60,255,0.35); }
         }
         @keyframes dre-breathRed {
-          0%,100% { box-shadow: 0 2px 8px rgba(220,38,38,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(220,38,38,0.13); border-color: rgba(220,38,38,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(220,38,38,0.07), 0 0 2px rgba(220,38,38,0.04); border-color: rgba(220,38,38,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(220,38,38,0.20), 0 0 6px rgba(220,38,38,0.08); border-color: rgba(220,38,38,0.32); }
         }
         @keyframes dre-breathGreen {
-          0%,100% { box-shadow: 0 2px 8px rgba(0,168,107,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(0,168,107,0.13); border-color: rgba(0,168,107,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(0,168,107,0.07), 0 0 2px rgba(0,168,107,0.04); border-color: rgba(0,168,107,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(0,168,107,0.20), 0 0 6px rgba(0,168,107,0.08); border-color: rgba(0,168,107,0.32); }
         }
         @keyframes dre-breathAmber {
-          0%,100% { box-shadow: 0 2px 8px rgba(217,119,6,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(217,119,6,0.13); border-color: rgba(217,119,6,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(217,119,6,0.07), 0 0 2px rgba(217,119,6,0.04); border-color: rgba(217,119,6,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(217,119,6,0.20), 0 0 6px rgba(217,119,6,0.08); border-color: rgba(217,119,6,0.32); }
         }
         @keyframes dre-breathCyan {
-          0%,100% { box-shadow: 0 2px 8px rgba(0,153,230,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(0,153,230,0.13); border-color: rgba(0,153,230,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(0,153,230,0.07), 0 0 2px rgba(0,153,230,0.04); border-color: rgba(0,153,230,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(0,153,230,0.20), 0 0 6px rgba(0,153,230,0.08); border-color: rgba(0,153,230,0.32); }
         }
         @keyframes dre-ambientShimmer {
           0%   { left: -60%; opacity: 0; }
-          10%  { opacity: 1; }
-          60%  { left: 120%; opacity: 1; }
-          70%  { opacity: 0; }
-          100% { left: 120%; opacity: 0; }
+          8%   { opacity: 1; }
+          55%  { left: 130%; opacity: 1; }
+          65%  { opacity: 0; }
+          100% { left: 130%; opacity: 0; }
         }
         @keyframes dre-hoverShimmer {
           from { left: -60%; }
-          to   { left: 120%; }
+          to   { left: 130%; }
         }
         @media (max-width: 1200px) and (min-width: 768px) {
           .dre-header-grid { grid-template-columns: repeat(3, 1fr) !important; }
