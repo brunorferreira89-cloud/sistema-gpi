@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Loader2, RefreshCw, Check, Clock, ChevronDown, Play, Eye, Save, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo, calcIndicador } from '@/lib/dre-indicadores';
 import { fetchMergedIndicadores, calcularIndicadores, calcScore } from '@/lib/kpi-indicadores-utils';
 
