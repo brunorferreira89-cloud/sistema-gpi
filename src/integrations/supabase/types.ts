@@ -108,6 +108,7 @@ export type Database = {
       }
       apresentacao_preparacao: {
         Row: {
+          checkpoints_json: Json | null
           cliente_id: string
           competencia: string
           diagnostico: string | null
@@ -120,6 +121,7 @@ export type Database = {
           riscos: string | null
         }
         Insert: {
+          checkpoints_json?: Json | null
           cliente_id: string
           competencia: string
           diagnostico?: string | null
@@ -132,6 +134,7 @@ export type Database = {
           riscos?: string | null
         }
         Update: {
+          checkpoints_json?: Json | null
           cliente_id?: string
           competencia?: string
           diagnostico?: string | null
