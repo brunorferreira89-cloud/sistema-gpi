@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { cliente_id, competencia, competencia_anterior, force } = await req.json();
+    const { cliente_id, competencia, competencia_anterior, force, diretriz } = await req.json();
     if (!cliente_id || !competencia || !competencia_anterior) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -23,14 +23,14 @@ serve(async (req) => {
     if (!force) {
       const { data: cached } = await supabase
         .from("sugestoes_metas_ia")
-        .select("sugestoes, narrativa, gerado_em")
+        .select("sugestoes, narrativa, gerado_em, diretriz")
         .eq("cliente_id", cliente_id)
         .eq("competencia", competencia)
         .maybeSingle();
 
       if (cached) {
         const sugestoes = cached.sugestoes as any[];
-        return new Response(JSON.stringify({ sugestoes, narrativa: cached.narrativa, competencia, total: sugestoes.length, cached: true, gerado_em: cached.gerado_em }), {
+        return new Response(JSON.stringify({ sugestoes, narrativa: cached.narrativa, competencia, total: sugestoes.length, cached: true, gerado_em: cached.gerado_em, diretriz: cached.diretriz }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -119,7 +119,30 @@ serve(async (req) => {
 
     const nomeCliente = cliente.razao_social || cliente.nome_empresa;
 
-    const systemPrompt = `Você é um consultor financeiro sênior da GPI Inteligência Financeira.
+    const hasDiretriz = typeof diretriz === 'string' && diretriz.trim().length > 0;
+
+    // Conditional system prompt
+    const systemPrompt = hasDiretriz
+      ? `Você é um consultor financeiro especialista analisando os números de ${nomeCliente} em ${fmtComp(competencia)}.
+
+OBJETIVO DO CONSULTOR:
+"${diretriz.trim()}"
+
+Sua tarefa é analisar os dados financeiros abaixo e sugerir ajustes específicos nas categorias do plano de contas que, somados, permitam atingir o objetivo declarado acima.
+
+REGRAS:
+1. Priorize as categorias com maior impacto no indicador-alvo
+2. Seja cirúrgico — sugira poucos ajustes de alto impacto, não pulverize em muitas categorias pequenas
+3. Os ajustes devem ser realistas — variações acima de 40% de um mês para o outro exigem justificativa sólida
+4. Calcule se os ajustes somados realmente atingem o objetivo declarado. Se não for possível atingir 100%, declare isso e mostre até onde é possível chegar
+5. Para cada sugestão, explique no campo "motivo" a conexão direta com o objetivo do consultor
+6. Retorne no mesmo formato JSON já especificado
+
+Formato de cada item do array JSON:
+{ "conta_id": "uuid", "conta_nome": "string", "nivel": number, "meta_tipo": "pct" | "valor", "meta_valor": number, "confianca": "alta" | "media" | "baixa", "parametros": string[], "motivo": string, "objetivo": string, "impacto_gc": string }
+
+Responda APENAS com um array JSON válido, sem texto antes ou depois, sem markdown.`
+      : `Você é um consultor financeiro sênior da GPI Inteligência Financeira.
 Analise os dados financeiros do cliente e sugira metas para o próximo mês.
 
 Benchmarks GPI obrigatórios:
@@ -218,6 +241,18 @@ Sugira metas para TODOS os níveis (grupos, subgrupos e categorias) que tiverem 
       return `- ${nome}: meta ${metaLabel} (confiança: ${s.confianca})`;
     }).join("\n");
 
+    const missaoRecebidaSection = hasDiretriz ? `
+SEÇÃO EXTRA OBRIGATÓRIA — antes das 5 seções padrão, adicione:
+
+**Missão recebida**
+Referencie o objetivo do consultor em linguagem de cockpit/aviação.
+Objetivo recebido: "${diretriz.trim()}"
+Confirme se os ajustes propostos atingem o objetivo e qual o resultado projetado.
+Use o estilo: "Recebi as coordenadas do comandante em terra: [parafrasear objetivo]. 
+Após análise dos instrumentos, os ajustes propostos projetam [resultado] — [confirmação ou distância do objetivo]."
+
+` : '';
+
     const narrativaPrompt = `
 Você é o Comandante GPI — um comandante de aviação experiente que também
 é consultor financeiro de elite. Você fala com o dono do negócio como se
@@ -234,7 +269,7 @@ MÊS ANALISADO (Última rota): ${competenciaFormatada}
 
 LEITURAS DOS INSTRUMENTOS (sugestões geradas):
 ${sugestoesPadraoTexto}
-
+${missaoRecebidaSection}
 Escreva o RELATÓRIO DE VOO com estas seções OBRIGATÓRIAS,
 usando exatamente estes títulos em negrito:
 
@@ -304,13 +339,14 @@ REGRAS DE ESCRITA:
       console.error("Narrativa generation error:", e);
     }
 
-    // Save to cache
+    // Save to cache (including diretriz)
+    const diretrizValue = hasDiretriz ? diretriz.trim() : null;
     await supabase.from("sugestoes_metas_ia").upsert(
-      { cliente_id, competencia, sugestoes: parsed, narrativa, gerado_em: new Date().toISOString() },
+      { cliente_id, competencia, sugestoes: parsed, narrativa, diretriz: diretrizValue, gerado_em: new Date().toISOString() },
       { onConflict: "cliente_id,competencia" }
     );
 
-    return new Response(JSON.stringify({ sugestoes: parsed, narrativa, competencia, total: parsed.length, cached: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ sugestoes: parsed, narrativa, competencia, total: parsed.length, cached: false, diretriz: diretrizValue }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("sugerir-metas error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
