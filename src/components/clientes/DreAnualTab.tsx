@@ -928,7 +928,7 @@ export function DreAnualTab({ clienteId }: Props) {
 
       {/* KPI Health Panel */}
       {hasContas && mesEfetivo && (
-        <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} />
+        <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} faturamento={bannerData.faturamento ?? undefined} cmv={bannerData.cmv ?? undefined} />
       )}
 
       {/* Month selector */}
