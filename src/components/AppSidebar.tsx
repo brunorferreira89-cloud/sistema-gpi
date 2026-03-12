@@ -12,7 +12,6 @@ const navItems = [
   { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },
   { icon: Stethoscope, label: 'Diagnósticos', to: '/diagnostico' },
   { icon: ClipboardList, label: 'Onboarding', to: '/onboarding' },
-  { icon: UserCog, label: 'Usuários', to: '/usuarios' },
   
 ];
 
