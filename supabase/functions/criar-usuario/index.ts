@@ -50,6 +50,7 @@ serve(async (req) => {
       const { user_id } = body;
       if (!user_id) throw new Error("user_id é obrigatório");
 
+      // portal_usuario_clientes will cascade delete via FK
       await adminClient.from("profiles").delete().eq("id", user_id);
       const { error: deleteErr } = await adminClient.auth.admin.deleteUser(user_id);
       if (deleteErr) throw deleteErr;
