@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArcGauge } from '@/components/ui/arc-gauge';
 import { SparkLine } from '@/components/ui/spark-line';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { KpiDetalheModal } from './KpiDetalheModal';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import {
   fetchMergedIndicadores,
@@ -29,6 +30,7 @@ interface Props {
 
 export function KpiPainelDre({ clienteId, competencia }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [selectedKpi, setSelectedKpi] = useState<import('@/lib/kpi-indicadores-utils').IndicadorCalculado | null>(null);
 
   const { data: indicadores } = useQuery({
     queryKey: ['kpi-indicadores', clienteId],
@@ -188,7 +190,10 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
                 <div
                   key={item.indicador.id}
                   className="rounded-xl border p-5"
-                  style={{ borderColor: '#DDE4F0', background: '#FFFFFF' }}
+                  style={{ borderColor: '#DDE4F0', background: '#FFFFFF', cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                  onClick={() => setSelectedKpi(item)}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(26,60,255,0.1)')}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{item.indicador.nome}</span>
@@ -218,6 +223,15 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
           </div>
         </div>
       </div>
+
+      {selectedKpi && (
+        <KpiDetalheModal
+          open={!!selectedKpi}
+          onClose={() => setSelectedKpi(null)}
+          kpiCalc={selectedKpi}
+          competencia={competencia}
+        />
+      )}
     </div>
   );
 }
