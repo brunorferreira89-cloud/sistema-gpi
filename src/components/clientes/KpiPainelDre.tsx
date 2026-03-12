@@ -11,12 +11,18 @@ import {
   calcScore,
   type IndicadorCalculado,
 } from '@/lib/kpi-indicadores-utils';
-import { calcNCG, calcNCGPct, calcNCGStatus } from '@/lib/torre-utils';
+import { calcNCG, calcNCGPct, calcNCGStatus, calcGapNCG, calcGapStatus } from '@/lib/torre-utils';
 
 const STATUS_CONFIG = {
   verde: { bg: '#00A86B1A', color: '#00A86B', label: '✓' },
   ambar: { bg: '#D977061A', color: '#D97706', label: '⚠' },
   vermelho: { bg: '#DC26261A', color: '#DC2626', label: '✗' },
+};
+
+const GAP_STATUS_CONFIG: Record<string, { badge: string; badgeBg: string; badgeText: string }> = {
+  ok:      { badge: '● COBERTO', badgeBg: 'rgba(0,168,107,0.30)', badgeText: '#6ee7b7' },
+  atencao: { badge: '● ATENÇÃO', badgeBg: 'rgba(217,119,6,0.35)', badgeText: '#fcd34d' },
+  critico: { badge: '● CRÍTICO', badgeBg: 'rgba(220,38,38,0.35)', badgeText: '#fca5a5' },
 };
 
 const NCG_STATUS_MAP: Record<string, string> = {
@@ -71,6 +77,21 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
     },
   });
 
+  // Fetch caixa disponível from saldos_contas
+  const { data: caixaDisponivel } = useQuery({
+    queryKey: ['caixa-disponivel', clienteId, competencia],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('saldos_contas')
+        .select('saldo_final')
+        .eq('cliente_id', clienteId)
+        .eq('competencia', competencia);
+      if (!data || data.length === 0) return 0;
+      return data.reduce((sum, r) => sum + (r.saldo_final ?? 0), 0);
+    },
+  });
+
   const valoresMap = useMemo(() => {
     const map: Record<string, number | null> = {};
     valoresData?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
@@ -84,7 +105,7 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
 
   const ativos = calculados.filter(c => c.indicador.ativo);
 
-  // NCG calculation
+  // NCG + GAP calculation
   const ncgCalc = useMemo(() => {
     const fat = faturamento != null ? Math.abs(faturamento) : 0;
     const cv = cmv != null ? Math.abs(cmv) : 0;
@@ -95,8 +116,11 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
     const ncg = calcNCG({ faturamento: fat, cmv: cv, pmr, pme, pmp });
     const pct = calcNCGPct(ncg, fat);
     const status = calcNCGStatus(pct);
-    return { ncg, pct, status };
-  }, [faturamento, cmv, cicloData]);
+    const cx = caixaDisponivel ?? 0;
+    const gap = calcGapNCG(ncg, cx);
+    const gapStatus = calcGapStatus(gap);
+    return { ncg, pct, status, gap, gapStatus, caixa: cx };
+  }, [faturamento, cmv, cicloData, caixaDisponivel]);
 
   const score = calcScore(ativos);
 
@@ -106,6 +130,12 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
   const allChips = [...ativos];
   const visibleChips = allChips.slice(0, 4);
   const extraCount = allChips.length - 4 + (ncgCalc ? 1 : 0);
+
+  const fmtGap = (v: number) => {
+    const abs = Math.abs(v);
+    const formatted = abs.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    return v >= 0 ? `+${formatted}` : `−${formatted}`;
+  };
 
   return (
     <div>
@@ -162,8 +192,8 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
           })}
           {ncgCalc && visibleChips.length < 4 && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4A5E80' }}>
-              <svg width="8" height="8"><circle cx="4" cy="4" r="4" fill={NCG_STATUS_MAP[ncgCalc.status]} /></svg>
-              NCG
+              <svg width="8" height="8"><circle cx="4" cy="4" r="4" fill={NCG_STATUS_MAP[ncgCalc.gapStatus]} /></svg>
+              Cap. de Giro
             </span>
           )}
           {extraCount > 0 && (
@@ -224,32 +254,37 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
               );
             })}
 
-            {/* NCG Chip */}
-            {ncgCalc && (
-              <div
-                onClick={() => setNcgModalOpen(true)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: '#FFFFFF', border: '1px solid #DDE4F0',
-                  borderRadius: 100, padding: '6px 14px 6px 10px',
-                  cursor: 'pointer', position: 'relative', overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(13,27,53,0.05)',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#1A3CFF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.08)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDE4F0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(13,27,53,0.05)'; }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: NCG_STATUS_MAP[ncgCalc.status] }} />
-                <span style={{ fontSize: 11, color: '#4A5E80', fontWeight: 500, whiteSpace: 'nowrap' }}>NCG</span>
-                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Courier New', monospace", color: NCG_STATUS_MAP[ncgCalc.status] }}>{ncgCalc.pct.toFixed(1)}%</span>
-                {(() => {
-                  const barW = ncgCalc.pct > 0 ? Math.min(ncgCalc.pct / 15, 1) * 100 : 0;
-                  return barW > 0 ? (
-                    <span style={{ position: 'absolute', bottom: 0, left: 0, height: 2, borderRadius: '0 1px 1px 0', background: NCG_STATUS_MAP[ncgCalc.status], width: `${barW}%`, transition: 'width 0.3s ease' }} />
-                  ) : null;
-                })()}
-              </div>
-            )}
+            {/* NCG/GAP Chip — cockpit navy style */}
+            {ncgCalc && (() => {
+              const gapCfg = GAP_STATUS_CONFIG[ncgCalc.gapStatus];
+              return (
+                <div
+                  onClick={() => setNcgModalOpen(true)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    background: '#0D1B35', border: '1px solid rgba(26,60,255,0.25)',
+                    borderRadius: 100, padding: '6px 14px 6px 10px',
+                    cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(13,27,53,0.25)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#1A3CFF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.15)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(26,60,255,0.25)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(13,27,53,0.25)'; }}
+                >
+                  <span style={{ fontSize: 11 }}>💰</span>
+                  <span style={{ fontSize: 9, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontWeight: 600, letterSpacing: '.05em' }}>Cap. de Giro</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'Courier New', monospace", color: '#FFFFFF' }}>
+                    {fmtGap(ncgCalc.gap)}
+                  </span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, color: gapCfg.badgeText,
+                    background: gapCfg.badgeBg, padding: '2px 8px', borderRadius: 100,
+                  }}>
+                    {gapCfg.badge}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -271,6 +306,7 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
           competencia={competencia}
           faturamento={faturamento ?? 0}
           cmv={cmv ?? 0}
+          caixaDisponivel={caixaDisponivel ?? 0}
         />
       )}
     </div>
