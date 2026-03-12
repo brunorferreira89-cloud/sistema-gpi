@@ -60,6 +60,23 @@ serve(async (req) => {
       );
     }
 
+    // ─── UPDATE PASSWORD ───
+    if (action === "update_password") {
+      const { user_id, nova_senha } = body;
+      if (!user_id) throw new Error("user_id é obrigatório");
+      if (!nova_senha || nova_senha.length < 6) throw new Error("Senha deve ter pelo menos 6 caracteres");
+
+      const { error } = await adminClient.auth.admin.updateUserById(user_id, {
+        password: nova_senha,
+      });
+      if (error) throw error;
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Senha atualizada." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ─── CREATE ───
     const { email, password, nome, cliente_id, usar_convite } = body;
 
@@ -111,7 +128,7 @@ serve(async (req) => {
 
     const { error: profileError } = await adminClient
       .from("profiles")
-      .update({ nome, role: "cliente", cliente_id, portal_ativo: false })
+      .update({ nome, role: "cliente", cliente_id, portal_ativo: false, email })
       .eq("id", newUserId);
 
     if (profileError) {
