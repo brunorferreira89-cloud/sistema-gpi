@@ -939,7 +939,7 @@ export function SugestaoMetasDrawer({
         {loading && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 }}>
             <div style={{ width: 36, height: 36, border: `3px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ fontSize: 13, color: C.txtSec, margin: 0 }}>A IA está analisando os dados financeiros...</p>
+            <p style={{ fontSize: 13, color: C.txtSec, margin: 0 }}>{loadingMessages[loadingMsg]}</p>
             <p style={{ fontSize: 11, color: C.txtMuted, margin: 0 }}>Isso pode levar alguns segundos</p>
           </div>
         )}
