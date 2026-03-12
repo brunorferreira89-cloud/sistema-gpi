@@ -55,21 +55,22 @@ export function PortalTab({ clienteId, cliente }: Props) {
     },
   });
 
-  const handleTogglePortal = async (checked: boolean) => {
+  const handleTogglePortal = async (activate: boolean) => {
     if (!portalUser) return;
     setTogglingPortal(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ portal_ativo: checked })
+        .update({ portal_ativo: activate })
         .eq('id', portalUser.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['portal-user', clienteId] });
-      toast({ title: checked ? 'Portal ativado' : 'Portal desativado' });
+      toast({ title: activate ? `Acesso ao portal ativado para ${portalUser.nome}.` : `Acesso ao portal desativado para ${portalUser.nome}.` });
     } catch (err: any) {
       toast({ title: 'Erro ao alterar portal', description: err.message, variant: 'destructive' });
     } finally {
       setTogglingPortal(false);
+      setDeactivateConfirmOpen(false);
     }
   };
 
