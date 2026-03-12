@@ -24,6 +24,7 @@ import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
 import ClientePortalPage from "./pages/ClientePortalPage";
 import ApresentacaoPage from "./pages/ApresentacaoPage";
 
+import UsuariosPortalPage from "./pages/UsuariosPortalPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
