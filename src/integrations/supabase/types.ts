@@ -106,6 +106,108 @@ export type Database = {
           },
         ]
       }
+      apresentacao_preparacao: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          diagnostico: string | null
+          editado_em: string | null
+          editado_por: string | null
+          gerado_em: string | null
+          id: string
+          objetivos: string | null
+          proximos_passos: string | null
+          riscos: string | null
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          diagnostico?: string | null
+          editado_em?: string | null
+          editado_por?: string | null
+          gerado_em?: string | null
+          id?: string
+          objetivos?: string | null
+          proximos_passos?: string | null
+          riscos?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          diagnostico?: string | null
+          editado_em?: string | null
+          editado_por?: string | null
+          gerado_em?: string | null
+          id?: string
+          objetivos?: string | null
+          proximos_passos?: string | null
+          riscos?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apresentacao_preparacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apresentacao_preparacao_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apresentacoes: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          consultor_id: string | null
+          encerrada_em: string | null
+          id: string
+          iniciada_em: string | null
+          metas_validadas_em: string | null
+          slide_atual: number | null
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          consultor_id?: string | null
+          encerrada_em?: string | null
+          id?: string
+          iniciada_em?: string | null
+          metas_validadas_em?: string | null
+          slide_atual?: number | null
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          consultor_id?: string | null
+          encerrada_em?: string | null
+          id?: string
+          iniciada_em?: string | null
+          metas_validadas_em?: string | null
+          slide_atual?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apresentacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apresentacoes_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benchmark_config: {
         Row: {
           cliente_id: string
@@ -134,6 +236,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "benchmark_config_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caminho_a_seguir: {
+        Row: {
+          acoes: Json | null
+          apresentacao_id: string | null
+          cliente_id: string
+          competencia: string
+          gerado_em: string | null
+          id: string
+        }
+        Insert: {
+          acoes?: Json | null
+          apresentacao_id?: string | null
+          cliente_id: string
+          competencia: string
+          gerado_em?: string | null
+          id?: string
+        }
+        Update: {
+          acoes?: Json | null
+          apresentacao_id?: string | null
+          cliente_id?: string
+          competencia?: string
+          gerado_em?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caminho_a_seguir_apresentacao_id_fkey"
+            columns: ["apresentacao_id"]
+            isOneToOne: false
+            referencedRelation: "apresentacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caminho_a_seguir_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
@@ -506,6 +650,7 @@ export type Database = {
           created_at: string
           id: string
           nome: string | null
+          portal_ativo: boolean | null
           role: string
         }
         Insert: {
@@ -513,6 +658,7 @@ export type Database = {
           created_at?: string
           id: string
           nome?: string | null
+          portal_ativo?: boolean | null
           role?: string
         }
         Update: {
@@ -520,6 +666,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string | null
+          portal_ativo?: boolean | null
           role?: string
         }
         Relationships: [

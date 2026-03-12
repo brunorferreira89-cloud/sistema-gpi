@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PortalRoute } from "@/components/PortalRoute";
 import LoginPage from "./pages/LoginPage";
 import AppLayout from "./layouts/AppLayout";
 import ClienteLayout from "./layouts/ClienteLayout";
@@ -19,6 +20,8 @@ import ReuniaoColetivaPrincipalPage from "./pages/ReuniaoColetivaPrincipalPage";
 import ReuniaoColetivDetalhe from "./pages/ReuniaoColetivDetalhe";
 import DiagnosticoPublicoPage from "./pages/DiagnosticoPublicoPage";
 import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
+import ClientePortalPage from "./pages/ClientePortalPage";
+import ApresentacaoPage from "./pages/ApresentacaoPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +59,7 @@ const App = () => (
                 <Route path="/reuniao-coletiva/:id" element={<ReuniaoColetivDetalhe />} />
                 <Route path="/diagnostico" element={<DiagnosticoLeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
                 
               </Route>
             </Route>
@@ -64,6 +68,13 @@ const App = () => (
             <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>
               <Route element={<ClienteLayout />}>
                 <Route path="/minha-area" element={<MinhaAreaPage />} />
+              </Route>
+            </Route>
+
+            {/* Portal do Cliente (requires portal_ativo) */}
+            <Route element={<PortalRoute />}>
+              <Route element={<ClienteLayout />}>
+                <Route path="/cliente" element={<ClientePortalPage />} />
               </Route>
             </Route>
 
