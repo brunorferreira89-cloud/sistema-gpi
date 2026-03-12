@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArcGauge } from '@/components/ui/arc-gauge';
 import { SparkLine } from '@/components/ui/spark-line';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { KpiDetalheModal } from './KpiDetalheModal';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import {
   fetchMergedIndicadores,
