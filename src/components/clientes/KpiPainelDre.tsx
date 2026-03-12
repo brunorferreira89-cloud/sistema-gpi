@@ -223,6 +223,15 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
           </div>
         </div>
       </div>
+
+      {selectedKpi && (
+        <KpiDetalheModal
+          open={!!selectedKpi}
+          onClose={() => setSelectedKpi(null)}
+          kpiCalc={selectedKpi}
+          competencia={competencia}
+        />
+      )}
     </div>
   );
 }
