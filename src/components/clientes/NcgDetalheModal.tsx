@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { X } from 'lucide-react';
-import { calcNCG, calcNCGPct, calcNCGStatus, fmtCompetencia } from '@/lib/torre-utils';
+import { calcNCG, calcNCGPct, calcNCGStatus, calcGapNCG, calcGapStatus, fmtCompetencia } from '@/lib/torre-utils';
 
 interface Props {
   open: boolean;
@@ -11,6 +11,7 @@ interface Props {
   competencia: string;
   faturamento: number;
   cmv: number;
+  caixaDisponivel: number;
 }
 
 const STATUS_COLORS: Record<string, { color: string; bg: string; label: string }> = {
@@ -19,7 +20,7 @@ const STATUS_COLORS: Record<string, { color: string; bg: string; label: string }
   critico: { color: '#DC2626', bg: 'rgba(220,38,38,0.12)', label: 'Crítico' },
 };
 
-export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturamento, cmv }: Props) {
+export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturamento, cmv, caixaDisponivel }: Props) {
   const queryClient = useQueryClient();
   const [pmr, setPmr] = useState(30);
   const [pme, setPme] = useState(15);
@@ -37,6 +38,20 @@ export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturam
         .eq('cliente_id', clienteId)
         .maybeSingle();
       return data;
+    },
+  });
+
+  // Check if saldos_contas has data for this month
+  const { data: saldosCount } = useQuery({
+    queryKey: ['saldos-count', clienteId, competencia],
+    enabled: !!clienteId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('saldos_contas')
+        .select('id')
+        .eq('cliente_id', clienteId)
+        .eq('competencia', competencia);
+      return data?.length ?? 0;
     },
   });
 
@@ -58,10 +73,13 @@ export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturam
     const receber = (absFat / 30) * pmr;
     const estoques = (absCmv / 30) * pme;
     const pagar = (absCmv / 30) * pmp;
-    return { ncg, pct, status, receber, estoques, pagar };
-  }, [absFat, absCmv, pmr, pme, pmp]);
+    const gap = calcGapNCG(ncg, caixaDisponivel);
+    const gapStatus = calcGapStatus(gap);
+    return { ncg, pct, status, receber, estoques, pagar, gap, gapStatus };
+  }, [absFat, absCmv, pmr, pme, pmp, caixaDisponivel]);
 
   const statusCfg = STATUS_COLORS[calc.status];
+  const hasSaldos = (saldosCount ?? 0) > 0;
 
   const handleSave = async () => {
     setSaving(true);
@@ -91,6 +109,8 @@ export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturam
   const mesLabel = fmtCompetencia(competencia);
 
   if (!open) return null;
+
+  const gapIsPositive = calc.gap >= 0;
 
   return (
     <div
@@ -129,9 +149,9 @@ export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturam
             NCG = (Fat./30 × PMR) + (CMV/30 × PME) − (CMV/30 × PMP)
           </div>
 
-          {/* SEÇÃO 2 — Cálculo */}
+          {/* SEÇÃO 2 — Cálculo NCG */}
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#0099E6' }}>🔢 CÁLCULO — {mesLabel}</span>
-          <div style={{ background: '#F6F9FF', borderRadius: 8, padding: 12, marginTop: 8, marginBottom: 20 }}>
+          <div style={{ background: '#F6F9FF', borderRadius: 8, padding: 12, marginTop: 8, marginBottom: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <CalcLine label="Contas a Receber" formula={`${fmtR$(absFat)} ÷ 30 × ${pmr} dias`} result={fmtR$(calc.receber)} color="#0D1B35" />
               <CalcLine label="Estoques" formula={`${fmtR$(absCmv)} ÷ 30 × ${pme} dias`} result={fmtR$(calc.estoques)} color="#0D1B35" />
@@ -150,6 +170,80 @@ export function NcgDetalheModal({ open, onClose, clienteId, competencia, faturam
               </div>
             </div>
           </div>
+
+          {/* POSIÇÃO DE CAIXA */}
+          <div style={{ position: 'relative', margin: '20px 0 12px', textAlign: 'center' }}>
+            <div style={{ borderTop: '1px solid #DDE4F0' }} />
+            <span style={{
+              position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
+              background: '#FAFCFF', padding: '0 12px',
+              fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#0099E6',
+            }}>
+              POSIÇÃO DE CAIXA
+            </span>
+          </div>
+
+          <div style={{ background: '#F6F9FF', borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 8 }}>
+            {/* Necessidade (NCG) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ fontSize: 13 }}>📊</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#0D1B35', marginLeft: 6 }}>Necessidade de Giro</span>
+                <div style={{ fontSize: 10, color: '#8A9BBC', marginTop: 2, marginLeft: 22 }}>calculado com PMR/PME/PMP configurados</div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Courier New', monospace", color: calc.ncg > 0 ? '#DC2626' : '#00A86B' }}>
+                {fmtR$(calc.ncg)}
+              </span>
+            </div>
+
+            {/* Caixa disponível */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ fontSize: 13 }}>🏦</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#0D1B35', marginLeft: 6 }}>Caixa Disponível</span>
+                <div style={{ fontSize: 10, color: hasSaldos ? '#8A9BBC' : '#D97706', marginTop: 2, marginLeft: 22 }}>
+                  {hasSaldos ? `soma dos saldos bancários em ${mesLabel}` : 'Saldos não informados para este mês'}
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Courier New', monospace", color: hasSaldos && caixaDisponivel > 0 ? '#00A86B' : '#8A9BBC' }}>
+                {hasSaldos ? fmtR$(caixaDisponivel) : '–'}
+              </span>
+            </div>
+
+            {/* Separator */}
+            <div style={{ borderTop: '1px solid #E8EEF8' }} />
+
+            {/* GAP */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 12px', borderRadius: 8,
+              background: gapIsPositive ? 'rgba(0,168,107,0.06)' : 'rgba(220,38,38,0.05)',
+              borderLeft: `3px solid ${gapIsPositive ? '#00A86B' : '#DC2626'}`,
+            }}>
+              <div>
+                <span style={{ fontSize: 13 }}>🎯</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#0D1B35', marginLeft: 6 }}>GAP DE CAPITAL</span>
+                <div style={{ fontSize: 10, color: '#4A5E80', marginTop: 2, marginLeft: 22 }}>
+                  {gapIsPositive
+                    ? '✓ Caixa suficiente para cobrir a operação'
+                    : `⚠ Faltam ${fmtR$(Math.abs(calc.gap))} para cobrir a operação`
+                  }
+                </div>
+              </div>
+              <span style={{
+                fontSize: 20, fontWeight: 700, fontFamily: "'Courier New', monospace",
+                color: gapIsPositive ? '#00A86B' : '#DC2626',
+              }}>
+                {gapIsPositive ? '+' : '−'}{fmtR$(Math.abs(calc.gap))}
+              </span>
+            </div>
+          </div>
+
+          <p style={{ fontSize: 11, color: '#8A9BBC', fontStyle: 'italic', marginBottom: 20 }}>
+            {gapIsPositive
+              ? 'O caixa disponível cobre a necessidade de giro.'
+              : 'Considere ampliar prazo com fornecedores (PMP), reduzir estoque (PME) ou antecipar recebíveis (PMR).'}
+          </p>
 
           {/* SEÇÃO 3 — Parâmetros */}
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#0099E6' }}>⚙️ PARÂMETROS DO NEGÓCIO</span>
