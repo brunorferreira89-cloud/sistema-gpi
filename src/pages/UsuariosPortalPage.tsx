@@ -776,7 +776,7 @@ function MensagemAcessoModal({
 
   const senhaLine = senha
     ? `🔑 Senha: ${senha}\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`
-    : `🔑 Senha: (a senha definida na criação)\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`;
+    : `🔑 Senha: (redefina a senha antes de enviar)\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`;
 
   const message = `Olá, ${nome}! 👋
 
