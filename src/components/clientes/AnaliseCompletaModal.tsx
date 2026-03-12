@@ -112,7 +112,11 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Load all cached analyses on open
+  // Load contas + valores for real payload
+  const [contas, setContas] = useState<ContaRow[]>([]);
+  const [valoresAnuais, setValoresAnuais] = useState<{ conta_id: string; competencia: string; valor_realizado: number | null }[]>([]);
+
+  // Load all cached analyses + financial data on open
   useEffect(() => {
     if (!open) return;
     setLoadingInit(true);
@@ -120,15 +124,30 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
 
     const load = async () => {
       try {
-        const { data } = await supabase
-          .from('analises_ia' as any)
-          .select('*')
-          .eq('cliente_id', cliente.id)
-          .eq('competencia', competencia);
+        // Fetch analyses, contas, and valores in parallel
+        const [analRes, contasRes] = await Promise.all([
+          supabase.from('analises_ia' as any).select('*').eq('cliente_id', cliente.id).eq('competencia', competencia),
+          supabase.from('plano_de_contas').select('*').eq('cliente_id', cliente.id).order('ordem'),
+        ]);
+
+        const contasData = (contasRes.data || []) as ContaRow[];
+        setContas(contasData);
+
+        // Fetch valores for all contas
+        const contaIds = contasData.map(c => c.id);
+        let allValores: any[] = [];
+        if (contaIds.length > 0) {
+          const { data: valData } = await supabase
+            .from('valores_mensais')
+            .select('conta_id, competencia, valor_realizado')
+            .in('conta_id', contaIds);
+          allValores = valData || [];
+        }
+        setValoresAnuais(allValores);
 
         const map: Record<string, AnaliseRecord> = {};
-        if (data) {
-          for (const row of data as any[]) {
+        if (analRes.data) {
+          for (const row of analRes.data as any[]) {
             map[row.indicador] = {
               indicador: row.indicador,
               titulo: row.titulo,
