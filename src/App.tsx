@@ -23,7 +23,6 @@ import DiagnosticoPublicoPage from "./pages/DiagnosticoPublicoPage";
 import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
 import ClientePortalPage from "./pages/ClientePortalPage";
 import ApresentacaoPage from "./pages/ApresentacaoPage";
-import UsuariosPage from "./pages/UsuariosPage";
 
 import NotFound from "./pages/NotFound";
 
