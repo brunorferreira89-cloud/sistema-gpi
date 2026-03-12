@@ -1936,6 +1936,24 @@ export function TorreControleTab({ clienteId }: Props) {
               >
                 AV%
               </button>
+              <button
+                onClick={() => setShowAH(v => !v)}
+                style={{
+                  background: showAH ? '#1A3CFF' : '#F0F4FA',
+                  color: showAH ? '#FFFFFF' : '#8A9BBC',
+                  border: `1px solid ${showAH ? '#1A3CFF' : '#DDE4F0'}`,
+                  borderRadius: 6,
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!showAH) (e.currentTarget.style.background = '#E8EEF8'); }}
+                onMouseLeave={e => { if (!showAH) (e.currentTarget.style.background = '#F0F4FA'); }}
+              >
+                AH%
+              </button>
             </div>
 
             {/* Instrumentos de Criação de Metas — logo abaixo do banner */}
