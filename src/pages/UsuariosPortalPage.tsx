@@ -36,6 +36,21 @@ export default function UsuariosPortalPage() {
   const [deleteUser, setDeleteUser] = useState<PortalUser | null>(null);
   const [messageUser, setMessageUser] = useState<PortalUser | null>(null);
 
+  // Session password state (never persisted)
+  const [senhaSessao, setSenhaSessao] = useState<{ usuarioId: string; senha: string; criadoEm: Date } | null>(null);
+
+  // Auto-expire senha after 30 minutes
+  useEffect(() => {
+    if (!senhaSessao) return;
+    const elapsed = Date.now() - senhaSessao.criadoEm.getTime();
+    const remaining = Math.max(0, 30 * 60 * 1000 - elapsed);
+    const timer = setTimeout(() => setSenhaSessao(null), remaining);
+    return () => clearTimeout(timer);
+  }, [senhaSessao]);
+
+  // Cleanup on unmount
+  useEffect(() => () => setSenhaSessao(null), []);
+
   // Post-creation state
   const [createdInfo, setCreatedInfo] = useState<{ nome: string; email: string; senha: string | null } | null>(null);
 
