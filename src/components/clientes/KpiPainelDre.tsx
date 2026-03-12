@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { KpiDetalheModal } from './KpiDetalheModal';
+import { NcgDetalheModal } from './NcgDetalheModal';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import {
   fetchMergedIndicadores,
@@ -10,6 +11,7 @@ import {
   calcScore,
   type IndicadorCalculado,
 } from '@/lib/kpi-indicadores-utils';
+import { calcNCG, calcNCGPct, calcNCGStatus } from '@/lib/torre-utils';
 
 const STATUS_CONFIG = {
   verde: { bg: '#00A86B1A', color: '#00A86B', label: '✓' },
@@ -17,15 +19,23 @@ const STATUS_CONFIG = {
   vermelho: { bg: '#DC26261A', color: '#DC2626', label: '✗' },
 };
 
+const NCG_STATUS_MAP: Record<string, string> = {
+  ok: '#00A86B',
+  atencao: '#D97706',
+  critico: '#DC2626',
+};
 
 interface Props {
   clienteId: string;
   competencia: string;
+  faturamento?: number;
+  cmv?: number;
 }
 
-export function KpiPainelDre({ clienteId, competencia }: Props) {
+export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [selectedKpi, setSelectedKpi] = useState<import('@/lib/kpi-indicadores-utils').IndicadorCalculado | null>(null);
+  const [selectedKpi, setSelectedKpi] = useState<IndicadorCalculado | null>(null);
+  const [ncgModalOpen, setNcgModalOpen] = useState(false);
 
   const { data: indicadores } = useQuery({
     queryKey: ['kpi-indicadores', clienteId],
@@ -52,6 +62,15 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
     },
   });
 
+  const { data: cicloData } = useQuery({
+    queryKey: ['kpi-ciclo-financeiro', clienteId],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase.from('kpi_ciclo_financeiro').select('*').eq('cliente_id', clienteId).maybeSingle();
+      return data;
+    },
+  });
+
   const valoresMap = useMemo(() => {
     const map: Record<string, number | null> = {};
     valoresData?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
@@ -64,13 +83,29 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
   }, [indicadores, contas, valoresMap]);
 
   const ativos = calculados.filter(c => c.indicador.ativo);
+
+  // NCG calculation
+  const ncgCalc = useMemo(() => {
+    const fat = faturamento != null ? Math.abs(faturamento) : 0;
+    const cv = cmv != null ? Math.abs(cmv) : 0;
+    if (!fat) return null;
+    const pmr = cicloData?.pmr ?? 30;
+    const pme = cicloData?.pme ?? 15;
+    const pmp = cicloData?.pmp ?? 30;
+    const ncg = calcNCG({ faturamento: fat, cmv: cv, pmr, pme, pmp });
+    const pct = calcNCGPct(ncg, fat);
+    const status = calcNCGStatus(pct);
+    return { ncg, pct, status };
+  }, [faturamento, cmv, cicloData]);
+
   const score = calcScore(ativos);
 
-  if (!ativos.length) return null;
+  if (!ativos.length && !ncgCalc) return null;
 
   const scoreColor = score >= 70 ? '#00A86B' : score >= 40 ? '#D97706' : '#DC2626';
-  const visibleChips = ativos.slice(0, 4);
-  const extraCount = ativos.length - 4;
+  const allChips = [...ativos];
+  const visibleChips = allChips.slice(0, 4);
+  const extraCount = allChips.length - 4 + (ncgCalc ? 1 : 0);
 
   return (
     <div>
@@ -125,6 +160,12 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
               </span>
             );
           })}
+          {ncgCalc && visibleChips.length < 4 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4A5E80' }}>
+              <svg width="8" height="8"><circle cx="4" cy="4" r="4" fill={NCG_STATUS_MAP[ncgCalc.status]} /></svg>
+              NCG
+            </span>
+          )}
           {extraCount > 0 && (
             <span style={{ fontSize: 11, color: '#8A9BBC', fontWeight: 500 }}>+{extraCount}</span>
           )}
@@ -182,6 +223,33 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
                 </div>
               );
             })}
+
+            {/* NCG Chip */}
+            {ncgCalc && (
+              <div
+                onClick={() => setNcgModalOpen(true)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: '#FFFFFF', border: '1px solid #DDE4F0',
+                  borderRadius: 100, padding: '6px 14px 6px 10px',
+                  cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(13,27,53,0.05)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#1A3CFF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDE4F0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(13,27,53,0.05)'; }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: NCG_STATUS_MAP[ncgCalc.status] }} />
+                <span style={{ fontSize: 11, color: '#4A5E80', fontWeight: 500, whiteSpace: 'nowrap' }}>NCG</span>
+                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Courier New', monospace", color: NCG_STATUS_MAP[ncgCalc.status] }}>{ncgCalc.pct.toFixed(1)}%</span>
+                {(() => {
+                  const barW = ncgCalc.pct > 0 ? Math.min(ncgCalc.pct / 15, 1) * 100 : 0;
+                  return barW > 0 ? (
+                    <span style={{ position: 'absolute', bottom: 0, left: 0, height: 2, borderRadius: '0 1px 1px 0', background: NCG_STATUS_MAP[ncgCalc.status], width: `${barW}%`, transition: 'width 0.3s ease' }} />
+                  ) : null;
+                })()}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -192,6 +260,17 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
           onClose={() => setSelectedKpi(null)}
           kpiCalc={selectedKpi}
           competencia={competencia}
+        />
+      )}
+
+      {ncgModalOpen && (
+        <NcgDetalheModal
+          open={ncgModalOpen}
+          onClose={() => setNcgModalOpen(false)}
+          clienteId={clienteId}
+          competencia={competencia}
+          faturamento={faturamento ?? 0}
+          cmv={cmv ?? 0}
         />
       )}
     </div>
