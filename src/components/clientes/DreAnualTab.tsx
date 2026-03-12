@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { DreIndicadoresHeader } from './DreIndicadoresHeader';
 import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
+import { KpiPainelDre } from './KpiPainelDre';
 
 // --- helpers ---
 
