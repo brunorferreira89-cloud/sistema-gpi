@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut, UserCheck } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
