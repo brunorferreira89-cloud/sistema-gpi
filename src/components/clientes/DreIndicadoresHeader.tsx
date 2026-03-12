@@ -254,32 +254,32 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
   const theme = color === '#1A3CFF' ? 'Blue' : color === '#DC2626' ? 'Red' : color === '#00A86B' ? 'Green' : color === '#D97706' ? 'Amber' : color === '#0099E6' ? 'Cyan' : 'Blue';
 
   const barGradients: Record<string, string> = {
-    Blue: 'linear-gradient(90deg, #1A3CFF, #0099E6, #1A3CFF)',
-    Red: 'linear-gradient(90deg, #DC2626, #f87171, #DC2626)',
-    Green: 'linear-gradient(90deg, #00A86B, #34d399, #00A86B)',
-    Amber: 'linear-gradient(90deg, #D97706, #fbbf24, #D97706)',
-    Cyan: 'linear-gradient(90deg, #0099E6, #38bdf8, #0099E6)',
+    Blue: 'linear-gradient(90deg, #1A3CFF, #5B8DEF, #0099E6, #5B8DEF, #1A3CFF)',
+    Red: 'linear-gradient(90deg, #DC2626, #f87171, #fca5a5, #f87171, #DC2626)',
+    Green: 'linear-gradient(90deg, #00A86B, #34d399, #6ee7b7, #34d399, #00A86B)',
+    Amber: 'linear-gradient(90deg, #D97706, #fbbf24, #fde68a, #fbbf24, #D97706)',
+    Cyan: 'linear-gradient(90deg, #0099E6, #38bdf8, #7dd3fc, #38bdf8, #0099E6)',
   };
   const barShadows: Record<string, string> = {
-    Blue: '0 0 8px rgba(26,60,255,0.45)',
-    Red: '0 0 8px rgba(220,38,38,0.40)',
-    Green: '0 0 8px rgba(0,168,107,0.40)',
-    Amber: '0 0 8px rgba(217,119,6,0.40)',
-    Cyan: '0 0 8px rgba(0,153,230,0.40)',
+    Blue: '0 0 14px rgba(26,60,255,0.6), 0 0 4px rgba(26,60,255,0.3)',
+    Red: '0 0 14px rgba(220,38,38,0.55), 0 0 4px rgba(220,38,38,0.3)',
+    Green: '0 0 14px rgba(0,168,107,0.55), 0 0 4px rgba(0,168,107,0.3)',
+    Amber: '0 0 14px rgba(217,119,6,0.55), 0 0 4px rgba(217,119,6,0.3)',
+    Cyan: '0 0 14px rgba(0,153,230,0.55), 0 0 4px rgba(0,153,230,0.3)',
   };
   const hoverShadows: Record<string, string> = {
-    Blue: '0 8px 28px rgba(26,60,255,0.18)',
-    Red: '0 8px 28px rgba(220,38,38,0.16)',
-    Green: '0 8px 28px rgba(0,168,107,0.16)',
-    Amber: '0 8px 28px rgba(217,119,6,0.16)',
-    Cyan: '0 8px 28px rgba(0,153,230,0.16)',
+    Blue: '0 10px 36px rgba(26,60,255,0.28), 0 0 12px rgba(26,60,255,0.12)',
+    Red: '0 10px 36px rgba(220,38,38,0.24), 0 0 12px rgba(220,38,38,0.10)',
+    Green: '0 10px 36px rgba(0,168,107,0.24), 0 0 12px rgba(0,168,107,0.10)',
+    Amber: '0 10px 36px rgba(217,119,6,0.24), 0 0 12px rgba(217,119,6,0.10)',
+    Cyan: '0 10px 36px rgba(0,153,230,0.24), 0 0 12px rgba(0,153,230,0.10)',
   };
   const hoverBorders: Record<string, string> = {
-    Blue: 'rgba(26,60,255,0.35)',
-    Red: 'rgba(220,38,38,0.30)',
-    Green: 'rgba(0,168,107,0.30)',
-    Amber: 'rgba(217,119,6,0.30)',
-    Cyan: 'rgba(0,153,230,0.30)',
+    Blue: 'rgba(26,60,255,0.50)',
+    Red: 'rgba(220,38,38,0.45)',
+    Green: 'rgba(0,168,107,0.45)',
+    Amber: 'rgba(217,119,6,0.45)',
+    Cyan: 'rgba(0,153,230,0.45)',
   };
 
   const shimmerDelays = [0, 0.7, 1.4, 2.1, 2.8, 0.4, 1.1, 1.8, 2.5, 3.2];
