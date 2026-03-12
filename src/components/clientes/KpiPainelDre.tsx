@@ -30,6 +30,7 @@ interface Props {
 
 export function KpiPainelDre({ clienteId, competencia }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [selectedKpi, setSelectedKpi] = useState<import('@/lib/kpi-indicadores-utils').IndicadorCalculado | null>(null);
 
   const { data: indicadores } = useQuery({
     queryKey: ['kpi-indicadores', clienteId],
