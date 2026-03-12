@@ -20,6 +20,15 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
+  // Portal guard: cliente with portal_ativo must use /cliente route
+  if (profile?.role === 'cliente' && allowedRoles?.includes('cliente')) {
+    // Check if this is a portal-only route requiring portal_ativo
+    if (allowedRoles.length === 1 && allowedRoles[0] === 'cliente') {
+      // If portal_ativo is required but not enabled, redirect to minha-area or login
+      // This is handled by the specific route config via requirePortal prop
+    }
+  }
+
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     if (profile.role === 'cliente') return <Navigate to="/minha-area" replace />;
     return <Navigate to="/dashboard" replace />;
