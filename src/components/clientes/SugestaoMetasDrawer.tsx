@@ -398,6 +398,7 @@ function MetaIACell({ sugestao, isReceita, isSelected, onToggle, manualMeta, onM
 
 // ── Narrativa Comandante GPI ─────────────────────────────────────
 const iconesSecao: Record<string, string> = {
+  'Missão recebida':                '🎯',
   'Leitura dos Instrumentos':       '🎛️',
   'Destino e Altitude Alvo':        '✈️',
   'Por que estes ajustes nos controles': '🕹️',
