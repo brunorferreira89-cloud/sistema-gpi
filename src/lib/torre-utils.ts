@@ -47,3 +47,29 @@ export function fmtCompetencia(comp: string): string {
   const d = new Date(comp + 'T12:00:00Z');
   return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').toUpperCase();
 }
+
+// --- NCG (Necessidade de Capital de Giro) ---
+
+export function calcNCG(params: {
+  faturamento: number;
+  cmv: number;
+  pmr: number;
+  pme: number;
+  pmp: number;
+}): number {
+  const receber = (params.faturamento / 30) * params.pmr;
+  const estoques = (params.cmv / 30) * params.pme;
+  const pagar = (params.cmv / 30) * params.pmp;
+  return receber + estoques - pagar;
+}
+
+export function calcNCGPct(ncg: number, faturamento: number): number {
+  if (!faturamento) return 0;
+  return (ncg / faturamento) * 100;
+}
+
+export function calcNCGStatus(ncgPct: number): 'ok' | 'atencao' | 'critico' {
+  if (ncgPct <= 0) return 'ok';
+  if (ncgPct <= 15) return 'atencao';
+  return 'critico';
+}
