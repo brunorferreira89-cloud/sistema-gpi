@@ -707,11 +707,27 @@ function EditIndicadorModal({ indicador, clienteId, contas, onClose, onSaved }: 
 
         <DialogFooter>
           <div className="flex w-full items-center justify-between">
-            <div>
+            <div className="flex gap-2">
               {isOverride && (
                 <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate()} disabled={restoreMutation.isPending}>
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
                   Restaurar padrão GPI
+                </Button>
+              )}
+              {isOverride && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                  onClick={() => {
+                    if (window.confirm('Tem certeza que deseja apagar este indicador? Esta ação não pode ser desfeita.')) {
+                      deleteMutation.mutate();
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Apagar
                 </Button>
               )}
             </div>
