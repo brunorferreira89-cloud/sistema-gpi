@@ -59,6 +59,7 @@ const App = () => (
                 <Route path="/reuniao-coletiva/:id" element={<ReuniaoColetivDetalhe />} />
                 <Route path="/diagnostico" element={<DiagnosticoLeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
+                <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
                 
               </Route>
             </Route>
@@ -67,6 +68,13 @@ const App = () => (
             <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>
               <Route element={<ClienteLayout />}>
                 <Route path="/minha-area" element={<MinhaAreaPage />} />
+              </Route>
+            </Route>
+
+            {/* Portal do Cliente (requires portal_ativo) */}
+            <Route element={<PortalRoute />}>
+              <Route element={<ClienteLayout />}>
+                <Route path="/cliente" element={<ClientePortalPage />} />
               </Route>
             </Route>
 
