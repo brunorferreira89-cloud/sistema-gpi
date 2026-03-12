@@ -55,46 +55,6 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
     },
   });
 
-  const sparkMonths = useMemo(() => getLast6Months(competencia), [competencia]);
-  const { data: sparkData } = useQuery({
-    queryKey: ['valores-spark-kpis', clienteId, competencia],
-    enabled: !!clienteId && !!contas?.length,
-    queryFn: async () => {
-      const contaIds = contas!.map(c => c.id);
-      const { data } = await supabase.from('valores_mensais').select('conta_id, competencia, valor_realizado').in('conta_id', contaIds).in('competencia', sparkMonths);
-      return data || [];
-    },
-  });
-
-  const valoresMap = useMemo(() => {
-    const map: Record<string, number | null> = {};
-    valoresData?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
-    return map;
-  }, [valoresData]);
-
-  const calculados = useMemo(() => {
-    if (!indicadores || !contas) return [];
-    return calcularIndicadores(indicadores, contas, valoresMap);
-  }, [indicadores, contas, valoresMap]);
-
-  const ativos = calculados.filter(c => c.indicador.ativo);
-  const score = calcScore(ativos);
-
-  const sparkHistories = useMemo(() => {
-    if (!sparkData || !contas || !indicadores) return new Map<string, number[]>();
-    const map = new Map<string, number[]>();
-    for (const ind of indicadores.filter(i => i.ativo)) {
-      const history = sparkMonths.map(m => {
-        const monthMap: Record<string, number | null> = {};
-        sparkData.filter(v => v.competencia === m).forEach(v => { monthMap[v.conta_id] = v.valor_realizado; });
-        const results = calcularIndicadores([ind], contas, monthMap);
-        return results[0]?.pct ?? 0;
-      });
-      map.set(ind.id, history);
-    }
-    return map;
-  }, [sparkData, contas, indicadores, sparkMonths]);
-
   if (!ativos.length) return null;
 
   const scoreColor = score >= 70 ? '#00A86B' : score >= 40 ? '#D97706' : '#DC2626';
