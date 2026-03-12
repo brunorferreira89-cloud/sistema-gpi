@@ -38,7 +38,12 @@ function saudacao() {
   return 'Boa noite';
 }
 
-export default function ClientePortalPage() {
+interface ClientePortalPageProps {
+  clienteId?: string;
+  espelho?: boolean;
+}
+
+export default function ClientePortalPage({ clienteId: propClienteId, espelho }: ClientePortalPageProps = {}) {
   const { profile } = useAuth();
   const competencia = getCompetenciaAtual();
 
@@ -50,9 +55,11 @@ export default function ClientePortalPage() {
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const resolvedClienteId = propClienteId || profile?.cliente_id;
+
   useEffect(() => {
-    if (!profile?.cliente_id) return;
-    const clienteId = profile.cliente_id;
+    if (!resolvedClienteId) return;
+    const clienteId = resolvedClienteId;
 
     const load = async () => {
       setLoading(true);
