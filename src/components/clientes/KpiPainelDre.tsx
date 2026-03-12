@@ -1,8 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ArcGauge } from '@/components/ui/arc-gauge';
-import { SparkLine } from '@/components/ui/spark-line';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { KpiDetalheModal } from './KpiDetalheModal';
 import { type ContaRow } from '@/lib/plano-contas-utils';
@@ -10,7 +8,6 @@ import {
   fetchMergedIndicadores,
   calcularIndicadores,
   calcScore,
-  getLast6Months,
   type IndicadorCalculado,
 } from '@/lib/kpi-indicadores-utils';
 
@@ -20,8 +17,6 @@ const STATUS_CONFIG = {
   vermelho: { bg: '#DC26261A', color: '#DC2626', label: '✗' },
 };
 
-const fmtCurrency = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
 interface Props {
   clienteId: string;
@@ -57,17 +52,6 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
     },
   });
 
-  const sparkMonths = useMemo(() => getLast6Months(competencia), [competencia]);
-  const { data: sparkData } = useQuery({
-    queryKey: ['valores-spark-kpis', clienteId, competencia],
-    enabled: !!clienteId && !!contas?.length,
-    queryFn: async () => {
-      const contaIds = contas!.map(c => c.id);
-      const { data } = await supabase.from('valores_mensais').select('conta_id, competencia, valor_realizado').in('conta_id', contaIds).in('competencia', sparkMonths);
-      return data || [];
-    },
-  });
-
   const valoresMap = useMemo(() => {
     const map: Record<string, number | null> = {};
     valoresData?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
@@ -81,21 +65,6 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
 
   const ativos = calculados.filter(c => c.indicador.ativo);
   const score = calcScore(ativos);
-
-  const sparkHistories = useMemo(() => {
-    if (!sparkData || !contas || !indicadores) return new Map<string, number[]>();
-    const map = new Map<string, number[]>();
-    for (const ind of indicadores.filter(i => i.ativo)) {
-      const history = sparkMonths.map(m => {
-        const monthMap: Record<string, number | null> = {};
-        sparkData.filter(v => v.competencia === m).forEach(v => { monthMap[v.conta_id] = v.valor_realizado; });
-        const results = calcularIndicadores([ind], contas, monthMap);
-        return results[0]?.pct ?? 0;
-      });
-      map.set(ind.id, history);
-    }
-    return map;
-  }, [sparkData, contas, indicadores, sparkMonths]);
 
   if (!ativos.length) return null;
 
@@ -182,41 +151,34 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
             borderBottom: '1px solid #DDE4F0',
           }}
         >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '12px 16px 16px 16px' }}>
             {ativos.map(item => {
               const cfg = STATUS_CONFIG[item.status];
-              const spark = sparkHistories.get(item.indicador.id) || [];
+              const pctVal = item.pct ?? 0;
+              const barWidth = item.indicador.limite_verde > 0
+                ? Math.min(Math.max(pctVal / item.indicador.limite_verde, 0), 1) * 100
+                : 0;
               return (
                 <div
                   key={item.indicador.id}
-                  className="rounded-xl border p-5"
-                  style={{ borderColor: '#DDE4F0', background: '#FFFFFF', cursor: 'pointer', transition: 'box-shadow 0.15s' }}
                   onClick={() => setSelectedKpi(item)}
-                  onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(26,60,255,0.1)')}
-                  onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    background: '#FFFFFF', border: '1px solid #DDE4F0',
+                    borderRadius: 100, padding: '6px 14px 6px 10px',
+                    cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(13,27,53,0.05)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#1A3CFF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.08)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDE4F0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(13,27,53,0.05)'; }}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{item.indicador.nome}</span>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-center my-2">
-                    <ArcGauge
-                      value={item.pct ?? 0}
-                      benchmark={item.indicador.limite_verde}
-                      color={cfg.color}
-                      label=""
-                      size={120}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <div>
-                      <span className="text-xs" style={{ color: '#4A5E80' }}>{fmtCurrency(Math.abs(item.valor ?? 0))}</span>
-                      <span className="text-[11px] ml-1" style={{ color: '#8A9BBC' }}>/ {fmtCurrency(item.faturamento)} fat.</span>
-                    </div>
-                    <SparkLine data={spark} color={cfg.color} width={50} height={18} />
-                  </div>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: cfg.color }} />
+                  <span style={{ fontSize: 11, color: '#4A5E80', fontWeight: 500, whiteSpace: 'nowrap' }}>{item.indicador.nome}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Courier New', monospace", color: cfg.color }}>{pctVal.toFixed(1)}%</span>
+                  {barWidth > 0 && (
+                    <span style={{ position: 'absolute', bottom: 0, left: 0, height: 2, borderRadius: '0 1px 1px 0', background: cfg.color, width: `${barWidth}%`, transition: 'width 0.3s ease' }} />
+                  )}
                 </div>
               );
             })}
