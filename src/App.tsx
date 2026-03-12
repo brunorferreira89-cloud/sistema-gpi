@@ -23,6 +23,7 @@ import DiagnosticoPublicoPage from "./pages/DiagnosticoPublicoPage";
 import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
 import ClientePortalPage from "./pages/ClientePortalPage";
 import ApresentacaoPage from "./pages/ApresentacaoPage";
+import UsuariosPage from "./pages/UsuariosPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +62,7 @@ const App = () => (
                 <Route path="/diagnostico" element={<DiagnosticoLeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
+                <Route path="/usuarios" element={<UsuariosPage />} />
                 
               </Route>
             </Route>
