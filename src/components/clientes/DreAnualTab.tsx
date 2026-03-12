@@ -904,6 +904,11 @@ export function DreAnualTab({ clienteId }: Props) {
         <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} clienteId={clienteId} />
       )}
 
+      {/* KPI Health Panel */}
+      {hasContas && mesEfetivo && (
+        <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} />
+      )}
+
       {/* Month selector */}
       {monthsWithData.length > 0 && (
         <div className="flex items-center gap-2" style={{ marginBottom: -8 }}>
