@@ -177,6 +177,70 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     return { mc, ro, rai, gc };
   }, [contas, valMap]);
 
+  const nextComp = useMemo(() => mesSeguinte(competencia), [competencia]);
+  const nextCompLabel = useMemo(() => fmtCompetencia(nextComp), [nextComp]);
+
+  // Torre: group sums with metas for next month
+  const torreGroups = useMemo(() => {
+    const tipoGroups = [
+      { key: 'faturamento', tipo: 'receita', label: 'Faturamento', color: '#7CB8FF', isReceita: true },
+      { key: 'custos', tipo: 'custo_variavel', label: 'Custos Operacionais', color: '#FF8989', isReceita: false },
+      { key: 'despesas', tipo: 'despesa_fixa', label: 'Despesas Fixas', color: '#FCD34D', isReceita: false },
+      { key: 'investimentos', tipo: 'investimento', label: 'Investimentos', color: '#7DD3FC', isReceita: false },
+    ];
+    return tipoGroups.map(tg => {
+      const leafs = getLeafContas(contas).filter(c => c.tipo === tg.tipo);
+      const realizado = leafs.reduce((s, c) => s + (valMap[c.id] || 0), 0);
+      // Sum metas for leafs of this type
+      let metaTotal = 0;
+      let hasMeta = false;
+      leafs.forEach(c => {
+        const m = torreMetas.find((tm: any) => tm.conta_id === c.id);
+        if (m && m.meta_valor !== null) {
+          hasMeta = true;
+          // pct meta: projected = realizado * (1 + pct/100)
+          if (m.meta_tipo === 'pct') {
+            metaTotal += (valMap[c.id] || 0) * (1 + m.meta_valor / 100);
+          } else {
+            metaTotal += m.meta_valor;
+          }
+        } else {
+          metaTotal += valMap[c.id] || 0; // no meta = keep same
+        }
+      });
+      const varPct = realizado ? ((metaTotal - realizado) / Math.abs(realizado)) * 100 : 0;
+      // top 3 cats by variation
+      const cats = leafs.map(c => {
+        const m = torreMetas.find((tm: any) => tm.conta_id === c.id);
+        const r = valMap[c.id] || 0;
+        let proj = r;
+        if (m && m.meta_valor !== null) {
+          proj = m.meta_tipo === 'pct' ? r * (1 + m.meta_valor / 100) : m.meta_valor;
+        }
+        const catVar = r ? ((proj - r) / Math.abs(r)) * 100 : 0;
+        return { nome: c.nome, realizado: r, meta: proj, varPct: catVar };
+      }).filter(c => Math.abs(c.varPct) > 0.1).sort((a, b) => Math.abs(b.varPct) - Math.abs(a.varPct)).slice(0, 3);
+
+      // status for torre table
+      const status = torreCalcStatus(realizado, hasMeta ? metaTotal : null, tg.isReceita);
+
+      return { ...tg, realizado, metaTotal: hasMeta ? metaTotal : null, varPct, cats, hasMeta, status };
+    });
+  }, [contas, valMap, torreMetas]);
+
+  const gcProjetado = useMemo(() => {
+    const fatMeta = torreGroups[0].metaTotal ?? torreGroups[0].realizado;
+    const custosMeta = torreGroups[1].metaTotal ?? torreGroups[1].realizado;
+    const despMeta = torreGroups[2].metaTotal ?? torreGroups[2].realizado;
+    const invMeta = torreGroups[3].metaTotal ?? torreGroups[3].realizado;
+    return fatMeta + custosMeta + despMeta + invMeta; // custos/desp/inv are negative
+  }, [torreGroups]);
+
+  const gcProjetadoPct = useMemo(() => {
+    const fatMeta = torreGroups[0].metaTotal ?? torreGroups[0].realizado;
+    return fatMeta ? (gcProjetado / Math.abs(fatMeta)) * 100 : 0;
+  }, [gcProjetado, torreGroups]);
+
   const mesLabel = (() => {
     const d = new Date(competencia + 'T00:00:00');
     return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
