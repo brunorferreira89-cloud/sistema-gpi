@@ -406,9 +406,12 @@ const iconesSecao: Record<string, string> = {
   'Checklist antes da decolagem':   '✅',
 };
 
-function NarrativaComandante({ texto }: { texto: string }) {
+function NarrativaComandante({ texto, forceExpand }: { texto: string; forceExpand?: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
+  useEffect(() => {
+    if (forceExpand) setExpanded(true);
+  }, [forceExpand]);
   // Parse sections: split by **Title**
   const sections = useMemo(() => {
     const parts: { titulo: string; corpo: string }[] = [];
