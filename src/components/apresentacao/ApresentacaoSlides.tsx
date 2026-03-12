@@ -107,6 +107,11 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
       const { data: prepRes } = await supabase.from('apresentacao_preparacao').select('*').eq('cliente_id', clienteId).eq('competencia', competencia).maybeSingle();
       setPrepData(prepRes);
 
+      // Torre metas for next month
+      const nextComp = mesSeguinte(competencia);
+      const { data: metasData } = await supabase.from('torre_metas').select('*').eq('cliente_id', clienteId).eq('competencia', nextComp);
+      setTorreMetas(metasData || []);
+
       // Create/update apresentacao record
       const { data: existing } = await supabase.from('apresentacoes').select('id').eq('cliente_id', clienteId).eq('competencia', competencia).maybeSingle();
       if (existing) {
