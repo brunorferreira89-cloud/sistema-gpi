@@ -73,3 +73,16 @@ export function calcNCGStatus(ncgPct: number): 'ok' | 'atencao' | 'critico' {
   if (ncgPct <= 15) return 'atencao';
   return 'critico';
 }
+
+// --- GAP de Capital de Giro ---
+
+export function calcGapNCG(ncg: number, caixaDisponivel: number): number {
+  // positivo = sobra caixa / negativo = falta caixa
+  return caixaDisponivel - ncg;
+}
+
+export function calcGapStatus(gap: number): 'ok' | 'atencao' | 'critico' {
+  if (gap >= 0) return 'ok';
+  if (gap > -50000) return 'atencao';
+  return 'critico';
+}
