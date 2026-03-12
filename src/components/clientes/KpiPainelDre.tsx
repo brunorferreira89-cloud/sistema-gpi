@@ -17,8 +17,6 @@ const STATUS_CONFIG = {
   vermelho: { bg: '#DC26261A', color: '#DC2626', label: '✗' },
 };
 
-const fmtCurrency = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
 interface Props {
   clienteId: string;
