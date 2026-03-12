@@ -38,7 +38,12 @@ function saudacao() {
   return 'Boa noite';
 }
 
-export default function ClientePortalPage() {
+interface ClientePortalPageProps {
+  clienteId?: string;
+  espelho?: boolean;
+}
+
+export default function ClientePortalPage({ clienteId: propClienteId, espelho }: ClientePortalPageProps = {}) {
   const { profile } = useAuth();
   const competencia = getCompetenciaAtual();
 
@@ -50,9 +55,11 @@ export default function ClientePortalPage() {
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const resolvedClienteId = propClienteId || profile?.cliente_id;
+
   useEffect(() => {
-    if (!profile?.cliente_id) return;
-    const clienteId = profile.cliente_id;
+    if (!resolvedClienteId) return;
+    const clienteId = resolvedClienteId;
 
     const load = async () => {
       setLoading(true);
@@ -130,7 +137,7 @@ export default function ClientePortalPage() {
     };
 
     load();
-  }, [profile?.cliente_id, competencia]);
+  }, [resolvedClienteId, competencia]);
 
   if (loading) {
     return (
@@ -162,6 +169,11 @@ export default function ClientePortalPage() {
         <div>
           <h1 className="text-xl font-bold text-[#0D1B35]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
             {saudacao()}, {cliente?.responsavel_nome || profile?.nome || 'Cliente'}
+            {espelho && (
+              <span className="ml-2 inline-block rounded-full bg-[#EBF0FF] px-2 py-0.5 text-[10px] font-medium text-[#1A3CFF] align-middle">
+                visualizando como cliente
+              </span>
+            )}
           </h1>
           <p className="text-sm text-[#4A5E80]">{cliente?.razao_social || cliente?.nome_empresa}</p>
         </div>
@@ -325,15 +337,25 @@ export default function ClientePortalPage() {
           analisa e apresenta os resultados toda reunião mensal. Dúvidas? Fale
           com seu consultor pelo WhatsApp.
         </p>
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
-        >
-          <MessageCircle className="h-4 w-4" />
-          💬 Falar com meu consultor
-        </a>
+        {espelho ? (
+          <span
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white opacity-40 cursor-not-allowed"
+            title="Disponível apenas no portal do cliente"
+          >
+            <MessageCircle className="h-4 w-4" />
+            💬 Falar com meu consultor
+          </span>
+        ) : (
+          <a
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+            💬 Falar com meu consultor
+          </a>
+        )}
       </div>
     </div>
   );

@@ -20,12 +20,14 @@ import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
 import { fetchKpiData } from '@/lib/kpi-utils';
+import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('visao-geral');
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ['cliente', clienteId],
@@ -196,7 +198,7 @@ export default function ClienteFichaPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="visao-geral">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="importacao">Importação</TabsTrigger>
@@ -204,6 +206,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
         </TabsList>
 
         {/* Visão Geral */}
@@ -295,6 +298,11 @@ export default function ClienteFichaPage() {
         {/* Contato */}
         <TabsContent value="contato">
           <ContatoTab clienteId={clienteId!} cliente={cliente} />
+        </TabsContent>
+
+        {/* Visão do Cliente */}
+        <TabsContent value="visao-cliente">
+          <ClientePortalEspelho clienteId={clienteId!} onSwitchTab={setActiveTab} />
         </TabsContent>
       </Tabs>
 
