@@ -203,21 +203,45 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
     return () => observer.disconnect();
   }, [loadingInit, open, analises]);
 
+  const mesReferenciaLabel = useMemo(() => {
+    const d = new Date(competencia + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }, [competencia]);
+
   const gerarAnalise = useCallback(async (nomeIndicador: string) => {
     setGerandoIndicadores(prev => [...prev, nomeIndicador]);
     try {
-      const { data: result, error } = await supabase.functions.invoke('analisar-indicador', {
-        body: {
-          indicador: nomeIndicador,
-          cliente_id: cliente.id,
-          competencia,
-          mes_referencia: fmtCompetencia(competencia),
-          // Minimal payload — the Edge Function handles the rest
-          valor_atual: 0, valor_absoluto: 0, faturamento: 0,
-          status: 'verde', limite_verde: 0, limite_ambar: 0,
-          direcao: 'maior_melhor', historico: [], formula: '', composicao: [],
-        },
-      });
+      // Build real payload from financial data
+      const payload = buildIndicadorPayload(nomeIndicador, contas, valoresAnuais, competencia, mesReferenciaLabel);
+
+      const body = payload
+        ? {
+            indicador: nomeIndicador,
+            cliente_id: cliente.id,
+            competencia,
+            mes_referencia: mesReferenciaLabel,
+            valor_atual: payload.valor_atual,
+            valor_absoluto: payload.valor_absoluto,
+            faturamento: payload.faturamento,
+            status: payload.status,
+            limite_verde: payload.limite_verde,
+            limite_ambar: payload.limite_ambar,
+            direcao: payload.direcao,
+            historico: payload.historico,
+            formula: payload.formula,
+            composicao: payload.composicao,
+          }
+        : {
+            indicador: nomeIndicador,
+            cliente_id: cliente.id,
+            competencia,
+            mes_referencia: mesReferenciaLabel,
+            valor_atual: 0, valor_absoluto: 0, faturamento: 0,
+            status: 'verde', limite_verde: 0, limite_ambar: 0,
+            direcao: 'maior_melhor', historico: [], formula: '', composicao: [],
+          };
+
+      const { data: result, error } = await supabase.functions.invoke('analisar-indicador', { body });
       if (error) throw error;
       const now = new Date().toISOString();
 
@@ -249,7 +273,7 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
     } finally {
       setGerandoIndicadores(prev => prev.filter(n => n !== nomeIndicador));
     }
-  }, [cliente.id, competencia]);
+  }, [cliente.id, competencia, contas, valoresAnuais, mesReferenciaLabel]);
 
   const scrollToIndicador = (nome: string) => {
     const el = document.getElementById(`indicador-${slugify(nome)}`);
