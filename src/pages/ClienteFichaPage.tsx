@@ -304,7 +304,7 @@ export default function ClienteFichaPage() {
 
         {/* Portal */}
         <TabsContent value="portal">
-          <PortalTab clienteId={clienteId!} />
+          <PortalTab clienteId={clienteId!} cliente={cliente} />
         </TabsContent>
 
         {/* Visão do Cliente */}
