@@ -320,12 +320,12 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
 
       {/* Ambient shimmer */}
       <div style={{
-        position: 'absolute', top: 0, left: '-60%', width: '40%', height: '100%',
+        position: 'absolute', top: 0, left: '-60%', width: '50%', height: '100%',
         background: hovered
-          ? 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.30) 50%, transparent 70%)'
-          : 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)',
+          ? 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.50) 50%, rgba(255,255,255,0.45) 55%, transparent 80%)'
+          : 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.28) 45%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.28) 55%, transparent 80%)',
         pointerEvents: 'none',
-        animation: hovered ? 'dre-hoverShimmer 0.55s ease forwards' : `dre-ambientShimmer 5s ease-in-out infinite`,
+        animation: hovered ? 'dre-hoverShimmer 0.5s ease forwards' : `dre-ambientShimmer 4s ease-in-out infinite`,
         animationDelay: hovered ? '0s' : `${shimmerDelays[index] || 0}s`,
         zIndex: 2,
       }} />
