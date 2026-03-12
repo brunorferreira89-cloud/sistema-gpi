@@ -52,7 +52,70 @@ const STATUS_CONFIG = {
 
 interface Props { clienteId: string; }
 
-export function KPIsTab({ clienteId }: Props) {
+function SortableKpiCard({ item, cfg, spark, isActive, onClick }: {
+  item: IndicadorCalculado;
+  cfg: { bg: string; color: string; label: string };
+  spark: number[];
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.indicador.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isActive ? 0.4 : 1,
+    borderColor: '#DDE4F0',
+    background: '#FFFFFF',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}
+      className="rounded-xl border p-5 transition-all hover:shadow-md relative group"
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.borderColor = '#1A3CFF'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDE4F0'; }}
+    >
+      {/* Drag handle */}
+      <div
+        {...listeners}
+        className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1 rounded cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: 'rgba(26,60,255,0.06)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <GripVertical className="h-4 w-4" style={{ color: '#8A9BBC' }} />
+      </div>
+
+      {/* Card content - clickable */}
+      <div onClick={onClick} className="cursor-pointer">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{item.indicador.nome}</span>
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
+            {cfg.label}
+          </span>
+        </div>
+        <div className="flex items-center justify-center my-2">
+          <ArcGauge
+            value={item.pct ?? 0}
+            benchmark={item.indicador.limite_verde}
+            color={cfg.color}
+            label=""
+            size={120}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <div>
+            <span className="text-xs" style={{ color: '#4A5E80' }}>{fmtCurrency(Math.abs(item.valor ?? 0))}</span>
+            <span className="text-[11px] ml-1" style={{ color: '#8A9BBC' }}>/ {fmtCurrency(item.faturamento)} fat.</span>
+          </div>
+          <SparkLine data={spark} color={cfg.color} width={50} height={18} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const fmtCurrency = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
+
   const currentMonth = new Date();
   currentMonth.setDate(1);
   const [competencia, setCompetencia] = useState(currentMonth.toISOString().split('T')[0]);
