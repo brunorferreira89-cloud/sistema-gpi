@@ -1116,6 +1116,17 @@ export function TorreControleTab({ clienteId }: Props) {
                   );
                 })()}
 
+                {/* AH% after META in CRIAÇÃO DE METAS (filtered month) */}
+                {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                  const ahStr = fmtAh(projetado, val);
+                  const color = isTotal ? (projetado != null && val != null ? ahTotColor(projetado, val) : C.txtMuted) : ahColor(projetado, val, conta.tipo);
+                  return (
+                    <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '8px 6px', color, width: avColW, minWidth: avColW, fontWeight: isTotal ? 700 : (isGrupo || isSubgrupo ? 600 : 400), background: isTotal ? '#0D1B35' : undefined }}>
+                      {ahStr || '—'}
+                    </td>
+                  );
+                })()}
+
                 {/* AV% after realized when no mode is active and month is filtered */}
                 {showAV && !isModoAtivo && !isTodosMode && (() => {
                   const monthMap = getMonthMap(m.value);
