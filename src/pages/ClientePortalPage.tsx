@@ -337,15 +337,25 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           analisa e apresenta os resultados toda reunião mensal. Dúvidas? Fale
           com seu consultor pelo WhatsApp.
         </p>
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
-        >
-          <MessageCircle className="h-4 w-4" />
-          💬 Falar com meu consultor
-        </a>
+        {espelho ? (
+          <span
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white opacity-40 cursor-not-allowed"
+            title="Disponível apenas no portal do cliente"
+          >
+            <MessageCircle className="h-4 w-4" />
+            💬 Falar com meu consultor
+          </span>
+        ) : (
+          <a
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+            💬 Falar com meu consultor
+          </a>
+        )}
       </div>
     </div>
   );
