@@ -314,6 +314,24 @@ export function PortalTab({ clienteId, cliente }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirm Deactivate */}
+      <AlertDialog open={deactivateConfirmOpen} onOpenChange={setDeactivateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar acesso ao portal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar o acesso de "{portalUser?.nome}" ao portal? O usuário não conseguirá mais acessar enquanto estiver inativo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleTogglePortal(false)}>
+              Desativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
