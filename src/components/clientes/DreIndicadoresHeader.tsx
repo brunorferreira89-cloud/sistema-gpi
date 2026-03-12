@@ -300,7 +300,7 @@ function IndicatorCard({ index, color, label, children, hasData, onClick, footer
         transform: visible ? (hovered ? 'translateY(-2px)' : 'translateY(0)') : 'translateY(8px)',
         transition: 'opacity 350ms cubic-bezier(0.16,1,0.3,1), transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
         cursor: onClick ? 'pointer' : 'default',
-        animation: visible ? `dre-breath${theme} 4s ease-in-out infinite` : 'none',
+        animation: visible ? `dre-breath${theme} 3s ease-in-out infinite` : 'none',
         animationDelay: `${index * 0.5}s`,
         animationPlayState: hovered ? 'paused' : 'running',
         ...(hovered ? { boxShadow: hoverShadows[theme], borderColor: hoverBorders[theme] } : {}),
