@@ -500,6 +500,25 @@ export function TorreControleTab({ clienteId }: Props) {
   // AV% semantic color for totalizador cells
   const avTotColor = (v: number): string => v < 0 ? '#FF6B6B' : '#00E68A';
 
+  // AH% (Horizontal Analysis) helpers
+  const fmtAh = (valAtual: number | null, valAnterior: number | null): string | null => {
+    if (valAtual == null || valAnterior == null || valAnterior === 0) return null;
+    return (((valAtual - valAnterior) / Math.abs(valAnterior)) * 100).toFixed(1) + '%';
+  };
+  const ahColor = (valAtual: number | null, valAnterior: number | null, tipo: string): string => {
+    if (valAtual == null || valAnterior == null) return C.txtMuted;
+    const diff = valAtual - valAnterior;
+    if (diff === 0) return C.txtMuted;
+    const isReceita = tipo === 'receita';
+    if (isReceita) return diff > 0 ? '#00A86B' : '#DC2626';
+    return diff < 0 ? '#00A86B' : '#DC2626';
+  };
+  const ahTotColor = (valAtual: number, valAnterior: number): string => {
+    const diff = valAtual - valAnterior;
+    if (diff === 0) return C.txtMuted;
+    return diff > 0 ? '#00E68A' : '#FF6B6B';
+  };
+
   // Direction arrow for META columns: compares meta vs realized
   const getMetaArrow = (metaVal: number | null, realVal: number | null, tipo: string): { arrow: string; color: string } | null => {
     if (metaVal == null || realVal == null) return null;
