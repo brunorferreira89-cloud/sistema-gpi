@@ -647,6 +647,48 @@ export type Database = {
           },
         ]
       }
+      portal_usuario_clientes: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          criado_em: string | null
+          empresa_padrao: boolean
+          id: string
+          usuario_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          criado_em?: string | null
+          empresa_padrao?: boolean
+          id?: string
+          usuario_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          criado_em?: string | null
+          empresa_padrao?: boolean
+          id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_usuario_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_usuario_clientes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           cliente_id: string | null
