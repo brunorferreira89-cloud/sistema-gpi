@@ -116,6 +116,7 @@ const fmtCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
 export function KPIsTab({ clienteId }: Props) {
+  const currentMonth = new Date();
   currentMonth.setDate(1);
   const [competencia, setCompetencia] = useState(currentMonth.toISOString().split('T')[0]);
   const months = getLast12Months();
