@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
 import { fetchKpiData } from '@/lib/kpi-utils';
+import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
