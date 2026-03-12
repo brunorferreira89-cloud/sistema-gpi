@@ -214,9 +214,14 @@ export default function UsuariosPortalPage() {
           open={modalOpen && !editingUser}
           onOpenChange={(o) => { if (!o) setModalOpen(false); }}
           preselectedClienteId={preselectedCliente}
-          onCreated={(info) => {
-            setCreatedInfo(info);
+          onCreated={(info, newUserId) => {
+            // Store password in session
+            if (info.senha) {
+              setSenhaSessao({ usuarioId: newUserId, senha: info.senha, criadoEm: new Date() });
+            }
             queryClient.invalidateQueries({ queryKey: ['portal-users-all'] });
+            // Auto-open message modal for this user after data refetch
+            setCreatedInfo({ ...info, _userId: newUserId } as any);
           }}
         />
       )}
