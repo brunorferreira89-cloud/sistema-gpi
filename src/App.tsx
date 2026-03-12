@@ -9,6 +9,7 @@ import { PortalRoute } from "@/components/PortalRoute";
 import LoginPage from "./pages/LoginPage";
 import AppLayout from "./layouts/AppLayout";
 import ClienteLayout from "./layouts/ClienteLayout";
+import PortalLayout from "./layouts/PortalLayout";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
 import ReunioesPage from "./pages/ReunioesPage";
