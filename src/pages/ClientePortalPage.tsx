@@ -137,7 +137,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     };
 
     load();
-  }, [profile?.cliente_id, competencia]);
+  }, [resolvedClienteId, competencia]);
 
   if (loading) {
     return (
