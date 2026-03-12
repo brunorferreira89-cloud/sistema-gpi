@@ -197,7 +197,7 @@ export default function ClienteFichaPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="visao-geral">
+      <Tabs defaultValue="visao-geral" onValueChange={() => {}}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="importacao">Importação</TabsTrigger>
@@ -205,6 +205,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
         </TabsList>
 
         {/* Visão Geral */}
