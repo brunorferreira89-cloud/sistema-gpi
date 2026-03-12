@@ -130,56 +130,20 @@ export function PortalTab({ clienteId, cliente }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* SEÇÃO 1: STATUS DO PORTAL */}
+      {/* SEÇÃO 1: USUÁRIO DO PORTAL */}
       <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
         <div className="flex items-center gap-3">
           <Globe className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold text-txt">Acesso ao Portal do Cliente</h3>
+          <h3 className="text-lg font-semibold text-txt">Usuário do Portal</h3>
         </div>
-
-        {portalUser ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-border p-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-txt">Status do Portal</span>
-                  {portalUser.portal_ativo ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-green/10 px-2 py-0.5 text-xs font-semibold text-green">
-                      ● ATIVO
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-txt-muted">
-                      ● INATIVO
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-txt-muted">
-                  Quando ativo, o cliente acessa o portal em /cliente com o e-mail e senha cadastrados abaixo.
-                </p>
-              </div>
-              <Switch
-                checked={portalUser.portal_ativo ?? false}
-                onCheckedChange={handleTogglePortal}
-                disabled={togglingPortal}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-2">
-            <p className="text-sm text-txt-muted">
-              Nenhum acesso ao portal configurado. Crie um usuário para que o cliente possa acessar o portal.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* SEÇÃO 2: USUÁRIO DO PORTAL */}
-      <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-txt">Usuário do Portal</h3>
 
         {!portalUser ? (
           <div className="space-y-4">
-            <p className="text-sm text-txt-muted">Nenhum usuário cadastrado para este cliente.</p>
+            <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-2">
+              <p className="text-sm text-txt-muted">
+                Nenhum usuário cadastrado para este cliente. Crie um acesso para que o cliente possa acessar o portal.
+              </p>
+            </div>
             <Button onClick={() => setCreateOpen(true)} className="gap-2">
               <UserPlus className="h-4 w-4" />
               Criar Acesso ao Portal
@@ -231,6 +195,35 @@ export function PortalTab({ clienteId, cliente }: Props) {
               </div>
             </div>
 
+            {/* Portal link */}
+            <div className="rounded-lg border border-border p-3 space-y-1">
+              <p className="text-[11px] font-medium uppercase text-txt-muted tracking-wide flex items-center gap-1">
+                <LinkIcon className="h-3 w-3" /> Link do portal
+              </p>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`${window.location.origin}/cliente`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  {window.location.origin}/cliente
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(`${window.location.origin}/cliente`);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                  className="rounded p-1 text-txt-muted hover:text-primary transition-colors"
+                  title="Copiar link"
+                >
+                  {linkCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="flex flex-wrap gap-2">
               <Button
@@ -247,6 +240,27 @@ export function PortalTab({ clienteId, cliente }: Props) {
                 <Key className="h-3.5 w-3.5" />
                 Redefinir senha
               </Button>
+              {portalUser.portal_ativo ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-green-500/30 text-green-600 hover:bg-green-500/10"
+                  onClick={() => setDeactivateConfirmOpen(true)}
+                  disabled={togglingPortal}
+                >
+                  ● Portal ativo
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-txt-muted"
+                  onClick={() => handleTogglePortal(true)}
+                  disabled={togglingPortal}
+                >
+                  ○ Portal inativo
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
