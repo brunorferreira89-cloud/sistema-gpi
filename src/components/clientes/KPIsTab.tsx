@@ -41,8 +41,7 @@ function getLast12Months() {
   return months;
 }
 
-const fmtCurrency = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
+/* fmtCurrency is defined after SortableKpiCard below */
 
 const STATUS_CONFIG = {
   verde: { bg: '#00A86B1A', color: '#00A86B', label: '✓ No esperado' },
