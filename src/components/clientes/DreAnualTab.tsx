@@ -900,17 +900,19 @@ export function DreAnualTab({ clienteId }: Props) {
 
   // Banner financial data
   const bannerData = useMemo(() => {
-    if (!mesEfetivo || !leafContas.length) return { faturamento: null, mcPct: null, gcPct: null };
+    if (!mesEfetivo || !leafContas.length) return { faturamento: null, mcPct: null, gcPct: null, cmv: null };
     const mMap: Record<string, number | null> = {};
     contas?.forEach(c => { mMap[c.id] = valoresMap[c.id]?.[mesEfetivo] ?? null; });
     const fat = leafContas.filter(c => c.tipo === 'receita').reduce((s, c) => s + (mMap[c.id] ?? 0), 0);
-    if (!fat) return { faturamento: null, mcPct: null, gcPct: null };
+    if (!fat) return { faturamento: null, mcPct: null, gcPct: null, cmv: null };
     const mc = calcIndicadorValue(leafContas, mMap, ['receita', 'custo_variavel']);
     const gc = calcIndicadorValue(leafContas, mMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
+    const cmvVal = leafContas.filter(c => c.tipo === 'custo_variavel').reduce((s, c) => s + (mMap[c.id] ?? 0), 0);
     return {
       faturamento: fat,
       mcPct: mc != null ? (mc / Math.abs(fat)) * 100 : null,
       gcPct: gc != null ? (gc / Math.abs(fat)) * 100 : null,
+      cmv: cmvVal,
     };
   }, [mesEfetivo, leafContas, contas, valoresMap]);
 
@@ -926,7 +928,7 @@ export function DreAnualTab({ clienteId }: Props) {
 
       {/* KPI Health Panel */}
       {hasContas && mesEfetivo && (
-        <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} />
+        <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} faturamento={bannerData.faturamento ?? undefined} cmv={bannerData.cmv ?? undefined} />
       )}
 
       {/* Month selector */}
