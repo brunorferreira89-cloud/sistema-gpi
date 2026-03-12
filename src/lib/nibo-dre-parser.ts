@@ -164,7 +164,12 @@ export function parseValoresNibo(file: File, contasDoPlano?: string[]): Promise<
           const nomeOriginal = String(nameCell.v).trim();
           if (!nomeOriginal) continue;
           if (deveIgnorar(nomeOriginal)) continue;
-          if (!nomeOriginal.startsWith('(')) continue; // Only lines with prefix (+) or (-)
+          // Skip lines without prefix UNLESS they match the chart of accounts
+          if (!nomeOriginal.startsWith('(')) {
+            if (!nomesNormalizados || !isCategoriaReal(nomeOriginal, nomesNormalizados, nomesComPrefixo)) {
+              continue;
+            }
+          }
           if (!isCategoriaReal(nomeOriginal, nomesNormalizados, nomesComPrefixo)) continue;
 
           const valoresRow: Record<string, number> = {};
