@@ -40,12 +40,13 @@ interface SugestaoMetasDrawerProps {
   metasExistentes: Record<string, { meta_tipo: string; meta_valor: number | null }>;
   onAplicar: (selecionadas: SugestaoMeta[]) => Promise<void>;
   loading: boolean;
-  onRegenerar?: () => void;
+  onRegenerar?: (diretriz?: string) => void;
   geradoEm?: string | null;
   fromCache?: boolean;
   contas?: ContaRow[];
   realizadoMap?: Record<string, number | null>;
   narrativa?: string | null;
+  diretrizSalva?: string | null;
 }
 
 // ── Colors ───────────────────────────────────────────────────────
