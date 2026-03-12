@@ -8,7 +8,6 @@ import {
   fetchMergedIndicadores,
   calcularIndicadores,
   calcScore,
-  getLast6Months,
   type IndicadorCalculado,
 } from '@/lib/kpi-indicadores-utils';
 
