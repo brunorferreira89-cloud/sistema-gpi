@@ -437,6 +437,22 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
                           <Campo label="Contexto" icon="📋" texto={(analise as any).contexto} />
                           <Campo label="Análise" icon="🔍" texto={analise.analise} />
                           <Campo label="Ação recomendada" icon="→" texto={analise.acao} destaque />
+                          <div style={{ marginTop: 8 }}>
+                            <button
+                              onClick={() => gerarAnalise(ind.nome)}
+                              disabled={gerando}
+                              style={{
+                                padding: '5px 12px', borderRadius: 5, border: `1px solid ${C.border}`,
+                                background: gerando ? C.bg : '#FFFFFF', color: C.txtSec,
+                                fontSize: 10, fontWeight: 600, cursor: gerando ? 'not-allowed' : 'pointer',
+                                fontFamily: "'DM Sans', system-ui",
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              {gerando ? '⏳ Regenerando...' : '🔄 Regerar análise'}
+                            </button>
+                          </div>
                         </>
                       ) : gerando ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0' }}>
