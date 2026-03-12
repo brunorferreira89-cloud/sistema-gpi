@@ -19,8 +19,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check cache first (unless force=true)
-    if (!force) {
+    // Check cache first (unless force=true or diretriz provided)
+    const hasDiretriz = typeof diretriz === 'string' && diretriz.trim().length > 0;
+    if (!force && !hasDiretriz) {
       const { data: cached } = await supabase
         .from("sugestoes_metas_ia")
         .select("sugestoes, narrativa, gerado_em, diretriz")
