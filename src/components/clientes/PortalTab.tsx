@@ -23,9 +23,15 @@ export function PortalTab({ clienteId, cliente }: Props) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
   const [togglingPortal, setTogglingPortal] = useState(false);
   const [deactivateConfirmOpen, setDeactivateConfirmOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [newPasswordMode, setNewPasswordMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [settingPassword, setSettingPassword] = useState(false);
 
   // Temporary credentials state (after creation)
   const [createdEmail, setCreatedEmail] = useState<string | null>(null);
@@ -46,7 +52,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome, role, portal_ativo, created_at')
+        .select('id, nome, role, portal_ativo, created_at, email')
         .eq('cliente_id', clienteId)
         .eq('role', 'cliente')
         .maybeSingle();
@@ -90,6 +96,63 @@ export function PortalTab({ clienteId, cliente }: Props) {
     }
   };
 
+  const handleSaveEmail = async () => {
+    if (!portalUser || !emailDraft.trim()) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ email: emailDraft.trim() })
+        .eq('id', portalUser.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['portal-user', clienteId] });
+      setEditingEmail(false);
+      toast({ title: 'E-mail atualizado' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSendResetEmail = async () => {
+    if (!portalUser?.email) {
+      toast({ title: 'E-mail não cadastrado', variant: 'destructive' });
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(portalUser.email, {
+        redirectTo: `${window.location.origin}/cliente`,
+      });
+      if (error) throw error;
+      toast({ title: 'Link de redefinição enviado', description: `Enviado para ${portalUser.email}` });
+      setResetPasswordOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSetNewPassword = async () => {
+    if (!portalUser || newPassword.length < 6) {
+      toast({ title: 'A senha deve ter pelo menos 6 caracteres', variant: 'destructive' });
+      return;
+    }
+    setSettingPassword(true);
+    try {
+      const res = await supabase.functions.invoke('criar-usuario', {
+        body: { action: 'update_password', user_id: portalUser.id, nova_senha: newPassword },
+      });
+      if (res.error || !res.data?.success) {
+        throw new Error(res.data?.error || res.error?.message || 'Erro ao atualizar senha');
+      }
+      toast({ title: 'Senha atualizada com sucesso' });
+      setResetPasswordOpen(false);
+      setNewPasswordMode(false);
+      setNewPassword('');
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSettingPassword(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!portalUser) return;
     try {
@@ -115,10 +178,11 @@ export function PortalTab({ clienteId, cliente }: Props) {
     setCreatedPassword(password);
     setCreatedWithInvite(wasInvite);
     setJustCreated(true);
-    // Mark as expanded for this client
     localStorage.setItem(`portal-msg-expandida-${clienteId}`, 'true');
     queryClient.invalidateQueries({ queryKey: ['portal-user', clienteId] });
   };
+
+  const portalLink = `${window.location.origin}/cliente`;
 
   if (isLoading) {
     return (
@@ -151,8 +215,41 @@ export function PortalTab({ clienteId, cliente }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Portal link highlight at top */}
+            <div className="rounded-lg border border-primary/20 bg-primary/[0.06] p-3 space-y-1">
+              <p className="text-[11px] font-medium uppercase text-txt-muted tracking-wide flex items-center gap-1">
+                <LinkIcon className="h-3 w-3" /> Link de acesso ao portal
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm text-primary font-medium">{portalLink}</code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1 text-xs"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(portalLink);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                >
+                  {linkCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  {linkCopied ? 'Copiado!' : 'Copiar'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1 text-xs"
+                  onClick={() => window.open(portalLink, '_blank')}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Abrir
+                </Button>
+              </div>
+            </div>
+
             {/* User info */}
             <div className="grid gap-3 sm:grid-cols-2">
+              {/* Nome */}
               <div className="rounded-lg border border-border p-3 space-y-1">
                 <p className="text-[11px] font-medium uppercase text-txt-muted tracking-wide">Nome</p>
                 {editingName ? (
@@ -183,45 +280,51 @@ export function PortalTab({ clienteId, cliente }: Props) {
                   </div>
                 )}
               </div>
+
+              {/* E-mail */}
               <div className="rounded-lg border border-border p-3 space-y-1">
-                <p className="text-[11px] font-medium uppercase text-txt-muted tracking-wide flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> Criado em
-                </p>
-                <p className="text-sm text-txt">
-                  {new Date(portalUser.created_at).toLocaleDateString('pt-BR', {
-                    day: 'numeric', month: 'long', year: 'numeric',
-                  })}
-                </p>
+                <p className="text-[11px] font-medium uppercase text-txt-muted tracking-wide">E-mail</p>
+                {editingEmail ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      autoFocus
+                      type="email"
+                      value={emailDraft}
+                      onChange={(e) => setEmailDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveEmail();
+                        if (e.key === 'Escape') setEditingEmail(false);
+                      }}
+                      className="h-7 text-sm"
+                    />
+                    <Button size="sm" variant="ghost" onClick={handleSaveEmail} className="h-7 px-2 text-xs">
+                      Salvar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-txt">{portalUser.email || '—'}</p>
+                    <button
+                      onClick={() => { setEmailDraft(portalUser.email || ''); setEditingEmail(true); }}
+                      className="rounded p-0.5 text-txt-muted hover:text-primary transition-colors"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Portal link */}
+            {/* Created at */}
             <div className="rounded-lg border border-border p-3 space-y-1">
               <p className="text-[11px] font-medium uppercase text-txt-muted tracking-wide flex items-center gap-1">
-                <LinkIcon className="h-3 w-3" /> Link do portal
+                <Calendar className="h-3 w-3" /> Criado em
               </p>
-              <div className="flex items-center gap-2">
-                <a
-                  href={`${window.location.origin}/cliente`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
-                >
-                  {window.location.origin}/cliente
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-                <button
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(`${window.location.origin}/cliente`);
-                    setLinkCopied(true);
-                    setTimeout(() => setLinkCopied(false), 2000);
-                  }}
-                  className="rounded p-1 text-txt-muted hover:text-primary transition-colors"
-                  title="Copiar link"
-                >
-                  {linkCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-              </div>
+              <p className="text-sm text-txt">
+                {new Date(portalUser.created_at).toLocaleDateString('pt-BR', {
+                  day: 'numeric', month: 'long', year: 'numeric',
+                })}
+              </p>
             </div>
 
             {/* Actions */}
@@ -230,12 +333,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => {
-                  toast({
-                    title: 'Funcionalidade em desenvolvimento',
-                    description: 'A redefinição de senha por e-mail será implementada em breve.',
-                  });
-                }}
+                onClick={() => { setResetPasswordOpen(true); setNewPasswordMode(false); setNewPassword(''); }}
               >
                 <Key className="h-3.5 w-3.5" />
                 Redefinir senha
@@ -275,12 +373,13 @@ export function PortalTab({ clienteId, cliente }: Props) {
         )}
       </div>
 
-      {/* SEÇÃO 3: MENSAGEM DE ACESSO */}
+      {/* SEÇÃO 2: MENSAGEM DE ACESSO */}
       {portalUser && (
         <MensagemAcessoCard
           clienteId={clienteId}
           cliente={cliente}
-          email={createdEmail}
+          portalUser={portalUser}
+          email={createdEmail || portalUser.email}
           senha={createdPassword}
           wasInvite={createdWithInvite}
           justCreated={justCreated}
@@ -295,6 +394,48 @@ export function PortalTab({ clienteId, cliente }: Props) {
         clienteId={clienteId}
         onSuccess={handleUserCreated}
       />
+
+      {/* Modal: Redefinir Senha */}
+      <Dialog open={resetPasswordOpen} onOpenChange={(o) => { setResetPasswordOpen(o); if (!o) { setNewPasswordMode(false); setNewPassword(''); } }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Redefinir senha</DialogTitle>
+          </DialogHeader>
+          {!newPasswordMode ? (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-txt-muted">Escolha como redefinir a senha de {portalUser?.nome}:</p>
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start gap-2" onClick={handleSendResetEmail}>
+                  ✉️ Enviar link por e-mail
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-2" onClick={() => setNewPasswordMode(true)}>
+                  🔑 Definir nova senha agora
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label>Nova senha (mínimo 6 caracteres)</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite a nova senha"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSetNewPassword(); }}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setNewPasswordMode(false)}>Voltar</Button>
+                <Button onClick={handleSetNewPassword} disabled={settingPassword || newPassword.length < 6}>
+                  {settingPassword && <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent mr-2" />}
+                  Salvar senha
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Delete */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -341,6 +482,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
 function MensagemAcessoCard({
   clienteId,
   cliente,
+  portalUser,
   email,
   senha,
   wasInvite,
@@ -349,6 +491,7 @@ function MensagemAcessoCard({
 }: {
   clienteId: string;
   cliente?: any;
+  portalUser: any;
   email: string | null;
   senha: string | null;
   wasInvite: boolean;
@@ -362,19 +505,17 @@ function MensagemAcessoCard({
   });
   const [copied, setCopied] = useState(false);
 
-  // Collapse by default on subsequent visits
   useEffect(() => {
     if (!justCreated) {
       localStorage.removeItem(storageKey);
     }
   }, [justCreated, storageKey]);
 
-  // Expand automatically when just created
   useEffect(() => {
     if (justCreated) setOpen(true);
   }, [justCreated]);
 
-  const responsavelNome = cliente?.responsavel_nome || 'Cliente';
+  const nomeUsuario = portalUser?.nome || 'Cliente';
   const responsavelWhatsapp = cliente?.responsavel_whatsapp;
   const urlBase = window.location.origin;
 
@@ -385,7 +526,7 @@ function MensagemAcessoCard({
         ? `🔑 Senha: ${senha}\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`
         : '🔑 Senha: (definida na criação)';
 
-    return `Olá, ${responsavelNome}! 👋
+    return `Olá, ${nomeUsuario}! 👋
 
 Seu portal de inteligência financeira está pronto. A partir de agora você pode acompanhar os números do seu negócio a qualquer momento. 📊
 
@@ -402,7 +543,7 @@ No portal você encontra:
 Qualquer dúvida, é só chamar! 🚀
 
 _GPI Inteligência Financeira_`;
-  }, [responsavelNome, urlBase, email, senha, wasInvite]);
+  }, [nomeUsuario, urlBase, email, senha, wasInvite]);
 
   const handleCopy = async () => {
     try {
@@ -457,12 +598,10 @@ _GPI Inteligência Financeira_`;
         </div>
 
         <CollapsibleContent className="space-y-4">
-          {/* Message preview */}
           <div className="rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-txt">
             {buildMessage()}
           </div>
 
-          {/* Actions */}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -475,7 +614,6 @@ _GPI Inteligência Financeira_`;
             </Button>
           </div>
 
-          {/* Password warning */}
           {senha && (
             <p className="text-[11px] text-txt-muted">
               ⚠️ A senha temporária é exibida apenas agora. Após fechar este card, não será possível recuperá-la.
