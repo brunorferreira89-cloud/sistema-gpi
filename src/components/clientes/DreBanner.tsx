@@ -118,7 +118,7 @@ export function DreBanner({ faturamento, mcPct, gcPct }: Props) {
           </div>
           {/* Title */}
           <div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>DRE Financeira</h2>
+            <h2 style={{ fontSize: 40, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1, textShadow: '0 0 20px rgba(26,60,255,0.5), 0 0 40px rgba(26,60,255,0.2)' }}>DRE Financeira</h2>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '4px 0 0', letterSpacing: '0.06em' }}>Demonstrativo de Resultado · Análise Gerencial</p>
           </div>
           {/* Bottom spacer */}
