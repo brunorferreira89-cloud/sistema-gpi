@@ -349,6 +349,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const [modoAnaliseMeta, setModoAnaliseMeta] = useState(false);
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
   const [showAV, setShowAV] = useState(false);
+  const [showAH, setShowAH] = useState(false);
   const [drawerSugestaoOpen, setDrawerSugestaoOpen] = useState(false);
   const [sugestoes, setSugestoes] = useState<SugestaoMeta[]>([]);
   const [loadingSugestao, setLoadingSugestao] = useState(false);
