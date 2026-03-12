@@ -7,6 +7,7 @@ interface Profile {
   nome: string | null;
   role: string;
   cliente_id: string | null;
+  portal_ativo: boolean | null;
 }
 
 interface AuthContextType {
