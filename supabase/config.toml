@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.chat-analista]
 verify_jwt = false
+
+[functions.gerar-analise-consultiva]
+verify_jwt = false
