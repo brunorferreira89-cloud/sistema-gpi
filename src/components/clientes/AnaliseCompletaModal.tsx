@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { nomeExibido } from '@/lib/clientes-utils';
 import { fmtCompetencia } from '@/lib/torre-utils';
+import { buildIndicadorPayload } from '@/lib/analise-completa-utils';
+import type { ContaRow } from '@/lib/plano-contas-utils';
 
 /* ── types ── */
 interface Cliente {
@@ -110,7 +112,11 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Load all cached analyses on open
+  // Load contas + valores for real payload
+  const [contas, setContas] = useState<ContaRow[]>([]);
+  const [valoresAnuais, setValoresAnuais] = useState<{ conta_id: string; competencia: string; valor_realizado: number | null }[]>([]);
+
+  // Load all cached analyses + financial data on open
   useEffect(() => {
     if (!open) return;
     setLoadingInit(true);
@@ -118,15 +124,30 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
 
     const load = async () => {
       try {
-        const { data } = await supabase
-          .from('analises_ia' as any)
-          .select('*')
-          .eq('cliente_id', cliente.id)
-          .eq('competencia', competencia);
+        // Fetch analyses, contas, and valores in parallel
+        const [analRes, contasRes] = await Promise.all([
+          supabase.from('analises_ia' as any).select('*').eq('cliente_id', cliente.id).eq('competencia', competencia),
+          supabase.from('plano_de_contas').select('*').eq('cliente_id', cliente.id).order('ordem'),
+        ]);
+
+        const contasData = (contasRes.data || []) as ContaRow[];
+        setContas(contasData);
+
+        // Fetch valores for all contas
+        const contaIds = contasData.map(c => c.id);
+        let allValores: any[] = [];
+        if (contaIds.length > 0) {
+          const { data: valData } = await supabase
+            .from('valores_mensais')
+            .select('conta_id, competencia, valor_realizado')
+            .in('conta_id', contaIds);
+          allValores = valData || [];
+        }
+        setValoresAnuais(allValores);
 
         const map: Record<string, AnaliseRecord> = {};
-        if (data) {
-          for (const row of data as any[]) {
+        if (analRes.data) {
+          for (const row of analRes.data as any[]) {
             map[row.indicador] = {
               indicador: row.indicador,
               titulo: row.titulo,
@@ -182,21 +203,45 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
     return () => observer.disconnect();
   }, [loadingInit, open, analises]);
 
+  const mesReferenciaLabel = useMemo(() => {
+    const d = new Date(competencia + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }, [competencia]);
+
   const gerarAnalise = useCallback(async (nomeIndicador: string) => {
     setGerandoIndicadores(prev => [...prev, nomeIndicador]);
     try {
-      const { data: result, error } = await supabase.functions.invoke('analisar-indicador', {
-        body: {
-          indicador: nomeIndicador,
-          cliente_id: cliente.id,
-          competencia,
-          mes_referencia: fmtCompetencia(competencia),
-          // Minimal payload — the Edge Function handles the rest
-          valor_atual: 0, valor_absoluto: 0, faturamento: 0,
-          status: 'verde', limite_verde: 0, limite_ambar: 0,
-          direcao: 'maior_melhor', historico: [], formula: '', composicao: [],
-        },
-      });
+      // Build real payload from financial data
+      const payload = buildIndicadorPayload(nomeIndicador, contas, valoresAnuais, competencia, mesReferenciaLabel);
+
+      const body = payload
+        ? {
+            indicador: nomeIndicador,
+            cliente_id: cliente.id,
+            competencia,
+            mes_referencia: mesReferenciaLabel,
+            valor_atual: payload.valor_atual,
+            valor_absoluto: payload.valor_absoluto,
+            faturamento: payload.faturamento,
+            status: payload.status,
+            limite_verde: payload.limite_verde,
+            limite_ambar: payload.limite_ambar,
+            direcao: payload.direcao,
+            historico: payload.historico,
+            formula: payload.formula,
+            composicao: payload.composicao,
+          }
+        : {
+            indicador: nomeIndicador,
+            cliente_id: cliente.id,
+            competencia,
+            mes_referencia: mesReferenciaLabel,
+            valor_atual: 0, valor_absoluto: 0, faturamento: 0,
+            status: 'verde', limite_verde: 0, limite_ambar: 0,
+            direcao: 'maior_melhor', historico: [], formula: '', composicao: [],
+          };
+
+      const { data: result, error } = await supabase.functions.invoke('analisar-indicador', { body });
       if (error) throw error;
       const now = new Date().toISOString();
 
@@ -228,7 +273,7 @@ export function AnaliseCompletaModal({ open, onClose, cliente, competencia, indi
     } finally {
       setGerandoIndicadores(prev => prev.filter(n => n !== nomeIndicador));
     }
-  }, [cliente.id, competencia]);
+  }, [cliente.id, competencia, contas, valoresAnuais, mesReferenciaLabel]);
 
   const scrollToIndicador = (nome: string) => {
     const el = document.getElementById(`indicador-${slugify(nome)}`);
