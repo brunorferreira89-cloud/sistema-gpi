@@ -840,14 +840,18 @@ _GPI Inteligência Financeira_`;
           </div>
 
           {!senha && (
-            <p className="text-[11px] text-txt-muted">
-              ⚠️ Por segurança, a senha não é armazenada. Edite manualmente antes de enviar se necessário.
-            </p>
+            <div className="rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-900/20 p-3">
+              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                ⚠️ A senha não está disponível. Use o botão "Redefinir senha" para criar uma nova e atualize manualmente a mensagem antes de enviar.
+              </p>
+            </div>
           )}
           {senha && (
-            <p className="text-[11px] text-txt-muted">
-              ⚠️ A senha temporária é exibida apenas agora. Após fechar este modal, não será possível recuperá-la.
-            </p>
+            <div className="rounded-lg border border-green-400/50 bg-green-50 dark:bg-green-900/20 p-3">
+              <p className="text-[11px] text-green-700 dark:text-green-400">
+                ✓ Senha disponível. Após enviar, este dado some da memória por segurança.
+              </p>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-2">
