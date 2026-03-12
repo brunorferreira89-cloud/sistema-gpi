@@ -960,8 +960,89 @@ export function SugestaoMetasDrawer({
               <span style={{ fontSize: 10, color: C.txtMuted }}>{sugestoes.length} sugestões · {existingCount} já têm meta</span>
             </div>
 
+            {/* Diretriz Panel */}
+            <div style={{ padding: '12px 24px 0' }}>
+              {diretrizMode === 'active' && diretrizSalva ? (
+                <div style={{
+                  background: 'rgba(26,60,255,0.04)',
+                  border: '1px solid rgba(26,60,255,0.18)',
+                  borderRadius: 12, padding: '12px 16px', marginBottom: 16,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <span style={{ fontSize: 13 }}>🎯</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: C.primary }}>
+                      OBJETIVO DESTA ANÁLISE
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13, color: C.txt, fontStyle: 'italic', margin: '0 0 8px' }}>
+                    "{diretrizSalva}"
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 10, color: C.txtMuted }}>
+                      {geradoEm ? new Date(geradoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' } as any) : ''}
+                    </span>
+                    <button
+                      onClick={() => { setDiretrizMode('input'); setDiretrizText(''); }}
+                      style={{ background: 'none', border: 'none', fontSize: 11, color: C.primary, cursor: 'pointer', fontFamily: "'DM Sans', system-ui" }}
+                    >
+                      ✏️ Nova diretriz
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  background: '#F6F9FF',
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13 }}>🎯</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: C.txtSec }}>
+                      DIRETRIZ DO CONSULTOR
+                    </span>
+                  </div>
+                  <textarea
+                    value={diretrizText}
+                    onChange={e => setDiretrizText(e.target.value)}
+                    placeholder="Ex: quero que o Resultado Operacional seja positivo em R$ 10.000. Analise os números e sugira os ajustes necessários."
+                    style={{
+                      width: '100%', minHeight: 72, maxHeight: 120, resize: 'vertical',
+                      border: `1px solid ${C.border}`, borderRadius: 8,
+                      padding: '10px 12px', fontSize: 13, color: C.txt,
+                      background: '#FFFFFF', fontFamily: "'DM Sans', sans-serif",
+                      outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,60,255,0.08)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                    <span style={{ fontSize: 10, color: C.txtMuted, fontStyle: 'italic' }}>
+                      Seja específico: mencione o indicador e o valor desejado
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (!diretrizText.trim() || !onRegenerar) return;
+                        setComandanteAutoExpand(true);
+                        onRegenerar(diretrizText.trim());
+                      }}
+                      disabled={!diretrizText.trim() || loading}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none',
+                        background: C.primary, color: '#fff', fontSize: 12, fontWeight: 600,
+                        cursor: !diretrizText.trim() || loading ? 'not-allowed' : 'pointer',
+                        opacity: !diretrizText.trim() || loading ? 0.45 : 1,
+                        fontFamily: "'DM Sans', system-ui",
+                      }}
+                    >
+                      ▶ Analisar com este objetivo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Narrativa Comandante GPI */}
-            {narrativa && <NarrativaComandante texto={narrativa} />}
+            {narrativa && <NarrativaComandante texto={narrativa} forceExpand={comandanteAutoExpand && !!diretrizSalva} />}
 
             {/* Table */}
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
