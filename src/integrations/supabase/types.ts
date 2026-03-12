@@ -297,6 +297,41 @@ export type Database = {
           },
         ]
       }
+      kpi_ciclo_financeiro: {
+        Row: {
+          cliente_id: string
+          id: string
+          pme: number
+          pmp: number
+          pmr: number
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_id: string
+          id?: string
+          pme?: number
+          pmp?: number
+          pmr?: number
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          id?: string
+          pme?: number
+          pmp?: number
+          pmr?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_ciclo_financeiro_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_indicadores: {
         Row: {
           ativo: boolean
