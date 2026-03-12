@@ -298,6 +298,11 @@ export default function ClienteFichaPage() {
         <TabsContent value="contato">
           <ContatoTab clienteId={clienteId!} cliente={cliente} />
         </TabsContent>
+
+        {/* Visão do Cliente */}
+        <TabsContent value="visao-cliente">
+          <ClientePortalEspelho clienteId={clienteId!} />
+        </TabsContent>
       </Tabs>
 
       <ReuniaoDialog
