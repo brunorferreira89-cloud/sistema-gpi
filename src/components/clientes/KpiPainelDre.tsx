@@ -55,6 +55,20 @@ export function KpiPainelDre({ clienteId, competencia }: Props) {
     },
   });
 
+  const valoresMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    valoresData?.forEach(v => { map[v.conta_id] = v.valor_realizado; });
+    return map;
+  }, [valoresData]);
+
+  const calculados = useMemo(() => {
+    if (!indicadores || !contas) return [];
+    return calcularIndicadores(indicadores, contas, valoresMap);
+  }, [indicadores, contas, valoresMap]);
+
+  const ativos = calculados.filter(c => c.indicador.ativo);
+  const score = calcScore(ativos);
+
   if (!ativos.length) return null;
 
   const scoreColor = score >= 70 ? '#00A86B' : score >= 40 ? '#D97706' : '#DC2626';
