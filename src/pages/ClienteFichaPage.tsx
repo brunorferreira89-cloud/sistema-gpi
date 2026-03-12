@@ -302,6 +302,11 @@ export default function ClienteFichaPage() {
           <ContatoTab clienteId={clienteId!} cliente={cliente} />
         </TabsContent>
 
+        {/* Portal */}
+        <TabsContent value="portal">
+          <PortalTab clienteId={clienteId!} />
+        </TabsContent>
+
         {/* Visão do Cliente */}
         <TabsContent value="visao-cliente">
           <ClientePortalEspelho clienteId={clienteId!} onSwitchTab={setActiveTab} />
