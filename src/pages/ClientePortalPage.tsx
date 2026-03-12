@@ -169,6 +169,11 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         <div>
           <h1 className="text-xl font-bold text-[#0D1B35]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
             {saudacao()}, {cliente?.responsavel_nome || profile?.nome || 'Cliente'}
+            {espelho && (
+              <span className="ml-2 inline-block rounded-full bg-[#EBF0FF] px-2 py-0.5 text-[10px] font-medium text-[#1A3CFF] align-middle">
+                visualizando como cliente
+              </span>
+            )}
           </h1>
           <p className="text-sm text-[#4A5E80]">{cliente?.razao_social || cliente?.nome_empresa}</p>
         </div>
