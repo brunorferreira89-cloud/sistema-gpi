@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +35,21 @@ export default function UsuariosPortalPage() {
   const [editingUser, setEditingUser] = useState<PortalUser | null>(null);
   const [deleteUser, setDeleteUser] = useState<PortalUser | null>(null);
   const [messageUser, setMessageUser] = useState<PortalUser | null>(null);
+
+  // Session password state (never persisted)
+  const [senhaSessao, setSenhaSessao] = useState<{ usuarioId: string; senha: string; criadoEm: Date } | null>(null);
+
+  // Auto-expire senha after 30 minutes
+  useEffect(() => {
+    if (!senhaSessao) return;
+    const elapsed = Date.now() - senhaSessao.criadoEm.getTime();
+    const remaining = Math.max(0, 30 * 60 * 1000 - elapsed);
+    const timer = setTimeout(() => setSenhaSessao(null), remaining);
+    return () => clearTimeout(timer);
+  }, [senhaSessao]);
+
+  // Cleanup on unmount
+  useEffect(() => () => setSenhaSessao(null), []);
 
   // Post-creation state
   const [createdInfo, setCreatedInfo] = useState<{ nome: string; email: string; senha: string | null } | null>(null);
@@ -199,9 +214,14 @@ export default function UsuariosPortalPage() {
           open={modalOpen && !editingUser}
           onOpenChange={(o) => { if (!o) setModalOpen(false); }}
           preselectedClienteId={preselectedCliente}
-          onCreated={(info) => {
-            setCreatedInfo(info);
+          onCreated={(info, newUserId) => {
+            // Store password in session
+            if (info.senha) {
+              setSenhaSessao({ usuarioId: newUserId, senha: info.senha, criadoEm: new Date() });
+            }
             queryClient.invalidateQueries({ queryKey: ['portal-users-all'] });
+            // Auto-open message modal for this user after data refetch
+            setCreatedInfo({ ...info, _userId: newUserId } as any);
           }}
         />
       )}
@@ -220,11 +240,20 @@ export default function UsuariosPortalPage() {
         />
       )}
 
-      {/* Post-creation message */}
+      {/* Post-creation: auto-open message modal for newly created user */}
       {createdInfo && (
         <MensagemAcessoModal
           open={!!createdInfo}
-          onOpenChange={(o) => { if (!o) setCreatedInfo(null); }}
+          onOpenChange={(o) => {
+            if (!o) {
+              // Clear senhaSessao for this user when closing post-creation modal
+              const userId = (createdInfo as any)?._userId;
+              if (userId && senhaSessao?.usuarioId === userId) {
+                setSenhaSessao(null);
+              }
+              setCreatedInfo(null);
+            }
+          }}
           nome={createdInfo.nome}
           email={createdInfo.email}
           senha={createdInfo.senha}
@@ -236,10 +265,18 @@ export default function UsuariosPortalPage() {
       {messageUser && (
         <MensagemAcessoModal
           open={!!messageUser}
-          onOpenChange={(o) => { if (!o) setMessageUser(null); }}
+          onOpenChange={(o) => {
+            if (!o) {
+              // Clear senhaSessao for this user when closing
+              if (senhaSessao?.usuarioId === messageUser.id) {
+                setSenhaSessao(null);
+              }
+              setMessageUser(null);
+            }
+          }}
           nome={messageUser.nome || ''}
           email={messageUser.email || ''}
-          senha={null}
+          senha={senhaSessao?.usuarioId === messageUser.id ? senhaSessao.senha : null}
           empresas={messageUser.empresas}
         />
       )}
@@ -269,7 +306,7 @@ function CriarUsuarioModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   preselectedClienteId: string | null;
-  onCreated: (info: { nome: string; email: string; senha: string | null }) => void;
+  onCreated: (info: { nome: string; email: string; senha: string }, newUserId: string) => void;
 }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -361,7 +398,7 @@ function CriarUsuarioModal({
 
       toast({ title: 'Acesso criado!' });
       onOpenChange(false);
-      onCreated({ nome: nome.trim(), email: email.trim(), senha });
+      onCreated({ nome: nome.trim(), email: email.trim(), senha }, newUserId);
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
@@ -739,7 +776,7 @@ function MensagemAcessoModal({
 
   const senhaLine = senha
     ? `🔑 Senha: ${senha}\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`
-    : `🔑 Senha: (a senha definida na criação)\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`;
+    : `🔑 Senha: (redefina a senha antes de enviar)\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`;
 
   const message = `Olá, ${nome}! 👋
 
@@ -803,14 +840,18 @@ _GPI Inteligência Financeira_`;
           </div>
 
           {!senha && (
-            <p className="text-[11px] text-txt-muted">
-              ⚠️ Por segurança, a senha não é armazenada. Edite manualmente antes de enviar se necessário.
-            </p>
+            <div className="rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-900/20 p-3">
+              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                ⚠️ A senha não está disponível. Use o botão "Redefinir senha" para criar uma nova e atualize manualmente a mensagem antes de enviar.
+              </p>
+            </div>
           )}
           {senha && (
-            <p className="text-[11px] text-txt-muted">
-              ⚠️ A senha temporária é exibida apenas agora. Após fechar este modal, não será possível recuperá-la.
-            </p>
+            <div className="rounded-lg border border-green-400/50 bg-green-50 dark:bg-green-900/20 p-3">
+              <p className="text-[11px] text-green-700 dark:text-green-400">
+                ✓ Senha disponível. Após enviar, este dado some da memória por segurança.
+              </p>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-2">
