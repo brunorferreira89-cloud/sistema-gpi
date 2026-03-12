@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut, UserCheck } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,7 @@ import gpiLogo from '@/assets/gpi-logo-dark.png';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
   { icon: Users, label: 'Clientes', to: '/clientes' },
+  { icon: UserCheck, label: 'Usuários', to: '/usuarios-portal' },
   { icon: KanbanSquare, label: 'Kanban', to: '/kanban' },
   { icon: CalendarCheck, label: 'Reuniões', to: '/reunioes' },
   { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },

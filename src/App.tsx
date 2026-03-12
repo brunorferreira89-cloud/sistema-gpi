@@ -24,6 +24,7 @@ import DiagnosticoLeadsPage from "./pages/DiagnosticoLeadsPage";
 import ClientePortalPage from "./pages/ClientePortalPage";
 import ApresentacaoPage from "./pages/ApresentacaoPage";
 
+import UsuariosPortalPage from "./pages/UsuariosPortalPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
                 <Route path="/diagnostico" element={<DiagnosticoLeadsPage />} />
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
+                <Route path="/usuarios-portal" element={<UsuariosPortalPage />} />
                 
               </Route>
             </Route>
