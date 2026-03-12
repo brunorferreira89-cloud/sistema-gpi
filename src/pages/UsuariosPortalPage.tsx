@@ -240,11 +240,20 @@ export default function UsuariosPortalPage() {
         />
       )}
 
-      {/* Post-creation message */}
+      {/* Post-creation: auto-open message modal for newly created user */}
       {createdInfo && (
         <MensagemAcessoModal
           open={!!createdInfo}
-          onOpenChange={(o) => { if (!o) setCreatedInfo(null); }}
+          onOpenChange={(o) => {
+            if (!o) {
+              // Clear senhaSessao for this user when closing post-creation modal
+              const userId = (createdInfo as any)?._userId;
+              if (userId && senhaSessao?.usuarioId === userId) {
+                setSenhaSessao(null);
+              }
+              setCreatedInfo(null);
+            }
+          }}
           nome={createdInfo.nome}
           email={createdInfo.email}
           senha={createdInfo.senha}
@@ -256,10 +265,18 @@ export default function UsuariosPortalPage() {
       {messageUser && (
         <MensagemAcessoModal
           open={!!messageUser}
-          onOpenChange={(o) => { if (!o) setMessageUser(null); }}
+          onOpenChange={(o) => {
+            if (!o) {
+              // Clear senhaSessao for this user when closing
+              if (senhaSessao?.usuarioId === messageUser.id) {
+                setSenhaSessao(null);
+              }
+              setMessageUser(null);
+            }
+          }}
           nome={messageUser.nome || ''}
           email={messageUser.email || ''}
-          senha={null}
+          senha={senhaSessao?.usuarioId === messageUser.id ? senhaSessao.senha : null}
           empresas={messageUser.empresas}
         />
       )}
