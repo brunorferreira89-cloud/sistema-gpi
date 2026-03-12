@@ -1,0 +1,1 @@
+ALTER TABLE public.apresentacao_preparacao ADD COLUMN IF NOT EXISTS checkpoints_json jsonb;
