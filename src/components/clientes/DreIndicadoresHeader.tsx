@@ -830,38 +830,38 @@ export function DreIndicadoresHeader({ contas, valoresAnuais, months, mesSelecio
       <style>{`
         @keyframes dre-barFlow {
           0%   { background-position: 0% 0%; }
-          100% { background-position: 200% 0%; }
+          100% { background-position: 300% 0%; }
         }
         @keyframes dre-breathBlue {
-          0%,100% { box-shadow: 0 2px 8px rgba(26,60,255,0.06); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(26,60,255,0.14); border-color: rgba(26,60,255,0.25); }
+          0%,100% { box-shadow: 0 2px 10px rgba(26,60,255,0.08), 0 0 2px rgba(26,60,255,0.04); border-color: rgba(26,60,255,0.12); }
+          50%     { box-shadow: 0 6px 28px rgba(26,60,255,0.22), 0 0 6px rgba(26,60,255,0.10); border-color: rgba(26,60,255,0.35); }
         }
         @keyframes dre-breathRed {
-          0%,100% { box-shadow: 0 2px 8px rgba(220,38,38,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(220,38,38,0.13); border-color: rgba(220,38,38,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(220,38,38,0.07), 0 0 2px rgba(220,38,38,0.04); border-color: rgba(220,38,38,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(220,38,38,0.20), 0 0 6px rgba(220,38,38,0.08); border-color: rgba(220,38,38,0.32); }
         }
         @keyframes dre-breathGreen {
-          0%,100% { box-shadow: 0 2px 8px rgba(0,168,107,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(0,168,107,0.13); border-color: rgba(0,168,107,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(0,168,107,0.07), 0 0 2px rgba(0,168,107,0.04); border-color: rgba(0,168,107,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(0,168,107,0.20), 0 0 6px rgba(0,168,107,0.08); border-color: rgba(0,168,107,0.32); }
         }
         @keyframes dre-breathAmber {
-          0%,100% { box-shadow: 0 2px 8px rgba(217,119,6,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(217,119,6,0.13); border-color: rgba(217,119,6,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(217,119,6,0.07), 0 0 2px rgba(217,119,6,0.04); border-color: rgba(217,119,6,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(217,119,6,0.20), 0 0 6px rgba(217,119,6,0.08); border-color: rgba(217,119,6,0.32); }
         }
         @keyframes dre-breathCyan {
-          0%,100% { box-shadow: 0 2px 8px rgba(0,153,230,0.05); border-color: #DDE4F0; }
-          50%     { box-shadow: 0 4px 18px rgba(0,153,230,0.13); border-color: rgba(0,153,230,0.22); }
+          0%,100% { box-shadow: 0 2px 10px rgba(0,153,230,0.07), 0 0 2px rgba(0,153,230,0.04); border-color: rgba(0,153,230,0.10); }
+          50%     { box-shadow: 0 6px 28px rgba(0,153,230,0.20), 0 0 6px rgba(0,153,230,0.08); border-color: rgba(0,153,230,0.32); }
         }
         @keyframes dre-ambientShimmer {
           0%   { left: -60%; opacity: 0; }
-          10%  { opacity: 1; }
-          60%  { left: 120%; opacity: 1; }
-          70%  { opacity: 0; }
-          100% { left: 120%; opacity: 0; }
+          8%   { opacity: 1; }
+          55%  { left: 130%; opacity: 1; }
+          65%  { opacity: 0; }
+          100% { left: 130%; opacity: 0; }
         }
         @keyframes dre-hoverShimmer {
           from { left: -60%; }
-          to   { left: 120%; }
+          to   { left: 130%; }
         }
         @media (max-width: 1200px) and (min-width: 768px) {
           .dre-header-grid { grid-template-columns: repeat(3, 1fr) !important; }
