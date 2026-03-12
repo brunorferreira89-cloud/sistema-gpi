@@ -289,7 +289,7 @@ function CriarUsuarioModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   preselectedClienteId: string | null;
-  onCreated: (info: { nome: string; email: string; senha: string | null }) => void;
+  onCreated: (info: { nome: string; email: string; senha: string }, newUserId: string) => void;
 }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
