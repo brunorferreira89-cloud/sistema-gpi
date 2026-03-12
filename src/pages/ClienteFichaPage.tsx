@@ -27,6 +27,7 @@ export default function ClienteFichaPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('visao-geral');
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ['cliente', clienteId],
