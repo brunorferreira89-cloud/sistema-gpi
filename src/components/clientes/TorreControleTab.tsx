@@ -1355,6 +1355,20 @@ export function TorreControleTab({ clienteId }: Props) {
                 );
               })()}
 
+              {/* AH% after realized in CRIAÇÃO DE METAS (filtered, totalizador) */}
+              {showAH && modoMeta && isSel && !isTodosMode && (() => {
+                const prevComp = getPrevMonth(m.value);
+                const prevMap = getMonthMap(prevComp);
+                const prevTotals = calcTotaisForMap(prevMap);
+                const prevVal = prevTotals[key as keyof typeof prevTotals];
+                const ahStr = fmtAh(val, prevVal);
+                return (
+                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, padding: '11px 6px', color: ahTotColor(val, prevVal), width: avColW, minWidth: avColW, fontWeight: 700, background: '#0D1B35' }}>
+                    {ahStr || '—'}
+                  </td>
+                );
+              })()}
+
               {modoMeta && isSel && !isTodosMode && (() => {
                 const projTotais = calcTotaisProjetado();
                 const projVal = projTotais[key as keyof typeof projTotais];
