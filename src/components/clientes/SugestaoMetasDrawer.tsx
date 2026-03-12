@@ -482,11 +482,44 @@ function NarrativaComandante({ texto }: { texto: string }) {
 export function SugestaoMetasDrawer({
   open, onClose, cliente, competencia, sugestoes, metasExistentes,
   onAplicar, loading, onRegenerar, geradoEm, fromCache,
-  contas = [], realizadoMap = {}, narrativa,
+  contas = [], realizadoMap = {}, narrativa, diretrizSalva,
 }: SugestaoMetasDrawerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
   const [manualMetas, setManualMetas] = useState<Record<string, ManualMeta>>({});
+  const [diretrizText, setDiretrizText] = useState('');
+  const [diretrizMode, setDiretrizMode] = useState<'input' | 'active'>(diretrizSalva ? 'active' : 'input');
+  const [comandanteAutoExpand, setComandanteAutoExpand] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Sync diretriz mode with prop
+  useEffect(() => {
+    if (diretrizSalva) {
+      setDiretrizMode('active');
+    } else {
+      setDiretrizMode('input');
+    }
+  }, [diretrizSalva]);
+
+  // Loading messages
+  const [loadingMsg, setLoadingMsg] = useState(0);
+  useEffect(() => {
+    if (!loading) { setLoadingMsg(0); return; }
+    const msgs = [0, 1, 2];
+    let idx = 0;
+    setLoadingMsg(0);
+    const interval = setInterval(() => {
+      idx = Math.min(idx + 1, msgs.length - 1);
+      setLoadingMsg(idx);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const loadingMessages = [
+    'Lendo os instrumentos de voo...',
+    'Calculando rota para o objetivo...',
+    'Ajustando os controles...',
+  ];
 
   // Initialize selections when sugestoes change
   useMemo(() => {
