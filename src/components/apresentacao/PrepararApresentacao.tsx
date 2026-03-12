@@ -146,9 +146,9 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     const prevValMap: Record<string, number | null> = {};
     (valores || []).filter((v: any) => v.competencia === prevComp).forEach((v: any) => { prevValMap[v.conta_id] = v.valor_realizado; });
 
-    const leafs = getLeafContas(contas || []);
-    const fat = sumLeafByTipo(contas || [], valMap, 'receita');
-    const prevFat = sumLeafByTipo(contas || [], prevValMap, 'receita');
+    const leafs = getLeafContas(contasAll);
+    const fat = sumLeafByTipo(contasAll, valMap, 'receita');
+    const prevFat = sumLeafByTipo(contasAll, prevValMap, 'receita');
 
     const tipos = ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'];
     const tipoLabels: Record<string, string> = {
@@ -157,10 +157,10 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     };
 
     const indicadores = tipos.map(tipo => {
-      const val = sumLeafByTipo(contas || [], valMap, tipo);
-      const prevVal = sumLeafByTipo(contas || [], prevValMap, tipo);
-      const subgrupos = (contas || []).filter(c => c.nivel === 1 && c.tipo === tipo).map(sg => {
-        const cats = (contas || []).filter(c => c.conta_pai_id === sg.id && c.nivel === 2);
+      const val = sumLeafByTipo(contasAll, valMap, tipo);
+      const prevVal = sumLeafByTipo(contasAll, prevValMap, tipo);
+      const subgrupos = contasAll.filter(c => c.nivel === 1 && c.tipo === tipo).map(sg => {
+        const cats = contasAll.filter(c => c.conta_pai_id === sg.id && c.nivel === 2);
         const sgVal = cats.reduce((s, c) => s + (valMap[c.id] || 0), 0);
         return {
           nome: sg.nome,
@@ -179,10 +179,10 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
       };
     });
 
-    const mc = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel']);
-    const ro = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel', 'despesa_fixa']);
-    const rai = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']);
-    const gc = calcIndicador(contas || [], valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
+    const mc = calcIndicador(contasAll, valMap, ['receita', 'custo_variavel']);
+    const ro = calcIndicador(contasAll, valMap, ['receita', 'custo_variavel', 'despesa_fixa']);
+    const rai = calcIndicador(contasAll, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']);
+    const gc = calcIndicador(contasAll, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
 
     // Add totalizadores as indicators too
     const totIndicadores = [
@@ -196,7 +196,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     let kpisArr: any[] = [];
     try {
       const kpiInds = await fetchMergedIndicadores(clienteId);
-      const calcs = calcularIndicadores(kpiInds, contas || [], valMap);
+      const calcs = calcularIndicadores(kpiInds, contasAll, valMap);
       kpisArr = calcs.filter(c => c.indicador.ativo).map(c => ({
         nome: c.indicador.nome,
         valor: c.pct?.toFixed(1) || '0',
