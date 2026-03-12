@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ChevronDown, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, RotateCcw, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo } from '@/lib/dre-indicadores';
@@ -24,6 +24,9 @@ import {
   type KpiIndicador,
   type IndicadorCalculado,
 } from '@/lib/kpi-indicadores-utils';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function getLast12Months() {
   const months: { value: string; label: string }[] = [];
