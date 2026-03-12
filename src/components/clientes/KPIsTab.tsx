@@ -115,7 +115,7 @@ function SortableKpiCard({ item, cfg, spark, isActive, onClick }: {
 const fmtCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
-  const currentMonth = new Date();
+export function KPIsTab({ clienteId }: Props) {
   currentMonth.setDate(1);
   const [competencia, setCompetencia] = useState(currentMonth.toISOString().split('T')[0]);
   const months = getLast12Months();
