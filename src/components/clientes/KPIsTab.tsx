@@ -115,13 +115,24 @@ export function KPIsTab({ clienteId }: Props) {
   }, [indicadores, contas, valoresMap]);
 
   const ativos = calculados.filter(c => c.indicador.ativo);
+  const [ativosOrdered, setAtivosOrdered] = useState<IndicadorCalculado[]>([]);
+
+  // Keep ativosOrdered in sync with calculated data
+  useMemo(() => {
+    if (ativos.length > 0) {
+      setAtivosOrdered(ativos);
+    }
+  }, [JSON.stringify(ativos.map(a => a.indicador.id + a.pct))]);
+
+  const displayAtivos = ativosOrdered.length > 0 ? ativosOrdered : ativos;
+
   const inativos = useMemo(() => {
     if (!indicadores) return [];
     return indicadores.filter(i => !i.ativo);
   }, [indicadores]);
 
-  const score = calcScore(ativos);
-  const verdeCount = ativos.filter(c => c.status === 'verde').length;
+  const score = calcScore(displayAtivos);
+  const verdeCount = displayAtivos.filter(c => c.status === 'verde').length;
 
   // Spark history per indicator
   const sparkHistories = useMemo(() => {
@@ -139,7 +150,39 @@ export function KPIsTab({ clienteId }: Props) {
     return map;
   }, [sparkData, contas, indicadores, sparkMonths]);
 
-  const scoreColor = score >= 75 ? '#00A86B' : score >= 50 ? '#D97706' : '#DC2626';
+  const scoreColor = score >= 75 ? '#00A86B' : score >= 40 ? '#D97706' : '#DC2626';
+
+  // --- Drag-and-drop ---
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+  );
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = displayAtivos.findIndex(i => i.indicador.id === active.id);
+    const newIndex = displayAtivos.findIndex(i => i.indicador.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(displayAtivos, oldIndex, newIndex);
+    setAtivosOrdered(reordered);
+
+    // Persist new ordem
+    const updates = reordered.map((item, i) => 
+      supabase.from('kpi_indicadores' as any).update({ ordem: i }).eq('id', item.indicador.id)
+    );
+    await Promise.all(updates);
+    queryClient.invalidateQueries({ queryKey: ['kpi-indicadores', clienteId] });
+  }, [displayAtivos, clienteId, queryClient]);
+
+  const activeItem = activeId ? displayAtivos.find(i => i.indicador.id === activeId) : null;
 
   // Reactivate mutation
   const reactivateMutation = useMutation({
@@ -191,49 +234,37 @@ export function KPIsTab({ clienteId }: Props) {
           <span className="absolute font-extrabold" style={{ fontSize: 48, color: scoreColor, lineHeight: 1 }}>{score}</span>
         </div>
         <p className="mt-3 text-sm font-medium" style={{ color: '#4A5E80' }}>Saúde Financeira</p>
-        <p className="text-xs" style={{ color: '#8A9BBC' }}>{verdeCount} de {ativos.length} indicadores no verde</p>
+        <p className="text-xs" style={{ color: '#8A9BBC' }}>{verdeCount} de {displayAtivos.length} indicadores no verde</p>
       </div>
 
-      {/* Grid Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ativos.map(item => {
-          const cfg = STATUS_CONFIG[item.status];
-          const spark = sparkHistories.get(item.indicador.id) || [];
-          return (
-            <div
-              key={item.indicador.id}
-              className="rounded-xl border p-5 cursor-pointer transition-all hover:shadow-md"
-              style={{ borderColor: '#DDE4F0', background: '#FFFFFF' }}
-              onMouseEnter={e => { (e.currentTarget.style.borderColor = '#1A3CFF'); }}
-              onMouseLeave={e => { (e.currentTarget.style.borderColor = '#DDE4F0'); }}
-              onClick={() => setDrawerItem(item)}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{item.indicador.nome}</span>
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>
-                  {cfg.label}
-                </span>
-              </div>
-              <div className="flex items-center justify-center my-2">
-                <ArcGauge
-                  value={item.pct ?? 0}
-                  benchmark={item.indicador.limite_verde}
-                  color={cfg.color}
-                  label=""
-                  size={120}
+      {/* Grid Cards with DnD */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <SortableContext items={displayAtivos.map(i => i.indicador.id)} strategy={rectSortingStrategy}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {displayAtivos.map(item => {
+              const cfg = STATUS_CONFIG[item.status];
+              const spark = sparkHistories.get(item.indicador.id) || [];
+              return (
+                <SortableKpiCard
+                  key={item.indicador.id}
+                  item={item}
+                  cfg={cfg}
+                  spark={spark}
+                  isActive={activeId === item.indicador.id}
+                  onClick={() => setDrawerItem(item)}
                 />
-              </div>
-              <div className="flex items-center justify-between mt-3">
-                <div>
-                  <span className="text-xs" style={{ color: '#4A5E80' }}>{fmtCurrency(Math.abs(item.valor ?? 0))}</span>
-                  <span className="text-[11px] ml-1" style={{ color: '#8A9BBC' }}>/ {fmtCurrency(item.faturamento)} fat.</span>
-                </div>
-                <SparkLine data={spark} color={cfg.color} width={50} height={18} />
-              </div>
+              );
+            })}
+          </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeItem ? (
+            <div className="rounded-xl border p-5" style={{ borderColor: '#1A3CFF', background: '#FFFFFF', boxShadow: '0 8px 32px rgba(26,60,255,0.18)', opacity: 0.9 }}>
+              <span className="text-[13px] font-semibold" style={{ color: '#0D1B35' }}>{activeItem.indicador.nome}</span>
             </div>
-          );
-        })}
-      </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Disabled indicators */}
       {inativos.length > 0 && (
