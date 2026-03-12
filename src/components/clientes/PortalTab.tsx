@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,22 +6,38 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Key, Pencil, Trash2, Globe, Mail, Calendar } from 'lucide-react';
+import { UserPlus, Key, Pencil, Trash2, Globe, Calendar, ChevronDown, Copy, Check, MessageCircle } from 'lucide-react';
 
 interface Props {
   clienteId: string;
+  cliente?: any;
 }
 
-export function PortalTab({ clienteId }: Props) {
+export function PortalTab({ clienteId, cliente }: Props) {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [togglingPortal, setTogglingPortal] = useState(false);
+
+  // Temporary credentials state (after creation)
+  const [createdEmail, setCreatedEmail] = useState<string | null>(null);
+  const [createdPassword, setCreatedPassword] = useState<string | null>(null);
+  const [createdWithInvite, setCreatedWithInvite] = useState(false);
+  const [justCreated, setJustCreated] = useState(false);
+
+  // Auto-clear password after 10 minutes
+  useEffect(() => {
+    if (!createdPassword) return;
+    const timer = setTimeout(() => setCreatedPassword(null), 10 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [createdPassword]);
 
   // Fetch portal user profile
   const { data: portalUser, isLoading } = useQuery({
@@ -37,9 +53,6 @@ export function PortalTab({ clienteId }: Props) {
       return data as any | null;
     },
   });
-
-  // Get email from auth (we need the edge function for this, but we can use the profile id)
-  // We'll show what we have from profiles
 
   const handleTogglePortal = async (checked: boolean) => {
     if (!portalUser) return;
@@ -75,13 +88,6 @@ export function PortalTab({ clienteId }: Props) {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!portalUser) return;
-    // We need the email - fetch from auth via edge function or use a workaround
-    // For now, we'll try to get the user's email from auth metadata
-    toast({ title: 'Funcionalidade requer e-mail do usuário', description: 'Use o e-mail cadastrado para redefinir a senha.' });
-  };
-
   const handleDelete = async () => {
     if (!portalUser) return;
     try {
@@ -93,10 +99,23 @@ export function PortalTab({ clienteId }: Props) {
       }
       queryClient.invalidateQueries({ queryKey: ['portal-user', clienteId] });
       setDeleteConfirmOpen(false);
+      setCreatedEmail(null);
+      setCreatedPassword(null);
+      setJustCreated(false);
       toast({ title: 'Acesso removido com sucesso' });
     } catch (err: any) {
       toast({ title: 'Erro ao remover acesso', description: err.message, variant: 'destructive' });
     }
+  };
+
+  const handleUserCreated = (email: string, password: string | null, wasInvite: boolean) => {
+    setCreatedEmail(email);
+    setCreatedPassword(password);
+    setCreatedWithInvite(wasInvite);
+    setJustCreated(true);
+    // Mark as expanded for this client
+    localStorage.setItem(`portal-msg-expandida-${clienteId}`, 'true');
+    queryClient.invalidateQueries({ queryKey: ['portal-user', clienteId] });
   };
 
   if (isLoading) {
@@ -240,12 +259,25 @@ export function PortalTab({ clienteId }: Props) {
         )}
       </div>
 
+      {/* SEÇÃO 3: MENSAGEM DE ACESSO */}
+      {portalUser && (
+        <MensagemAcessoCard
+          clienteId={clienteId}
+          cliente={cliente}
+          email={createdEmail}
+          senha={createdPassword}
+          wasInvite={createdWithInvite}
+          justCreated={justCreated}
+          onClearPassword={() => setCreatedPassword(null)}
+        />
+      )}
+
       {/* Modal: Criar Acesso */}
       <CriarAcessoDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
         clienteId={clienteId}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['portal-user', clienteId] })}
+        onSuccess={handleUserCreated}
       />
 
       {/* Confirm Delete */}
@@ -270,10 +302,169 @@ export function PortalTab({ clienteId }: Props) {
   );
 }
 
+/* ─── Mensagem de Acesso Card ─────────────────────────── */
+
+function MensagemAcessoCard({
+  clienteId,
+  cliente,
+  email,
+  senha,
+  wasInvite,
+  justCreated,
+  onClearPassword,
+}: {
+  clienteId: string;
+  cliente?: any;
+  email: string | null;
+  senha: string | null;
+  wasInvite: boolean;
+  justCreated: boolean;
+  onClearPassword: () => void;
+}) {
+  const storageKey = `portal-msg-expandida-${clienteId}`;
+  const [open, setOpen] = useState(() => {
+    if (justCreated) return true;
+    return localStorage.getItem(storageKey) === 'true';
+  });
+  const [copied, setCopied] = useState(false);
+
+  // Collapse by default on subsequent visits
+  useEffect(() => {
+    if (!justCreated) {
+      localStorage.removeItem(storageKey);
+    }
+  }, [justCreated, storageKey]);
+
+  // Expand automatically when just created
+  useEffect(() => {
+    if (justCreated) setOpen(true);
+  }, [justCreated]);
+
+  const responsavelNome = cliente?.responsavel_nome || 'Cliente';
+  const responsavelWhatsapp = cliente?.responsavel_whatsapp;
+  const urlBase = window.location.origin;
+
+  const buildMessage = useCallback(() => {
+    const senhaLine = wasInvite
+      ? '🔗 Você receberá um e-mail para definir sua senha.'
+      : senha
+        ? `🔑 Senha: ${senha}\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`
+        : '🔑 Senha: (definida na criação)';
+
+    return `Olá, ${responsavelNome}! 👋
+
+Seu portal de inteligência financeira está pronto. A partir de agora você pode acompanhar os números do seu negócio a qualquer momento. 📊
+
+*Seu acesso:*
+🔗 Link: ${urlBase}/cliente
+📧 E-mail: ${email || '(e-mail cadastrado)'}
+${senhaLine}
+
+No portal você encontra:
+- Faturamento e Geração de Caixa do mês
+- Score de Saúde Financeira
+- Alertas e próximas reuniões
+
+Qualquer dúvida, é só chamar! 🚀
+
+_GPI Inteligência Financeira_`;
+  }, [responsavelNome, urlBase, email, senha, wasInvite]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildMessage());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: 'Erro ao copiar', variant: 'destructive' });
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (!responsavelWhatsapp) {
+      toast({
+        title: 'Nenhum WhatsApp cadastrado',
+        description: 'Adicione o WhatsApp do responsável na aba Contato.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const phone = responsavelWhatsapp.replace(/\D/g, '');
+    const phoneWithCountry = phone.startsWith('55') ? phone : `55${phone}`;
+    const encoded = encodeURIComponent(buildMessage());
+    window.open(`https://wa.me/${phoneWithCountry}?text=${encoded}`, '_blank');
+  };
+
+  // TODO: integração n8n/WhatsApp Business API para envio automático
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 text-left group">
+              <span className="text-lg">📲</span>
+              <h3 className="text-sm font-semibold text-txt">Mensagem de Acesso</h3>
+              <Badge variant="outline" className="border-green-500/30 bg-green-500/10 text-green-600 text-[10px] font-semibold">
+                WhatsApp
+              </Badge>
+              <ChevronDown className={`h-4 w-4 text-txt-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+            </button>
+          </CollapsibleTrigger>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleCopy}
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? 'Copiado!' : 'Copiar mensagem'}
+          </Button>
+        </div>
+
+        <CollapsibleContent className="space-y-4">
+          {/* Message preview */}
+          <div className="rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-txt">
+            {buildMessage()}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+              onClick={handleWhatsApp}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Enviar pelo WhatsApp
+            </Button>
+          </div>
+
+          {/* Password warning */}
+          {senha && (
+            <p className="text-[11px] text-txt-muted">
+              ⚠️ A senha temporária é exibida apenas agora. Após fechar este card, não será possível recuperá-la.
+            </p>
+          )}
+          {wasInvite && !senha && (
+            <p className="text-[11px] text-txt-muted">
+              ✉️ Convite enviado por e-mail. O cliente definirá sua própria senha.
+            </p>
+          )}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
+/* ─── Criar Acesso Dialog ─────────────────────────────── */
+
 function CriarAcessoDialog({
   open, onOpenChange, clienteId, onSuccess,
 }: {
-  open: boolean; onOpenChange: (o: boolean) => void; clienteId: string; onSuccess: () => void;
+  open: boolean; onOpenChange: (o: boolean) => void; clienteId: string;
+  onSuccess: (email: string, password: string | null, wasInvite: boolean) => void;
 }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -317,9 +508,12 @@ function CriarAcessoDialog({
       }
 
       toast({ title: 'Acesso criado!', description: 'Ative o portal quando o cliente estiver pronto.' });
+      const createdEmail = email.trim();
+      const createdPassword = usarConvite ? null : senha;
+      const wasInvite = usarConvite;
       reset();
       onOpenChange(false);
-      onSuccess();
+      onSuccess(createdEmail, createdPassword, wasInvite);
     } catch (err: any) {
       toast({ title: 'Erro ao criar acesso', description: err.message, variant: 'destructive' });
     } finally {
