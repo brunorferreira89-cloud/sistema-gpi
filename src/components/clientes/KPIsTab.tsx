@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ChevronDown, Pencil, RotateCcw } from 'lucide-react';
+import { ChevronDown, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo } from '@/lib/dre-indicadores';
