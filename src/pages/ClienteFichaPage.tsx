@@ -302,7 +302,7 @@ export default function ClienteFichaPage() {
 
         {/* Visão do Cliente */}
         <TabsContent value="visao-cliente">
-          <ClientePortalEspelho clienteId={clienteId!} />
+          <ClientePortalEspelho clienteId={clienteId!} onSwitchTab={setActiveTab} />
         </TabsContent>
       </Tabs>
 
