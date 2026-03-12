@@ -918,7 +918,7 @@ export function SugestaoMetasDrawer({
               )}
               {onRegenerar && (
                 <button
-                  onClick={onRegenerar} disabled={loading}
+                  onClick={() => onRegenerar?.(diretrizSalva || undefined)} disabled={loading}
                   style={{
                     marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5,
                     padding: '4px 10px', borderRadius: 5, border: `1px solid ${C.borderStr}`,
