@@ -107,7 +107,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
     }
   };
 
-  const portalLink = `${window.location.origin}/cliente`;
+  const portalLink = 'https://sistema-gpi.lovable.app/cliente';
 
   // Mensagem de acesso card state
   const storageKey = `portal-msg-expandida-${clienteId}`;
