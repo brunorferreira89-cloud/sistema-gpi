@@ -146,13 +146,14 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     loadEmpresas();
   }, [propClienteId, profile?.id, profile?.cliente_id]);
 
-  // Load dashboard data when clienteId is resolved
+  // Load competencias liberadas and dashboard data when clienteId is resolved
   useEffect(() => {
     if (!resolvedClienteId) return;
     const clienteId = resolvedClienteId;
 
     const load = async () => {
       setLoading(true);
+      setLoadingCompetencias(true);
       try {
         const { data: cli } = await supabase
           .from('clientes')
@@ -160,6 +161,40 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .eq('id', clienteId)
           .single();
         setCliente(cli);
+
+        // Fetch competencias liberadas (skip for espelho mode — show all)
+        let compDisp: string[] = [];
+        if (!espelho) {
+          const { data: mesesLiberados } = await supabase
+            .from('competencias_liberadas' as any)
+            .select('competencia')
+            .eq('cliente_id', clienteId)
+            .eq('status', 'liberado')
+            .order('competencia', { ascending: false });
+          compDisp = (mesesLiberados || []).map((m: any) => m.competencia);
+          setCompetenciasLiberadas(compDisp);
+        } else {
+          // Espelho mode: use current month
+          compDisp = [getCompetenciaAtual()];
+          setCompetenciasLiberadas(compDisp);
+        }
+
+        setLoadingCompetencias(false);
+
+        if (compDisp.length === 0 && !espelho) {
+          // No released months — show empty state
+          setLoading(false);
+          return;
+        }
+
+        // Use latest available competencia or selected
+        const competencia = competenciaSelecionada && compDisp.includes(competenciaSelecionada)
+          ? competenciaSelecionada
+          : compDisp[0] || getCompetenciaAtual();
+
+        if (!competenciaSelecionada) {
+          setCompetenciaSelecionada(competencia);
+        }
 
         const [kpiCurr, kpiPrev] = await Promise.all([
           fetchKpiData(clienteId, competencia),
@@ -223,7 +258,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     };
 
     load();
-  }, [resolvedClienteId, competencia]);
+  }, [resolvedClienteId, competenciaSelecionada, espelho]);
 
   // Loading empresas
   if (loadingEmpresas) {
