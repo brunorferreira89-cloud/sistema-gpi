@@ -233,6 +233,15 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           }
         } catch { /* score optional */ }
 
+        // Check if apresentacao_preparacao exists for this competencia
+        const { data: apresPrep } = await supabase
+          .from('apresentacao_preparacao')
+          .select('id')
+          .eq('cliente_id', clienteId)
+          .eq('competencia', competencia)
+          .maybeSingle();
+        setHasApresentacao(!!apresPrep);
+
         const { data: alertasData } = await supabase
           .from('alertas_semanais')
           .select('*')
