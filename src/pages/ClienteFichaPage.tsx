@@ -22,6 +22,7 @@ import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
 import { fetchKpiData } from '@/lib/kpi-utils';
 import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
 import { PortalTab } from '@/components/clientes/PortalTab';
+import { PublicacaoTab } from '@/components/clientes/PublicacaoTab';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
