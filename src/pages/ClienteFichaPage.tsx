@@ -22,6 +22,7 @@ import { ScoreRing, calcHealthScore } from '@/components/ui/score-ring';
 import { fetchKpiData } from '@/lib/kpi-utils';
 import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
 import { PortalTab } from '@/components/clientes/PortalTab';
+import { PublicacaoTab } from '@/components/clientes/PublicacaoTab';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
@@ -208,6 +209,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
+          <TabsTrigger value="publicacao">📅 Publicação</TabsTrigger>
           <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
         </TabsList>
 
@@ -305,6 +307,11 @@ export default function ClienteFichaPage() {
         {/* Portal */}
         <TabsContent value="portal">
           <PortalTab clienteId={clienteId!} cliente={cliente} />
+        </TabsContent>
+
+        {/* Publicação */}
+        <TabsContent value="publicacao">
+          <PublicacaoTab clienteId={clienteId!} />
         </TabsContent>
 
         {/* Visão do Cliente */}

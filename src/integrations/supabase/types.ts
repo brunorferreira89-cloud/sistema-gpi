@@ -345,6 +345,70 @@ export type Database = {
         }
         Relationships: []
       }
+      competencias_liberadas: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          created_at: string | null
+          id: string
+          liberado_em: string | null
+          liberado_por: string | null
+          observacao: string | null
+          revogado_em: string | null
+          revogado_por: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          created_at?: string | null
+          id?: string
+          liberado_em?: string | null
+          liberado_por?: string | null
+          observacao?: string | null
+          revogado_em?: string | null
+          revogado_por?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          created_at?: string | null
+          id?: string
+          liberado_em?: string | null
+          liberado_por?: string | null
+          observacao?: string | null
+          revogado_em?: string | null
+          revogado_por?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competencias_liberadas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competencias_liberadas_liberado_por_fkey"
+            columns: ["liberado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competencias_liberadas_revogado_por_fkey"
+            columns: ["revogado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostico_leads: {
         Row: {
           cnpj: string | null
