@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchKpiData } from '@/lib/kpi-utils';
 import { fetchMergedIndicadores, calcularIndicadores, calcScore } from '@/lib/kpi-indicadores-utils';
-import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw, LogOut, ChevronDown, ChevronUp, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import gpiLogo from '@/assets/gpi-logo-dark.png';
 
 function getCompetenciaAtual() {
