@@ -52,8 +52,11 @@ interface ClientePortalPageProps {
 
 export default function ClientePortalPage({ clienteId: propClienteId, espelho }: ClientePortalPageProps = {}) {
   const { profile } = useAuth();
-  const competencia = getCompetenciaAtual();
 
+  // Competências liberadas state
+  const [competenciasLiberadas, setCompetenciasLiberadas] = useState<string[]>([]);
+  const [competenciaSelecionada, setCompetenciaSelecionada] = useState<string | null>(null);
+  const [loadingCompetencias, setLoadingCompetencias] = useState(false);
   // Multi-empresa state
   const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
   const [clienteIdSelecionado, setClienteIdSelecionado] = useState<string | null>(null);
