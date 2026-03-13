@@ -331,6 +331,40 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     );
   }
 
+  // No released competencias — show empty state
+  if (!espelho && competenciasLiberadas.length === 0 && !loadingCompetencias) {
+    const whatsappLinkEmpty = cliente?.responsavel_whatsapp
+      ? `https://wa.me/55${cliente.responsavel_whatsapp.replace(/\D/g, '')}`
+      : null;
+    return (
+      <div className="max-w-[600px] mx-auto py-16 px-4">
+        <div className="rounded-xl border border-[#DDE4F0] bg-white p-10 shadow-sm text-center space-y-4">
+          <span className="text-5xl">📊</span>
+          <h2 className="text-lg font-bold text-[#0D1B35]">Seus dados estão sendo preparados</h2>
+          <p className="text-sm text-[#4A5E80] leading-relaxed">
+            Seu consultor está analisando os números e em breve você terá acesso ao seu painel financeiro completo.
+          </p>
+          {whatsappLinkEmpty && (
+            <>
+              <p className="text-xs text-[#8A9BBC]">Dúvidas? Fale com a GPI pelo WhatsApp</p>
+              <a
+                href={whatsappLinkEmpty}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                💬 Falar com consultor
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const competencia = competenciaSelecionada || competenciasLiberadas[0] || getCompetenciaAtual();
+
   const fatVariacao = kpiAnterior?.faturamento
     ? ((kpi?.faturamento - kpiAnterior.faturamento) / Math.abs(kpiAnterior.faturamento)) * 100
     : 0;
@@ -382,9 +416,22 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             )}
           </div>
         </div>
-        <span className="rounded-full bg-[#EBF0FF] px-3 py-1 text-xs font-semibold text-[#1A3CFF]">
-          {fmtMesAno(competencia)}
-        </span>
+        <div className="flex items-center gap-2">
+          {competenciasLiberadas.length > 1 && (
+            <select
+              value={competencia}
+              onChange={(e) => setCompetenciaSelecionada(e.target.value)}
+              className="rounded-full bg-[#EBF0FF] px-3 py-1 text-xs font-semibold text-[#1A3CFF] border-none outline-none cursor-pointer"
+            >
+              {competenciasLiberadas.map((c) => (
+                <option key={c} value={c}>{fmtMesAno(c)}</option>
+              ))}
+            </select>
+          )}
+          <span className="rounded-full bg-[#EBF0FF] px-3 py-1 text-xs font-semibold text-[#1A3CFF]">
+            📅 {fmtMesAno(competencia)} {competenciasLiberadas.length > 1 ? `· ${competenciasLiberadas.length} meses disponíveis` : ''}
+          </span>
+        </div>
       </div>
 
       {/* Seção 1 — Cards de topo */}
