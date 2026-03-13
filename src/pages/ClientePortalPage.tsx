@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchKpiData } from '@/lib/kpi-utils';
-import { fetchMergedIndicadores, calcularIndicadores } from '@/lib/kpi-indicadores-utils';
-import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw } from 'lucide-react';
+import { fetchMergedIndicadores, calcularIndicadores, calcScore } from '@/lib/kpi-indicadores-utils';
+import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
 import gpiLogo from '@/assets/gpi-logo-dark.png';
 
 function getCompetenciaAtual() {
@@ -23,19 +23,18 @@ function fmtMesAno(comp: string) {
   return `${meses[d.getMonth()]}/${d.getFullYear()}`;
 }
 
+function fmtMesAnoLong(comp: string) {
+  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const d = new Date(comp + 'T00:00:00');
+  return `${meses[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
 function fmtR$(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function fmtPct(v: number) {
   return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
-}
-
-function saudacao() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Bom dia';
-  if (h < 18) return 'Boa tarde';
-  return 'Boa noite';
 }
 
 interface EmpresaOption {
@@ -50,8 +49,14 @@ interface ClientePortalPageProps {
   espelho?: boolean;
 }
 
+const STATUS_CONFIG = {
+  verde: { label: '✓ ok', color: '#00A86B', bg: 'rgba(0,168,107,0.08)' },
+  ambar: { label: '⚠ atenção', color: '#D97706', bg: 'rgba(217,119,6,0.08)' },
+  vermelho: { label: '✕ crítico', color: '#DC2626', bg: 'rgba(220,38,38,0.08)' },
+};
+
 export default function ClientePortalPage({ clienteId: propClienteId, espelho }: ClientePortalPageProps = {}) {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
 
   // Competências liberadas state
   const [competenciasLiberadas, setCompetenciasLiberadas] = useState<string[]>([]);
@@ -67,23 +72,24 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [cliente, setCliente] = useState<any>(null);
   const [kpi, setKpi] = useState<any>(null);
   const [kpiAnterior, setKpiAnterior] = useState<any>(null);
+  const [indicadoresCalc, setIndicadoresCalc] = useState<any[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [alertas, setAlertas] = useState<any[]>([]);
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [alertasOpen, setAlertasOpen] = useState(true);
 
   // If prop clienteId (espelho mode), skip empresa selection
   const resolvedClienteId = propClienteId || clienteIdSelecionado;
 
   // Load empresas for the logged-in user
   useEffect(() => {
-    if (propClienteId) return; // espelho mode
+    if (propClienteId) return;
     if (!profile?.id) return;
 
     const loadEmpresas = async () => {
       setLoadingEmpresas(true);
       try {
-        // Query portal_usuario_clientes
         const { data: links, error } = await supabase
           .from('portal_usuario_clientes' as any)
           .select('cliente_id, empresa_padrao')
@@ -109,7 +115,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             };
           });
 
-          // Sort: empresa_padrao first, then by razao_social
           empresasList.sort((a, b) => {
             if (a.empresa_padrao && !b.empresa_padrao) return -1;
             if (!a.empresa_padrao && b.empresa_padrao) return 1;
@@ -121,9 +126,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           if (empresasList.length === 1) {
             setClienteIdSelecionado(empresasList[0].cliente_id);
           }
-          // If 2+, show selection screen (clienteIdSelecionado stays null)
         } else {
-          // Fallback: legacy profiles.cliente_id
           if (profile.cliente_id) {
             setClienteIdSelecionado(profile.cliente_id as string);
             setEmpresas([]);
@@ -132,7 +135,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           }
         }
       } catch {
-        // Fallback to legacy
         if (profile.cliente_id) {
           setClienteIdSelecionado(profile.cliente_id as string);
         } else {
@@ -174,7 +176,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           compDisp = (mesesLiberados || []).map((m: any) => m.competencia);
           setCompetenciasLiberadas(compDisp);
         } else {
-          // Espelho mode: use current month
           compDisp = [getCompetenciaAtual()];
           setCompetenciasLiberadas(compDisp);
         }
@@ -182,12 +183,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         setLoadingCompetencias(false);
 
         if (compDisp.length === 0 && !espelho) {
-          // No released months — show empty state
           setLoading(false);
           return;
         }
 
-        // Use latest available competencia or selected
         const competencia = competenciaSelecionada && compDisp.includes(competenciaSelecionada)
           ? competenciaSelecionada
           : compDisp[0] || getCompetenciaAtual();
@@ -206,7 +205,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         try {
           const { data: contasRaw } = await supabase
             .from('plano_de_contas')
-            .select('id, nome, tipo, nivel, is_total, ordem')
+            .select('id, nome, tipo, nivel, is_total, ordem, conta_pai_id')
             .eq('cliente_id', clienteId)
             .order('ordem');
 
@@ -223,10 +222,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             (valores || []).forEach((v: any) => { realizadoMap[v.conta_id] = v.valor_realizado; });
 
             const calcs = calcularIndicadores(indicadores, contasRaw as any, realizadoMap);
+            setIndicadoresCalc(calcs);
             const ativos = calcs.filter((c: any) => c.indicador.ativo);
             if (ativos.length > 0) {
-              const totalPontos = ativos.reduce((s: number, c: any) => s + c.pontos, 0);
-              setScore(Math.round(totalPontos / ativos.length));
+              setScore(calcScore(calcs));
             }
           }
         } catch { /* score optional */ }
@@ -263,7 +262,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Loading empresas
   if (loadingEmpresas) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#F0F4FA' }}>
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1A3CFF] border-t-transparent" />
       </div>
     );
@@ -272,7 +271,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // No access
   if (noAccess) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4" style={{ background: '#F0F4FA' }}>
         <img src={gpiLogo} alt="GPI" className="h-10 w-auto" />
         <p className="text-[#4A5E80] text-sm text-center max-w-sm">
           Nenhuma empresa vinculada ao seu usuário. Entre em contato com a GPI para solicitar acesso.
@@ -284,7 +283,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Empresa selection screen (2+ empresas, none selected yet)
   if (!propClienteId && !clienteIdSelecionado && empresas.length >= 2) {
     return (
-      <div className="flex flex-col items-center py-12 px-4">
+      <div className="flex flex-col items-center py-12 px-4 min-h-screen" style={{ background: '#F0F4FA' }}>
         <img src={gpiLogo} alt="GPI" className="h-10 w-auto mb-8" />
         <h1 className="text-xl font-bold text-[#0D1B35] mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>
           Selecione a empresa
@@ -325,7 +324,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Dashboard loading
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#F0F4FA' }}>
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1A3CFF] border-t-transparent" />
       </div>
     );
@@ -337,27 +336,41 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
       ? `https://wa.me/55${cliente.responsavel_whatsapp.replace(/\D/g, '')}`
       : null;
     return (
-      <div className="max-w-[600px] mx-auto py-16 px-4">
-        <div className="rounded-xl border border-[#DDE4F0] bg-white p-10 shadow-sm text-center space-y-4">
-          <span className="text-5xl">📊</span>
-          <h2 className="text-lg font-bold text-[#0D1B35]">Seus dados estão sendo preparados</h2>
-          <p className="text-sm text-[#4A5E80] leading-relaxed">
-            Seu consultor está analisando os números e em breve você terá acesso ao seu painel financeiro completo.
-          </p>
-          {whatsappLinkEmpty && (
-            <>
-              <p className="text-xs text-[#8A9BBC]">Dúvidas? Fale com a GPI pelo WhatsApp</p>
-              <a
-                href={whatsappLinkEmpty}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
-              >
-                <MessageCircle className="h-4 w-4" />
-                💬 Falar com consultor
-              </a>
-            </>
-          )}
+      <div className="min-h-screen" style={{ background: '#F0F4FA' }}>
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0] px-4 py-3">
+          <div className="max-w-[1100px] mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
+              <span className="text-sm font-semibold text-[#0D1B35]">{cliente?.razao_social || cliente?.nome_empresa || ''}</span>
+            </div>
+            <button onClick={signOut} className="rounded-md p-1.5 text-[#4A5E80] hover:text-[#DC2626] transition-colors">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+        <div className="max-w-[600px] mx-auto py-16 px-4">
+          <div className="rounded-xl border border-[#DDE4F0] bg-white p-10 shadow-sm text-center space-y-4">
+            <span className="text-5xl">📊</span>
+            <h2 className="text-lg font-bold text-[#0D1B35]">Seus dados estão sendo preparados</h2>
+            <p className="text-sm text-[#4A5E80] leading-relaxed">
+              Seu consultor está analisando os números e em breve você terá acesso ao seu painel financeiro completo.
+            </p>
+            {whatsappLinkEmpty && (
+              <>
+                <p className="text-xs text-[#8A9BBC]">Dúvidas? Fale com a GPI pelo WhatsApp</p>
+                <a
+                  href={whatsappLinkEmpty}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  💬 Falar com consultor
+                </a>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -370,33 +383,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     : 0;
 
   const gcPct = kpi?.gc_pct || 0;
-  const gcBorder = gcPct >= 10 ? '#00A86B' : gcPct >= 0 ? '#D97706' : '#DC2626';
-  const gcBg = gcPct >= 10 ? 'rgba(0,168,107,0.06)' : gcPct >= 0 ? 'rgba(217,119,6,0.06)' : 'rgba(220,38,38,0.06)';
+  const gcAccent = gcPct >= 10 ? '#00A86B' : gcPct >= 0 ? '#D97706' : '#DC2626';
+  const gcLabel = gcPct >= 10 ? '✓ Saudável' : gcPct >= 0 ? '⚠ Atenção' : '✕ Crítico';
+  const gcBadgeBg = gcPct >= 10 ? 'rgba(0,168,107,0.1)' : gcPct >= 0 ? 'rgba(217,119,6,0.1)' : 'rgba(220,38,38,0.08)';
 
-  const scoreColor = (score ?? 0) >= 70 ? '#00A86B' : (score ?? 0) >= 40 ? '#D97706' : '#DC2626';
-  const scoreLabel = (score ?? 0) >= 70 ? 'Saudável' : (score ?? 0) >= 40 ? 'Atenção' : 'Crítico';
+  const scoreVal = score ?? 0;
+  const scoreColor = scoreVal >= 70 ? '#00A86B' : scoreVal >= 40 ? '#D97706' : '#DC2626';
+  const scoreLabel = scoreVal >= 70 ? 'Saudável' : scoreVal >= 40 ? 'Atenção' : 'Crítico';
 
-  const whatsappLink = cliente?.responsavel_whatsapp
-    ? `https://wa.me/55${cliente.responsavel_whatsapp.replace(/\D/g, '')}`
-    : '#';
+  const whatsappNum = cliente?.responsavel_whatsapp?.replace(/\D/g, '');
+  const whatsappLink = whatsappNum ? `https://wa.me/55${whatsappNum}` : null;
 
   const showTrocarEmpresa = !propClienteId && empresas.length >= 2;
 
+  const kpisAtivos = indicadoresCalc.filter((c: any) => c.indicador.ativo);
+
   return (
-    <div className="max-w-[1100px] mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#0D1B35]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-            {saudacao()}, {cliente?.responsavel_nome || profile?.nome || 'Cliente'}
+    <div className="min-h-screen" style={{ background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }}>
+      {/* 1. HEADER */}
+      <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0]">
+        <div className="max-w-[1100px] mx-auto flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
+            <span className="text-sm font-semibold text-[#0D1B35]">
+              {cliente?.razao_social || cliente?.nome_empresa}
+            </span>
             {espelho && (
-              <span className="ml-2 inline-block rounded-full bg-[#EBF0FF] px-2 py-0.5 text-[10px] font-medium text-[#1A3CFF] align-middle">
+              <span className="rounded-full bg-[#EBF0FF] px-2 py-0.5 text-[10px] font-medium text-[#1A3CFF]">
                 visualizando como cliente
               </span>
             )}
-          </h1>
+          </div>
           <div className="flex items-center gap-2">
-            <p className="text-sm text-[#4A5E80]">{cliente?.razao_social || cliente?.nome_empresa}</p>
             {showTrocarEmpresa && (
               <button
                 onClick={() => {
@@ -405,209 +423,269 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                   setKpi(null);
                   setKpiAnterior(null);
                   setScore(null);
+                  setIndicadoresCalc([]);
                   setAlertas([]);
                   setProximaReuniao(null);
                 }}
                 className="inline-flex items-center gap-1 rounded-full bg-[#EBF0FF] px-2.5 py-1 text-[11px] font-semibold text-[#1A3CFF] hover:bg-[#D6E0FF] transition-colors"
               >
-                <RefreshCw className="h-3 w-3" />
-                Trocar empresa
+                ⇄ Trocar empresa
               </button>
             )}
+            <button onClick={signOut} className="rounded-md p-1.5 text-[#4A5E80] hover:text-[#DC2626] transition-colors">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {competenciasLiberadas.length > 1 && (
-            <select
-              value={competencia}
-              onChange={(e) => setCompetenciaSelecionada(e.target.value)}
-              className="rounded-full bg-[#EBF0FF] px-3 py-1 text-xs font-semibold text-[#1A3CFF] border-none outline-none cursor-pointer"
-            >
-              {competenciasLiberadas.map((c) => (
-                <option key={c} value={c}>{fmtMesAno(c)}</option>
-              ))}
-            </select>
-          )}
-          <span className="rounded-full bg-[#EBF0FF] px-3 py-1 text-xs font-semibold text-[#1A3CFF]">
-            📅 {fmtMesAno(competencia)} {competenciasLiberadas.length > 1 ? `· ${competenciasLiberadas.length} meses disponíveis` : ''}
-          </span>
-        </div>
-      </div>
+      </header>
 
-      {/* Seção 1 — Cards de topo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1 - Faturamento */}
-        <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80] mb-1">
-            Faturamento {fmtMesAno(competencia)}
-          </p>
-          <p className="text-2xl font-extrabold text-[#0D1B35]" style={{ fontFamily: 'Courier New, monospace' }}>
-            {fmtR$(kpi?.faturamento || 0)}
-          </p>
-          <div className="mt-2 flex items-center gap-1">
-            {fatVariacao >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-[#00A86B]" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-[#DC2626]" />
+      <main className="max-w-[1100px] mx-auto px-4 py-6 space-y-6">
+        {/* 2. SAUDAÇÃO */}
+        <div>
+          <p className="text-sm text-[#4A5E80]">Olá, {profile?.nome || 'Cliente'} 👋</p>
+          <h1 className="text-2xl font-bold text-[#0D1B35]">
+            {cliente?.razao_social || cliente?.nome_empresa}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            {competenciasLiberadas.length > 0 && (
+              <span className="text-xs text-[#8A9BBC]">
+                {fmtMesAnoLong(competencia)} · Fechamento disponível
+              </span>
             )}
-            <span
-              className="text-xs font-semibold"
-              style={{ fontFamily: 'Courier New, monospace', color: fatVariacao >= 0 ? '#00A86B' : '#DC2626' }}
-            >
-              {fmtPct(fatVariacao)} vs mês anterior
+            {competenciasLiberadas.length > 1 && (
+              <select
+                value={competencia}
+                onChange={(e) => setCompetenciaSelecionada(e.target.value)}
+                className="rounded-full bg-[#EBF0FF] px-3 py-0.5 text-[11px] font-semibold text-[#1A3CFF] border-none outline-none cursor-pointer"
+              >
+                {competenciasLiberadas.map((c) => (
+                  <option key={c} value={c}>{fmtMesAno(c)}</option>
+                ))}
+              </select>
+            )}
+            <span className="rounded-full bg-[#EBF0FF] px-3 py-0.5 text-[11px] font-semibold text-[#1A3CFF]">
+              📅 {fmtMesAno(competencia)}
+              {competenciasLiberadas.length > 1 && ` · ${competenciasLiberadas.length} meses disponíveis`}
             </span>
           </div>
         </div>
 
-        {/* Card 2 - Geração de Caixa */}
-        <div
-          className="rounded-xl bg-white p-5 shadow-sm"
-          style={{ border: `2px solid ${gcBorder}`, background: gcBg }}
-        >
-          <div className="flex items-center gap-1.5 mb-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80]">
-              Geração de Caixa
-            </p>
-            {gcPct < 0 && <AlertTriangle className="h-3.5 w-3.5 text-[#DC2626]" />}
+        {/* 3. TRÊS HERO CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* FATURAMENTO */}
+          <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+            <div className="h-1" style={{ background: 'linear-gradient(90deg, #1A3CFF, #0099E6)' }} />
+            <div className="p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80] mb-1">Faturamento</p>
+              <p className="text-[28px] font-extrabold text-[#0D1B35]" style={{ fontFamily: 'Courier New, monospace' }}>
+                {fmtR$(kpi?.faturamento || 0)}
+              </p>
+              <div className="mt-2">
+                {kpiAnterior?.faturamento ? (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                    style={{
+                      color: fatVariacao >= 0 ? '#00A86B' : '#DC2626',
+                      background: fatVariacao >= 0 ? 'rgba(0,168,107,0.1)' : 'rgba(220,38,38,0.08)',
+                    }}
+                  >
+                    {fatVariacao >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {fatVariacao >= 0 ? '▲' : '▼'} {Math.abs(fatVariacao).toFixed(1)}%
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-[#8A9BBC]">sem mês anterior</span>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-2xl font-extrabold text-[#0D1B35]" style={{ fontFamily: 'Courier New, monospace' }}>
-            {fmtR$(kpi?.gc_valor || 0)}
-          </p>
-          <p className="text-xs font-semibold mt-1" style={{ fontFamily: 'Courier New, monospace', color: gcBorder }}>
-            {gcPct.toFixed(1)}% do faturamento
-          </p>
-          <p className="text-[10px] text-[#8A9BBC] mt-2">Meta GPI: ≥ 10%</p>
-        </div>
 
-        {/* Card 3 - Score de Saúde */}
-        <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm flex flex-col items-center justify-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80] mb-3">
-            Score de Saúde Financeira
-          </p>
-          <div className="relative w-[120px] h-[65px]">
-            <svg viewBox="0 0 120 65" className="w-full h-full">
-              <path
-                d="M 10 60 A 50 50 0 0 1 110 60"
-                fill="none"
-                stroke="#E8EEF8"
-                strokeWidth="10"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 10 60 A 50 50 0 0 1 110 60"
-                fill="none"
-                stroke={scoreColor}
-                strokeWidth="10"
-                strokeLinecap="round"
-                strokeDasharray={`${(score ?? 0) * 1.57} 157`}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-end justify-center pb-0">
-              <span className="text-xl font-extrabold" style={{ fontFamily: 'Courier New, monospace', color: scoreColor }}>
-                {score ?? '–'}
+          {/* GERAÇÃO DE CAIXA */}
+          <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+            <div className="h-1" style={{ background: gcAccent }} />
+            <div className="p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80] mb-1">Geração de Caixa</p>
+              <p className="text-[28px] font-extrabold text-[#0D1B35]" style={{ fontFamily: 'Courier New, monospace' }}>
+                {fmtR$(kpi?.gc_valor || 0)}
+              </p>
+              <p className="text-sm mt-1" style={{ fontFamily: 'Courier New, monospace', color: '#4A5E80' }}>
+                {gcPct.toFixed(1)}% do faturamento
+              </p>
+              <span
+                className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                style={{ color: gcAccent, background: gcBadgeBg }}
+              >
+                {gcLabel}
               </span>
             </div>
           </div>
-          <span
-            className="mt-1 text-xs font-bold uppercase"
-            style={{ color: scoreColor }}
-          >
-            {score !== null ? scoreLabel : 'Sem dados'}
-          </span>
-        </div>
-      </div>
 
-      {/* Seção 2 — Alertas Recentes */}
-      <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-bold text-[#0D1B35] mb-3 flex items-center gap-2">
-          <Bell className="h-4 w-4 text-[#1A3CFF]" /> Alertas Recentes
-        </h2>
-        {alertas.length === 0 ? (
-          <div className="flex items-center gap-2 text-sm text-[#4A5E80]">
-            <CheckCircle className="h-4 w-4 text-[#00A86B]" />
-            Nenhum alerta recente. Tudo operando normalmente. ✅
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {alertas.map((a) => {
-              const conteudo = a.conteudo as any;
-              const nivel = conteudo?.nivel || 'info';
-              const nivelIcon = nivel === 'critico' ? <AlertTriangle className="h-4 w-4 text-[#DC2626]" /> :
-                nivel === 'atencao' ? <AlertTriangle className="h-4 w-4 text-[#D97706]" /> :
-                <Info className="h-4 w-4 text-[#1A3CFF]" />;
-              return (
-                <div key={a.id} className="flex items-start gap-2 rounded-lg bg-[#F6F9FF] p-3">
-                  {nivelIcon}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#0D1B35] truncate">
-                      {conteudo?.titulo || `Alerta ${a.semana_inicio}`}
-                    </p>
-                    <p className="text-[11px] text-[#8A9BBC]">
-                      {new Date(a.created_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
+          {/* SCORE DE SAÚDE */}
+          <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+            <div className="h-1" style={{ background: scoreColor }} />
+            <div className="p-5 flex flex-col items-center justify-center">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#4A5E80] mb-3">Saúde Financeira</p>
+              <div className="relative w-[120px] h-[65px]">
+                <svg viewBox="0 0 120 65" className="w-full h-full">
+                  <path
+                    d="M 10 60 A 50 50 0 0 1 110 60"
+                    fill="none"
+                    stroke="#E8EEF8"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M 10 60 A 50 50 0 0 1 110 60"
+                    fill="none"
+                    stroke={scoreColor}
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={`${scoreVal * 1.57} 157`}
+                    style={{ transition: 'stroke-dasharray 1s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-end justify-center pb-0">
+                  <span className="text-xl font-extrabold" style={{ fontFamily: 'Courier New, monospace', color: scoreColor }}>
+                    {score !== null ? score : '–'}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Seção 3 — Próxima Reunião */}
-      <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-bold text-[#0D1B35] mb-3 flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-[#1A3CFF]" /> Próxima Reunião
-        </h2>
-        {proximaReuniao ? (
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#EBF0FF]">
-              <Calendar className="h-6 w-6 text-[#1A3CFF]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#0D1B35]">
-                {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', {
-                  weekday: 'long', day: 'numeric', month: 'long'
-                })}
-                {proximaReuniao.horario && ` às ${proximaReuniao.horario.slice(0, 5)}`}
-              </p>
-              <p className="text-xs text-[#4A5E80]">
-                Consultor: {(proximaReuniao as any).profiles?.nome || '—'}
-              </p>
+              </div>
+              <span className="mt-1 text-xs font-bold uppercase" style={{ color: scoreColor }}>
+                {score !== null ? scoreLabel : 'Sem dados'}
+              </span>
+              <span className="text-[11px] text-[#8A9BBC] mt-0.5">{fmtMesAno(competencia)}</span>
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-[#4A5E80]">Sua próxima reunião será agendada em breve.</p>
-        )}
-      </div>
+        </div>
 
-      {/* Seção 4 — Acompanhe seus Números */}
-      <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-bold text-[#0D1B35] mb-3">📊 Acompanhe seus Números</h2>
-        <p className="text-sm text-[#4A5E80] leading-relaxed">
-          Seus números são lançados no Nibo diariamente. Nossa equipe audita,
-          analisa e apresenta os resultados toda reunião mensal. Dúvidas? Fale
-          com seu consultor pelo WhatsApp.
-        </p>
-        {espelho ? (
-          <span
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white opacity-40 cursor-not-allowed"
-            title="Disponível apenas no portal do cliente"
-          >
-            <MessageCircle className="h-4 w-4" />
-            💬 Falar com meu consultor
+        {/* 4. SAÚDE FINANCEIRA — KPIs */}
+        {kpisAtivos.length > 0 && (
+          <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+            <h2 className="text-sm font-bold text-[#0D1B35] mb-4 flex items-center gap-2">
+              Saúde Financeira ·{' '}
+              <span style={{ color: scoreColor, fontFamily: 'Courier New, monospace' }}>{score ?? '–'}/100</span>
+              {' · '}
+              <span className="text-xs font-semibold" style={{ color: scoreColor }}>{score !== null ? scoreLabel : ''}</span>
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {kpisAtivos.map((calc: any) => {
+                const cfg = STATUS_CONFIG[calc.status as keyof typeof STATUS_CONFIG];
+                return (
+                  <div
+                    key={calc.indicador.id}
+                    className="rounded-lg border border-[#DDE4F0] p-3 text-center"
+                  >
+                    <p className="text-[11px] font-semibold text-[#4A5E80] mb-1 truncate">{calc.indicador.nome}</p>
+                    <p className="text-lg font-extrabold text-[#0D1B35]" style={{ fontFamily: 'Courier New, monospace' }}>
+                      {calc.pct !== null ? `${calc.pct.toFixed(1)}%` : '–'}
+                    </p>
+                    <span
+                      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold mt-1"
+                      style={{ color: cfg.color, background: cfg.bg }}
+                    >
+                      {cfg.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 5. PRÓXIMA REUNIÃO */}
+        <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+          <span className="inline-block rounded-full bg-[#EBF0FF] px-2.5 py-0.5 text-[10px] font-bold text-[#1A3CFF] uppercase tracking-wider mb-3">
+            Próxima Reunião
           </span>
-        ) : (
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
+          {proximaReuniao ? (
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#EBF0FF]">
+                <Calendar className="h-6 w-6 text-[#1A3CFF]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#0D1B35]">
+                  {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', {
+                    weekday: 'long', day: 'numeric', month: 'long'
+                  })}
+                  {proximaReuniao.horario && ` às ${proximaReuniao.horario.slice(0, 5)}`}
+                </p>
+                <p className="text-xs text-[#4A5E80]">
+                  {proximaReuniao.tipo} · {(proximaReuniao as any).profiles?.nome || '—'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-[#4A5E80]">Nenhuma reunião agendada</p>
+          )}
+        </div>
+
+        {/* 6. ALERTAS DA SEMANA */}
+        <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+          <button
+            onClick={() => setAlertasOpen(!alertasOpen)}
+            className="w-full flex items-center justify-between p-5 text-left"
           >
-            <MessageCircle className="h-4 w-4" />
-            💬 Falar com meu consultor
-          </a>
-        )}
-      </div>
+            <h2 className="text-sm font-bold text-[#0D1B35] flex items-center gap-2">
+              <Bell className="h-4 w-4 text-[#1A3CFF]" /> Alertas da Semana
+            </h2>
+            {alertasOpen ? <ChevronUp className="h-4 w-4 text-[#8A9BBC]" /> : <ChevronDown className="h-4 w-4 text-[#8A9BBC]" />}
+          </button>
+          {alertasOpen && (
+            <div className="px-5 pb-5">
+              {alertas.length === 0 ? (
+                <div>
+                  <p className="text-sm text-[#4A5E80]">Alerta da semana ainda não disponível</p>
+                  <p className="text-[11px] text-[#8A9BBC] mt-0.5">Disponível toda sexta-feira até 12h</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {alertas.map((a) => {
+                    const conteudo = a.conteudo as any;
+                    const nivel = conteudo?.nivel || 'info';
+                    const nivelIcon = nivel === 'critico' ? <AlertTriangle className="h-4 w-4 text-[#DC2626]" /> :
+                      nivel === 'atencao' ? <AlertTriangle className="h-4 w-4 text-[#D97706]" /> :
+                      <Info className="h-4 w-4 text-[#1A3CFF]" />;
+                    return (
+                      <div key={a.id} className="flex items-start gap-2 rounded-lg bg-[#F6F9FF] p-3">
+                        {nivelIcon}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#0D1B35] truncate">
+                            {conteudo?.titulo || `Alerta ${a.semana_inicio}`}
+                          </p>
+                          <p className="text-[11px] text-[#8A9BBC]">
+                            {new Date(a.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 7. RODAPÉ / CTA */}
+        <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm text-center" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+          <p className="text-sm text-[#4A5E80] mb-3">Acompanhe seus números com sua equipe GPI</p>
+          {whatsappLink && !espelho && (
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A] transition-colors"
+            >
+              <MessageCircle className="h-4 w-4" />
+              💬 Falar com consultor
+            </a>
+          )}
+          {espelho && whatsappLink && (
+            <span className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white opacity-40 cursor-not-allowed">
+              <MessageCircle className="h-4 w-4" />
+              💬 Falar com consultor
+            </span>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
