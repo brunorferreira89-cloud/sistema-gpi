@@ -124,7 +124,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
 Seu portal de inteligência financeira está pronto. A partir de agora você pode acompanhar os números do seu negócio a qualquer momento. 📊
 
 *Seu acesso:*
-🔗 Link: ${window.location.origin}/cliente
+🔗 Link: https://sistema-gpi.lovable.app/cliente
 📧 E-mail: ${emailUsuario}
 
 No portal você encontra:
