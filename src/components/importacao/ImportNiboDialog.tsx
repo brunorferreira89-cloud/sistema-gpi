@@ -152,6 +152,12 @@ export function ImportNiboDialog({ open, onOpenChange, clienteId, clienteNome, c
         importado_por: userData.user?.id || null,
       });
 
+      // Auto-create draft in competencias_liberadas
+      await supabase.from('competencias_liberadas' as any).upsert(
+        { cliente_id: clienteId, competencia: comp, status: 'rascunho' },
+        { onConflict: 'cliente_id,competencia', ignoreDuplicates: true }
+      );
+
       const label = mesAbrevParaNomeCompleto(selectedMes, parseResult.anoReferencia);
       queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
       queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
