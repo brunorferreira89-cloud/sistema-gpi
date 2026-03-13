@@ -107,7 +107,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
     }
   };
 
-  const portalLink = `${window.location.origin}/cliente`;
+  const portalLink = 'https://sistema-gpi.lovable.app/cliente';
 
   // Mensagem de acesso card state
   const storageKey = `portal-msg-expandida-${clienteId}`;
@@ -124,7 +124,7 @@ export function PortalTab({ clienteId, cliente }: Props) {
 Seu portal de inteligência financeira está pronto. A partir de agora você pode acompanhar os números do seu negócio a qualquer momento. 📊
 
 *Seu acesso:*
-🔗 Link: ${window.location.origin}/cliente
+🔗 Link: https://sistema-gpi.lovable.app/cliente
 📧 E-mail: ${emailUsuario}
 
 No portal você encontra:

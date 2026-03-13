@@ -772,7 +772,7 @@ function MensagemAcessoModal({
 }) {
   const [copied, setCopied] = useState(false);
   const [whatsappEmpresa, setWhatsappEmpresa] = useState('');
-  const urlBase = window.location.origin;
+  const urlBase = 'https://sistema-gpi.lovable.app';
 
   const senhaLine = senha
     ? `🔑 Senha: ${senha}\n\n⚠️ Recomendamos trocar a senha no primeiro acesso.`
