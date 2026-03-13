@@ -17,14 +17,22 @@ export function ClientePortalEspelho({ clienteId, onSwitchTab }: Props) {
   useEffect(() => {
     const check = async () => {
       setLoading(true);
-      // Check if any profile with role=cliente exists for this cliente_id with portal_ativo
+      // Check if any active link exists in portal_usuario_clientes for this client
+      const { data: links } = await supabase
+        .from('portal_usuario_clientes')
+        .select('id')
+        .eq('cliente_id', clienteId)
+        .eq('ativo', true)
+        .limit(1);
+
+      // Also check legacy profiles.portal_ativo as fallback
       const { data: profiles } = await supabase
         .from('profiles')
         .select('portal_ativo')
         .eq('cliente_id', clienteId)
         .eq('role', 'cliente');
 
-      const ativo = profiles?.some((p: any) => p.portal_ativo === true) ?? false;
+      const ativo = (links && links.length > 0) || (profiles?.some((p: any) => p.portal_ativo === true) ?? false);
       setPortalAtivo(ativo);
 
       const { data: cli } = await supabase
