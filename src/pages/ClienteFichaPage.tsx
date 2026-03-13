@@ -309,6 +309,11 @@ export default function ClienteFichaPage() {
           <PortalTab clienteId={clienteId!} cliente={cliente} />
         </TabsContent>
 
+        {/* Publicação */}
+        <TabsContent value="publicacao">
+          <PublicacaoTab clienteId={clienteId!} />
+        </TabsContent>
+
         {/* Visão do Cliente */}
         <TabsContent value="visao-cliente">
           <ClientePortalEspelho clienteId={clienteId!} onSwitchTab={setActiveTab} />
