@@ -78,6 +78,7 @@ const App = () => (
             <Route element={<PortalRoute />}>
               <Route element={<PortalLayout />}>
                 <Route path="/cliente" element={<ClientePortalPage />} />
+                <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
               </Route>
             </Route>
 

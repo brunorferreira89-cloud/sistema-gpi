@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchKpiData } from '@/lib/kpi-utils';
 import { fetchMergedIndicadores, calcularIndicadores, calcScore } from '@/lib/kpi-indicadores-utils';
-import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw, LogOut, ChevronDown, ChevronUp, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import gpiLogo from '@/assets/gpi-logo-dark.png';
 
 function getCompetenciaAtual() {
@@ -78,6 +79,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [alertasOpen, setAlertasOpen] = useState(true);
+  const [hasApresentacao, setHasApresentacao] = useState(false);
+  const navigate = useNavigate();
 
   // If prop clienteId (espelho mode), skip empresa selection
   const resolvedClienteId = propClienteId || clienteIdSelecionado;
@@ -229,6 +232,15 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             }
           }
         } catch { /* score optional */ }
+
+        // Check if apresentacao_preparacao exists for this competencia
+        const { data: apresPrep } = await supabase
+          .from('apresentacao_preparacao')
+          .select('id')
+          .eq('cliente_id', clienteId)
+          .eq('competencia', competencia)
+          .maybeSingle();
+        setHasApresentacao(!!apresPrep);
 
         const { data: alertasData } = await supabase
           .from('alertas_semanais')
@@ -556,6 +568,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
         </div>
+
+        {/* 3.5 APRESENTAÇÃO DO MÊS */}
+        {hasApresentacao && (
+          <div>
+            <h2 className="text-sm font-bold text-[#0D1B35] mb-3 flex items-center gap-1.5">
+              📊 Apresentação do Mês
+            </h2>
+            <div
+              className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden flex items-center gap-4 p-5"
+              style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}
+            >
+              <div className="flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-lg bg-[#EBF0FF]">
+                <span className="text-[32px] leading-none">📊</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#0D1B35]">
+                  Relatório de Inteligência Financeira · {fmtMesAno(competencia)}
+                </p>
+                <p className="text-xs text-[#4A5E80] mt-0.5">
+                  Preparado pela equipe GPI · Clique para iniciar
+                </p>
+              </div>
+              <button
+                onClick={() => navigate(`/apresentacao/${resolvedClienteId}`)}
+                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                style={{ background: '#1A3CFF', borderRadius: '8px' }}
+              >
+                <Play className="h-4 w-4" /> Iniciar Apresentação
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 4. SAÚDE FINANCEIRA — KPIs */}
         {kpisAtivos.length > 0 && (
