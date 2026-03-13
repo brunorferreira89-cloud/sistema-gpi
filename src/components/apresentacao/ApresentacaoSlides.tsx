@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { X, ChevronLeft, ChevronRight, Loader2, FileText, MessageCircle } from 'lucide-react';
@@ -17,36 +17,41 @@ interface Props {
 
 const TOTAL_SLIDES = 6;
 
-const NAVY_BG = 'radial-gradient(ellipse at 50% 30%, #0A1628 0%, #060D1A 60%, #0D1B35 100%)';
-const CARD_BG = 'rgba(255,255,255,0.04)';
-const CARD_BORDER = 'rgba(255,255,255,0.08)';
-const TXT = 'rgba(255,255,255,0.85)';
-const TXT_SEC = 'rgba(255,255,255,0.45)';
-const PRIMARY = '#1A3CFF';
-const CYAN = '#0099E6';
-const GREEN = '#00C97A';
-const AMBER = '#D97706';
-const RED = '#DC2626';
+/* ── Design tokens ── */
+const C = {
+  navy: '#060D1A', mid: '#0A1628', deep: '#0D1B35',
+  blue: '#1A3CFF', cyan: '#0099E6', ice: '#38BFFF',
+  green: '#00C97A', red: '#FF3B3B', amber: '#F59E0B',
+  txt: 'rgba(255,255,255,0.85)', txtSec: 'rgba(255,255,255,0.45)',
+  cardBg: 'rgba(255,255,255,0.04)', cardBorder: 'rgba(255,255,255,0.08)',
+};
+
+const SLIDE_BG = `radial-gradient(ellipse 120% 80% at 50% 110%,rgba(26,60,255,.10) 0%,transparent 60%),linear-gradient(175deg,${C.navy} 0%,${C.mid} 40%,${C.deep} 70%,${C.navy} 100%)`;
 
 const TYPE_COLORS: Record<string, string> = {
-  receita: PRIMARY, custo_variavel: RED, despesa_fixa: AMBER, investimento: CYAN, financeiro: '#8A9BBC',
+  receita: C.blue, custo_variavel: C.red, despesa_fixa: C.amber,
+  investimento: '#7DD3FC', financeiro: C.green,
 };
 const TYPE_LABELS: Record<string, string> = {
-  receita: 'RECEITAS', custo_variavel: 'CUSTOS OPERACIONAIS', despesa_fixa: 'DESPESAS FIXAS',
+  receita: 'FATURAMENTO', custo_variavel: 'CUSTOS OP.', despesa_fixa: 'DESPESAS FIXAS',
   investimento: 'INVESTIMENTOS', financeiro: 'FINANCIAMENTOS',
 };
 
 const fmtR = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
 const fmtP = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+const statusColor = (s: string) => s === 'verde' || s === 'ok' ? C.green : s === 'ambar' || s === 'atencao' ? C.amber : C.red;
+const statusLabel = (s: string) => s === 'verde' || s === 'ok' ? 'OK' : s === 'ambar' || s === 'atencao' ? 'ATENÇÃO' : 'CRÍTICO';
 
+/* ──────────────────────────────────────── */
 export default function ApresentacaoSlides({ clienteId, competencia, onExit }: Props) {
   const { user, profile } = useAuth();
   const [slide, setSlide] = useState(1);
-  const [transitioning, setTransitioning] = useState(false);
+  const [entering, setEntering] = useState(true);
+  const [flash, setFlash] = useState(false);
   const [apresentacaoId, setApresentacaoId] = useState<string | null>(null);
 
   const [cliente, setCliente] = useState<any>(null);
-  const [contas, setContas] = useState<any[]>([]);
+  const [contas, setContas] = useState<ContaRow[]>([]);
   const [valMap, setValMap] = useState<Record<string, number | null>>({});
   const [prevValMap, setPrevValMap] = useState<Record<string, number | null>>({});
   const [kpiCalcs, setKpiCalcs] = useState<any[]>([]);
@@ -57,6 +62,7 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [torreMetas, setTorreMetas] = useState<any[]>([]);
 
+  /* ── Data loading ── */
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -75,14 +81,14 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
 
       const prevDate = new Date(competencia + 'T00:00:00');
       prevDate.setMonth(prevDate.getMonth() - 1);
-      const prevComp = prevDate.toISOString().split('T')[0];
+      const prevComp = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`;
       const pvm: Record<string, number | null> = {};
       (valores || []).filter((v: any) => v.competencia === prevComp).forEach((v: any) => { pvm[v.conta_id] = v.valor_realizado; });
       setPrevValMap(pvm);
 
       try {
         const inds = await fetchMergedIndicadores(clienteId);
-        const calcs = calcularIndicadores(inds, contasData || [], vm);
+        const calcs = calcularIndicadores(inds, contasData, vm);
         setKpiCalcs(calcs);
         setScore(calcScore(calcs));
       } catch { /* */ }
@@ -97,6 +103,7 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
       const { data: metasData } = await supabase.from('torre_metas').select('*').eq('cliente_id', clienteId).eq('competencia', nextComp);
       setTorreMetas(metasData || []);
 
+      // Upsert apresentacao
       const { data: existing } = await supabase.from('apresentacoes').select('id').eq('cliente_id', clienteId).eq('competencia', competencia).maybeSingle();
       if (existing) {
         await supabase.from('apresentacoes').update({ slide_atual: 1, iniciada_em: new Date().toISOString(), consultor_id: user?.id }).eq('id', existing.id);
@@ -111,11 +118,16 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     load();
   }, [clienteId, competencia, user?.id]);
 
+  /* ── Navigation ── */
   const goTo = useCallback((n: number) => {
     if (n < 1 || n > TOTAL_SLIDES || n === slide) return;
-    setTransitioning(true);
-    setTimeout(() => setTransitioning(false), 150);
-    setSlide(n);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 180);
+    setEntering(false);
+    setTimeout(() => {
+      setSlide(n);
+      setEntering(true);
+    }, 90);
     if (apresentacaoId) {
       supabase.from('apresentacoes').update({ slide_atual: n }).eq('id', apresentacaoId);
     }
@@ -131,7 +143,7 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     return () => window.removeEventListener('keydown', handler);
   }, [goTo, onExit, slide]);
 
-  // Computed data
+  /* ── Computed data ── */
   const fat = useMemo(() => sumLeafByTipo(contas, valMap, 'receita'), [contas, valMap]);
   const prevFat = useMemo(() => sumLeafByTipo(contas, prevValMap, 'receita'), [contas, prevValMap]);
 
@@ -220,255 +232,439 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     return `${m[d.getMonth()]}/${d.getFullYear()}`;
   }, [competencia]);
 
+  const prevMesShort = useMemo(() => {
+    const d = new Date(competencia + 'T00:00:00');
+    d.setMonth(d.getMonth() - 1);
+    const m = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    return `${m[d.getMonth()]}/${d.getFullYear()}`;
+  }, [competencia]);
+
   const todayFormatted = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  const statusColor = (s: string) => s === 'verde' || s === 'ok' ? GREEN : s === 'ambar' || s === 'atencao' ? AMBER : RED;
-  const statusLabel = (s: string) => s === 'verde' || s === 'ok' ? '✓ ok' : s === 'ambar' || s === 'atencao' ? '⚠ atenção' : '✕ crítico';
+  const toggleCard = (key: string) => setExpandedCards(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
-  // ─── SLIDE 1 — ABERTURA ───
-  const renderSlide1 = () => {
-    const items = [
-      { el: <img src={gpiLogo} alt="GPI" className="h-14 w-auto" />, delay: 0 },
-      { el: <div className="w-48 h-[2px] mx-auto" style={{ background: `linear-gradient(90deg, ${PRIMARY}, ${CYAN})` }} />, delay: 70 },
-      { el: <span className="text-[11px] tracking-[0.25em] uppercase font-mono" style={{ color: CYAN }}>Relatório de Inteligência Financeira</span>, delay: 140 },
-      { el: <h1 className="text-[48px] font-extrabold text-center leading-tight" style={{ color: '#fff' }}>{cliente?.razao_social || cliente?.nome_empresa}</h1>, delay: 210 },
-      { el: <span className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>{cliente?.cnpj || ''}</span>, delay: 280 },
-      { el: <div className="w-32 h-px" style={{ background: CARD_BORDER }} />, delay: 350 },
-      { el: <span className="text-base" style={{ color: 'rgba(255,255,255,0.6)' }}>{mesLabelLong}</span>, delay: 420 },
-      { el: <span className="text-sm" style={{ color: TXT_SEC }}>Consultor: {profile?.nome || 'Consultor GPI'}</span>, delay: 490 },
-      { el: <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{todayFormatted}</span>, delay: 560 },
-    ];
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        {items.map((item, i) => (
-          <div key={i} style={{ opacity: 0, animation: `slideUp 0.6s ease forwards ${item.delay}ms` }}>{item.el}</div>
-        ))}
-      </div>
-    );
-  };
-
-  // ─── SLIDE 2 — NÚMEROS & SAÚDE ───
-  const renderSlide2 = () => {
-    const dreCards = groupData.slice(0, 5); // 5 DRE groups
-    const mcPct = fat ? (totalizadores.mc / Math.abs(fat)) * 100 : 0;
-    const roPct = fat ? (totalizadores.ro / Math.abs(fat)) * 100 : 0;
-
-    return (
-      <div className="h-full flex flex-col p-8 gap-5 overflow-auto">
-        <h2 className="text-xs font-bold tracking-[0.2em] uppercase font-mono" style={{ color: PRIMARY }}>Números do Período</h2>
-
-        {/* 5-column DRE cards */}
-        <div className="grid grid-cols-5 gap-3">
-          {dreCards.map((g, i) => {
-            const expanded = expandedCards.has(g.tipo);
-            const avColor = g.tipo === 'receita' ? TXT : g.avPct > 40 ? RED : TXT_SEC;
-            return (
-              <div
-                key={g.tipo}
-                className="rounded-xl cursor-pointer transition-all hover:scale-[1.02]"
-                style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}`, opacity: 0, animation: `slideUp 0.5s ease forwards ${i * 80}ms` }}
-                onClick={() => setExpandedCards(prev => { const n = new Set(prev); n.has(g.tipo) ? n.delete(g.tipo) : n.add(g.tipo); return n; })}
-              >
-                <div className="p-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="w-2 h-2 rounded-full" style={{ background: g.color }} />
-                    <span className="text-[10px] font-bold tracking-wider font-mono" style={{ color: TXT_SEC }}>{g.label}</span>
-                  </div>
-                  <span className="text-[22px] font-extrabold font-mono block" style={{ color: '#fff' }}>{fmtR(g.val)}</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm font-mono" style={{ color: avColor }}>AV {g.avPct.toFixed(1)}%</span>
-                    {g.varPct !== 0 && <span className="text-[10px] font-mono" style={{ color: g.varPct >= 0 ? GREEN : RED }}>{fmtP(g.varPct)}</span>}
-                  </div>
-                </div>
-                {expanded && (
-                  <div className="px-4 pb-4 border-t" style={{ borderColor: CARD_BORDER }}>
-                    {g.subgrupos.map(sg => (
-                      <div key={sg.nome} className="mt-2">
-                        <div className="flex justify-between text-[10px] mb-1" style={{ color: TXT_SEC }}>
-                          <span className="truncate flex-1">{sg.nome}</span>
-                          <span className="font-mono ml-2">{fmtR(sg.valor)}</span>
-                        </div>
-                        {sg.categorias.slice(0, 4).map(cat => {
-                          const pctBar = g.val ? (Math.abs(cat.valor) / Math.abs(g.val)) * 100 : 0;
-                          return (
-                            <div key={cat.nome} className="flex items-center gap-1.5 mb-0.5">
-                              <span className="text-[9px] w-[90px] truncate" style={{ color: TXT_SEC }}>{cat.nome}</span>
-                              <div className="flex-1 h-[3px] rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                                <div className="h-full rounded-full" style={{ width: `${Math.min(pctBar, 100)}%`, background: g.color, transition: 'width 1s cubic-bezier(0.16,1,0.3,1)' }} />
-                              </div>
-                              <span className="text-[9px] font-mono w-[60px] text-right" style={{ color: TXT_SEC }}>{fmtR(cat.valor)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Saúde Financeira */}
-        <div className="rounded-xl p-4" style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}` }}>
-          <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-xs font-bold tracking-wider font-mono" style={{ color: TXT }}>SAÚDE FINANCEIRA</h3>
-            <span className="text-sm font-mono font-bold px-2 py-0.5 rounded" style={{ color: score >= 70 ? GREEN : score >= 40 ? AMBER : RED, background: score >= 70 ? 'rgba(0,201,122,0.12)' : score >= 40 ? 'rgba(217,119,6,0.12)' : 'rgba(220,38,38,0.12)' }}>
-              {score}/100 · {score >= 70 ? 'Saudável' : score >= 40 ? 'Atenção' : 'Crítico'}
-            </span>
-          </div>
-          <div className="grid grid-cols-5 gap-3">
-            {kpiCalcs.filter(k => k.indicador.ativo).slice(0, 5).map((k, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${CARD_BORDER}` }}>
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: statusColor(k.status) }} />
-                <span className="text-[11px] flex-1 truncate" style={{ color: TXT_SEC }}>{k.indicador.nome}</span>
-                <span className="text-xs font-mono font-bold" style={{ color: TXT }}>{k.pct?.toFixed(1) ?? '—'}%</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: statusColor(k.status), background: `${statusColor(k.status)}18` }}>
-                  {statusLabel(k.status)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ─── SLIDE 3 — O QUE ACONTECEU ───
-  const slide3Indicators = ['Faturamento', 'Custos Operacionais', 'Margem de Contribuição', 'Despesas Fixas', 'Resultado Operacional', 'Geração de Caixa'];
-
-  const renderSlide3 = () => (
-    <div className="h-full flex flex-col p-8 gap-5 overflow-auto">
-      <h2 className="text-xs font-bold tracking-[0.2em] uppercase font-mono" style={{ color: PRIMARY }}>
-        O que aconteceu em {mesShort.split('/')[0]}
-      </h2>
-      <div className="grid grid-cols-3 grid-rows-2 gap-4 flex-1">
-        {slide3Indicators.map((indName, i) => {
-          const an = analises.find((a: any) => a.indicador === indName);
-          const expanded = expandedCards.has(`s3-${indName}`);
-          let val = 0;
-          if (indName === 'Faturamento') val = fat;
-          else if (indName === 'Custos Operacionais') val = groupData.find(g => g.tipo === 'custo_variavel')?.val || 0;
-          else if (indName === 'Despesas Fixas') val = groupData.find(g => g.tipo === 'despesa_fixa')?.val || 0;
-          else if (indName === 'Margem de Contribuição') val = totalizadores.mc;
-          else if (indName === 'Resultado Operacional') val = totalizadores.ro;
-          else if (indName === 'Geração de Caixa') val = totalizadores.gc;
-
-          const icons: Record<string, string> = {
-            'Faturamento': '📈', 'Custos Operacionais': '💰', 'Margem de Contribuição': '📊',
-            'Despesas Fixas': '🏢', 'Resultado Operacional': '⚙️', 'Geração de Caixa': '🎯',
-          };
-
-          return (
-            <div
-              key={indName}
-              className="rounded-xl cursor-pointer transition-all hover:scale-[1.01] flex flex-col"
-              style={{
-                background: CARD_BG,
-                border: an?.acao ? `1px solid rgba(220,38,38,0.3)` : `1px solid ${CARD_BORDER}`,
-                opacity: 0, animation: `slideUp 0.5s ease forwards ${i * 80}ms`,
-              }}
-              onClick={() => setExpandedCards(prev => { const n = new Set(prev); const k = `s3-${indName}`; n.has(k) ? n.delete(k) : n.add(k); return n; })}
-            >
-              <div className="p-4 flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{icons[indName]}</span>
-                    <span className="text-xs font-bold font-mono" style={{ color: TXT }}>{indName}</span>
-                  </div>
-                  {an?.acao && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', color: RED }}>⚠ Alerta</span>
-                  )}
-                  {!an && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(217,119,6,0.12)', color: AMBER }}>Pendente</span>
-                  )}
-                </div>
-                {an ? (
-                  <>
-                    <p className="text-xs font-bold mb-1" style={{ color: TXT }}>{an.titulo}</p>
-                    <p className={`text-[11px] leading-relaxed ${!expanded ? 'line-clamp-3' : ''}`} style={{ color: TXT_SEC }}>
-                      {an.analise}
-                    </p>
-                    {expanded && an.acao && (
-                      <p className="text-[11px] font-medium mt-2" style={{ color: CYAN }}>→ {an.acao}</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-[11px]" style={{ color: TXT_SEC }}>Análise não gerada</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+  /* ── Anim item helper ── */
+  const AI = ({ children, i = 0, className = '' }: { children: React.ReactNode; i?: number; className?: string }) => (
+    <div className={`anim-item ${className}`} style={entering ? { animation: `slideIn .55s cubic-bezier(.16,1,.3,1) ${i * 0.07}s both` } : { opacity: 1 }}>
+      {children}
     </div>
   );
 
-  // ─── SLIDE 4 — ANÁLISE CONSULTIVA ───
+  /* ── Slide header ── */
+  const SlideHeader = ({ num, eyebrow, title, right }: { num: number; eyebrow: string; title: string; right?: React.ReactNode }) => (
+    <AI i={0} className="flex items-center justify-between px-10 pt-6 pb-4">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className="w-[2px] h-5 rounded" style={{ background: C.blue }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: C.blue }} />
+          <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: C.cyan, fontFamily: "'JetBrains Mono',monospace" }}>
+            Slide {num} · {eyebrow}
+          </span>
+        </div>
+        <h2 className="text-lg font-bold" style={{ color: '#fff' }}>{title}</h2>
+      </div>
+      {right && <div className="flex items-center gap-2">{right}</div>}
+    </AI>
+  );
+
+  /* ═══════════════════════════ SLIDE 1 — ABERTURA ═══════════════════════════ */
+  const renderSlide1 = () => {
+    const particles = [
+      { text: '+R$12.4k', color: C.green, left: '12%', top: '18%', delay: '0s' },
+      { text: 'CMV↑101%', color: C.red, left: '78%', top: '22%', delay: '1.2s' },
+      { text: 'GC −0.1%', color: C.amber, left: '85%', top: '65%', delay: '2.4s' },
+      { text: 'MC +3.2%', color: C.green, left: '8%', top: '72%', delay: '3.5s' },
+      { text: '−R$8.7k', color: C.red, left: '92%', top: '42%', delay: '4.8s' },
+      { text: 'RO↑2.1%', color: C.cyan, left: '18%', top: '48%', delay: '6s' },
+      { text: '+R$5.9k', color: C.green, left: '65%', top: '78%', delay: '7.2s' },
+    ];
+
+    return (
+      <div className="h-full relative flex items-center justify-center overflow-hidden">
+        {/* Radar rings bottom-left */}
+        <svg className="absolute -bottom-40 -left-40 w-[500px] h-[500px] pointer-events-none" style={{ opacity: 0.07 }}>
+          <g style={{ animation: 'radarSpin 12s linear infinite', transformOrigin: '250px 250px' }}>
+            {[80, 140, 200, 260].map(r => (
+              <circle key={r} cx="250" cy="250" r={r} fill="none" stroke="white" strokeWidth="1" />
+            ))}
+          </g>
+        </svg>
+
+        {/* Radar sweep right */}
+        <svg className="absolute -right-10 top-1/2 -translate-y-1/2 w-[320px] h-[320px] pointer-events-none" style={{ opacity: 0.07 }}>
+          {[60, 100, 140].map(r => (
+            <circle key={r} cx="160" cy="160" r={r} fill="none" stroke="white" strokeWidth="0.5" />
+          ))}
+          <line x1="160" y1="20" x2="160" y2="300" stroke="white" strokeWidth="0.3" />
+          <line x1="20" y1="160" x2="300" y2="160" stroke="white" strokeWidth="0.3" />
+          <g style={{ animation: 'radarSpin 3s linear infinite', transformOrigin: '160px 160px' }}>
+            <line x1="160" y1="160" x2="160" y2="20" stroke="white" strokeWidth="1" opacity="0.6" />
+            <path d="M 160 160 L 150 25 A 140 140 0 0 1 160 20 Z" fill="rgba(255,255,255,0.15)" />
+          </g>
+        </svg>
+
+        {/* Floating particles */}
+        {particles.map((p, i) => (
+          <span
+            key={i}
+            className="absolute pointer-events-none"
+            style={{
+              left: p.left, top: p.top,
+              color: p.color, opacity: 0.5,
+              fontSize: '11px', fontFamily: "'JetBrains Mono',monospace",
+              animation: `floatUp 9s ease-in-out infinite`, animationDelay: p.delay,
+            }}
+          >
+            {p.text}
+          </span>
+        ))}
+
+        {/* Central content */}
+        <div className="relative z-10 flex flex-col items-center gap-5 max-w-[700px]">
+          <AI i={0}>
+            <div className="inline-flex items-center gap-2 rounded-full px-[14px] py-[6px]"
+              style={{ border: '1px solid rgba(26,60,255,.35)', background: 'rgba(26,60,255,.12)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: C.blue, animation: 'pulse 2s infinite' }} />
+              <span className="text-[11px] uppercase tracking-wider" style={{ color: C.ice, fontFamily: "'JetBrains Mono',monospace" }}>
+                Relatório de Inteligência Financeira
+              </span>
+            </div>
+          </AI>
+          <AI i={1}>
+            <h1 className="text-[64px] font-extrabold text-center leading-none text-white">
+              {cliente?.razao_social || cliente?.nome_empresa}
+            </h1>
+          </AI>
+          <AI i={2}>
+            <p className="text-[15px]" style={{ color: 'rgba(255,255,255,.45)' }}>
+              Reunião Mensal / {mesLabelLong}
+            </p>
+          </AI>
+          <AI i={3}>
+            <div className="h-px w-[280px] my-1" style={{ background: `linear-gradient(90deg,transparent,${C.blue},${C.cyan},transparent)` }} />
+          </AI>
+          <AI i={4}>
+            <div className="flex items-center gap-0">
+              {[
+                { label: 'Consultor', value: profile?.nome || 'Consultor GPI' },
+                { label: 'Data', value: todayFormatted },
+                { label: 'Competência', value: mesShort },
+              ].map((m, i) => (
+                <div key={i} className="flex flex-col items-center px-5" style={i > 0 ? { borderLeft: '1px solid rgba(255,255,255,.12)' } : {}}>
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,.35)', fontFamily: "'JetBrains Mono',monospace" }}>{m.label}</span>
+                  <span className="text-[13px] mt-0.5" style={{ color: 'rgba(255,255,255,.75)', fontFamily: "'JetBrains Mono',monospace" }}>{m.value}</span>
+                </div>
+              ))}
+            </div>
+          </AI>
+        </div>
+      </div>
+    );
+  };
+
+  /* ═══════════════════════════ SLIDE 2 — NÚMEROS & SAÚDE ═══════════════════════════ */
+  const renderSlide2 = () => {
+    const kpisAtivos = kpiCalcs.filter(k => k.indicador.ativo);
+    const scoreC = score >= 70 ? C.green : score >= 40 ? C.amber : C.red;
+    const scoreL = score >= 70 ? 'Saudável' : score >= 40 ? 'Atenção' : 'Crítico';
+
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <SlideHeader num={2} eyebrow="Visão Geral" title="Números & Saúde Financeira"
+          right={
+            <div className="flex items-center gap-3">
+              <span className="text-[14px]" style={{ color: 'rgba(26,60,255,.6)', fontFamily: "'JetBrains Mono',monospace" }}>{mesShort}</span>
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,.28)' }}>{cliente?.razao_social || cliente?.nome_empresa}</span>
+            </div>
+          }
+        />
+
+        <div className="flex-1 overflow-auto px-10 pb-6 space-y-5">
+          {/* Section title */}
+          <AI i={1}>
+            <p className="text-[11px] uppercase tracking-widest" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>Resultados do mês</p>
+          </AI>
+
+          {/* 5 DRE cards */}
+          <div className="grid grid-cols-5 gap-3">
+            {groupData.map((g, i) => {
+              const expanded = expandedCards.has(g.tipo);
+              const maxCatVal = Math.max(...g.subgrupos.flatMap(sg => sg.categorias.map(c => Math.abs(c.valor))), 1);
+              return (
+                <AI key={g.tipo} i={i + 2}>
+                  <div
+                    className="rounded-xl cursor-pointer transition-all hover:scale-[1.01]"
+                    style={{ background: C.cardBg, border: `1px solid ${C.cardBorder}` }}
+                    onClick={() => toggleCard(g.tipo)}
+                  >
+                    <div className="h-1 rounded-t-xl" style={{ background: g.color }} />
+                    <div className="p-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider block mb-1" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{g.label}</span>
+                      <span className="text-[24px] font-extrabold block" style={{ color: '#fff', fontFamily: "'JetBrains Mono',monospace" }}>{fmtR(g.val)}</span>
+                      <span className="text-[11px] block mt-0.5" style={{ color: C.txtSec }}>AV {g.avPct.toFixed(1)}%</span>
+                      {g.varPct !== 0 && (
+                        <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold rounded-full px-2 py-0.5"
+                          style={{ color: g.varPct >= 0 ? C.green : C.red, background: g.varPct >= 0 ? 'rgba(0,201,122,.1)' : 'rgba(255,59,59,.1)' }}>
+                          {g.varPct >= 0 ? '▲' : '▼'} {Math.abs(g.varPct).toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                    {expanded && (
+                      <div className="px-4 pb-4 border-t" style={{ borderColor: C.cardBorder }}>
+                        {g.val === 0 && g.tipo === 'financeiro' ? (
+                          <div className="flex items-center gap-2 py-3">
+                            <span className="text-sm">✓</span>
+                            <span className="text-[11px]" style={{ color: C.green }}>Nenhuma dívida ou financiamento ativo</span>
+                          </div>
+                        ) : (
+                          g.subgrupos.map(sg => (
+                            <div key={sg.nome} className="mt-2">
+                              <div className="flex justify-between text-[10px] mb-1">
+                                <span className="truncate flex-1" style={{ color: C.txtSec }}>{sg.nome}</span>
+                                <span className="ml-2" style={{ color: C.txt, fontFamily: "'JetBrains Mono',monospace" }}>{fmtR(sg.valor)}</span>
+                              </div>
+                              <div className="h-px mb-1" style={{ background: C.cardBorder }} />
+                              {sg.categorias.slice(0, 5).map(cat => {
+                                const pctBar = maxCatVal ? (Math.abs(cat.valor) / maxCatVal) * 100 : 0;
+                                return (
+                                  <div key={cat.nome} className="flex items-center gap-1.5 mb-0.5">
+                                    <span className="text-[9px] w-[80px] truncate" style={{ color: C.txtSec }}>{cat.nome}</span>
+                                    <div className="flex-1 h-[3px] rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                      <div className="h-full rounded-full transition-all duration-[800ms]" style={{ width: entering ? `${Math.min(pctBar, 100)}%` : '0%', background: g.color }} />
+                                    </div>
+                                    <span className="text-[9px] w-[55px] text-right" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{fmtR(cat.valor)}</span>
+                                    <span className="text-[8px] w-[32px] text-right" style={{ color: C.txtSec }}>{fat ? (Math.abs(cat.valor) / Math.abs(fat) * 100).toFixed(1) : '0'}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </AI>
+              );
+            })}
+          </div>
+
+          {/* Semáforo */}
+          <AI i={8}>
+            <div className="rounded-xl p-5" style={{ background: C.cardBg, border: `1px solid ${C.cardBorder}` }}>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-xs font-bold tracking-wider" style={{ color: C.txt, fontFamily: "'JetBrains Mono',monospace" }}>Semáforo de saúde financeira</span>
+                <span className="text-sm font-bold px-2.5 py-0.5 rounded" style={{ color: scoreC, background: `${scoreC}1A`, fontFamily: "'JetBrains Mono',monospace" }}>
+                  {score}/100
+                </span>
+              </div>
+              <div className="flex gap-3 flex-wrap">
+                {kpisAtivos.slice(0, 7).map((k, i) => {
+                  const c = statusColor(k.status);
+                  const lbl = statusLabel(k.status);
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-1 min-w-[100px] rounded-lg p-3"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${C.cardBorder}` }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                        style={{ border: `2px solid ${c}`, color: c, fontFamily: "'JetBrains Mono',monospace" }}>
+                        {k.pct?.toFixed(0) ?? '—'}%
+                      </div>
+                      <span className="text-[10px] text-center leading-tight mt-1" style={{ color: C.txt }}>{k.indicador.nome}</span>
+                      <span className="text-[8px] italic" style={{ color: C.txtSec }}>ref. GPI</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: c, background: `${c}18` }}>{lbl}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {score < 70 && (
+                <div className="mt-4 rounded-lg p-3 flex items-start gap-2"
+                  style={{ background: 'rgba(255,59,59,.08)', border: '1px solid rgba(255,59,59,.2)' }}>
+                  <span className="text-base">⚠️</span>
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,.6)' }}>
+                    A saúde financeira está abaixo do nível saudável. Recomenda-se atenção aos indicadores em vermelho e revisão das despesas operacionais.
+                  </p>
+                </div>
+              )}
+            </div>
+          </AI>
+        </div>
+      </div>
+    );
+  };
+
+  /* ═══════════════════════════ SLIDE 3 — O QUE ACONTECEU ═══════════════════════════ */
+  const renderSlide3 = () => {
+    const indicators = ['Faturamento', 'Custos Operacionais', 'Margem de Contribuição', 'Despesas Fixas', 'Geração de Caixa'];
+    const icons: Record<string, string> = { 'Faturamento': '📈', 'Custos Operacionais': '💰', 'Margem de Contribuição': '📊', 'Despesas Fixas': '🏢', 'Geração de Caixa': '🎯' };
+    const colors: Record<string, string> = { 'Faturamento': C.blue, 'Custos Operacionais': C.red, 'Margem de Contribuição': C.cyan, 'Despesas Fixas': C.amber, 'Geração de Caixa': C.green };
+
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <SlideHeader num={3} eyebrow="Aprofundamento" title="O que aconteceu"
+          right={
+            <div className="flex flex-col items-end">
+              <span className="text-[12px]" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{mesShort} vs {prevMesShort}</span>
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,.28)' }}>▶ clique para detalhar</span>
+            </div>
+          }
+        />
+        <div className="flex-1 overflow-auto px-10 pb-6 space-y-3">
+          {indicators.map((indName, i) => {
+            const an = analises.find((a: any) => a.indicador === indName);
+            const expanded = expandedCards.has(`s3-${indName}`);
+            let val = 0;
+            if (indName === 'Faturamento') val = fat;
+            else if (indName === 'Custos Operacionais') val = groupData.find(g => g.tipo === 'custo_variavel')?.val || 0;
+            else if (indName === 'Despesas Fixas') val = groupData.find(g => g.tipo === 'despesa_fixa')?.val || 0;
+            else if (indName === 'Margem de Contribuição') val = totalizadores.mc;
+            else if (indName === 'Geração de Caixa') val = totalizadores.gc;
+
+            const prevVal = indName === 'Faturamento' ? prevFat
+              : indName === 'Custos Operacionais' ? (groupData.find(g => g.tipo === 'custo_variavel')?.prevVal || 0)
+              : 0;
+            const delta = prevVal ? ((val - prevVal) / Math.abs(prevVal)) * 100 : 0;
+            const accentColor = colors[indName] || C.blue;
+
+            return (
+              <AI key={indName} i={i + 1}>
+                <div
+                  className="rounded-xl cursor-pointer transition-all hover:scale-[1.002] overflow-hidden"
+                  style={{ background: C.cardBg, border: `1px solid ${C.cardBorder}` }}
+                  onClick={() => toggleCard(`s3-${indName}`)}
+                >
+                  <div className="flex items-center">
+                    <div className="w-1 self-stretch rounded-l-xl" style={{ background: accentColor }} />
+                    <div className="flex-1 flex items-center gap-3 p-4">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full"
+                        style={{ background: `${accentColor}1A`, color: accentColor, fontFamily: "'JetBrains Mono',monospace" }}>
+                        {icons[indName]} {indName}
+                      </span>
+                      <span className="flex-1 text-[13px] font-medium truncate" style={{ color: C.txt }}>
+                        {an?.titulo || 'Análise pendente'}
+                      </span>
+                      <span className="text-[13px] font-bold" style={{ color: C.txt, fontFamily: "'JetBrains Mono',monospace" }}>{fmtR(val)}</span>
+                      {delta !== 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ color: delta >= 0 ? C.green : C.red, background: delta >= 0 ? 'rgba(0,201,122,.1)' : 'rgba(255,59,59,.1)' }}>
+                          {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
+                        </span>
+                      )}
+                      <ChevronRight className="h-4 w-4 transition-transform" style={{ color: C.txtSec, transform: expanded ? 'rotate(90deg)' : 'none' }} />
+                    </div>
+                  </div>
+                  {expanded && an && (
+                    <div className="px-6 pb-4 pt-1 grid grid-cols-2 gap-x-8 gap-y-2 border-t" style={{ borderColor: C.cardBorder }}>
+                      {[
+                        { label: 'Por que importa', text: an.titulo },
+                        { label: 'O que pode ter acontecido', text: an.analise },
+                        { label: 'Impacto na GC', text: `Variação de ${fmtP(delta)} impacta diretamente a geração de caixa` },
+                        { label: 'Sugestão', text: an.acao },
+                      ].map((sec, j) => (
+                        <div key={j} className="py-2">
+                          <span className="text-[9px] font-bold uppercase tracking-wider block mb-1" style={{ color: C.cyan }}>{sec.label}</span>
+                          <p className="text-[11px] leading-relaxed" style={{ color: C.txtSec }}>{sec.text || '—'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {expanded && !an && (
+                    <div className="px-6 pb-4 border-t" style={{ borderColor: C.cardBorder }}>
+                      <p className="text-[11px] py-2" style={{ color: C.txtSec }}>Análise IA não gerada para este indicador.</p>
+                    </div>
+                  )}
+                </div>
+              </AI>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  /* ═══════════════════════════ SLIDE 4 — ANÁLISE CONSULTIVA ═══════════════════════════ */
   const renderSlide4 = () => {
     const campos = [
       { key: 'diagnostico', icon: '🔍', label: 'O que os números dizem' },
       { key: 'objetivos', icon: '🎯', label: 'O que queremos alcançar' },
-      { key: 'riscos', icon: '⚡', label: 'Riscos se não agirmos' },
+      { key: 'riscos', icon: '⚡', label: 'Riscos se não agirmos agora' },
       { key: 'proximos_passos', icon: '✅', label: 'O que fazer esta semana' },
     ];
-    const hasContent = campos.some(c => prepData?.[c.key]);
 
     return (
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header strip */}
-        <div className="px-8 py-4" style={{ background: 'rgba(26,60,255,0.12)', borderBottom: `2px solid ${PRIMARY}` }}>
-          <h2 className="text-xs font-bold tracking-[0.2em] uppercase font-mono" style={{ color: PRIMARY }}>
-            Análise Consultiva · {mesShort}
-          </h2>
+        <div className="px-10 py-3" style={{ background: 'rgba(26,60,255,.12)', borderBottom: '1px solid rgba(26,60,255,.2)' }}>
+          <AI i={0}>
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🧠</span>
+              <div>
+                <span className="text-[11px] tracking-[0.2em] uppercase block" style={{ color: C.cyan, fontFamily: "'JetBrains Mono',monospace" }}>Slide 4 · Análise</span>
+                <span className="text-xs" style={{ color: C.txtSec }}>
+                  {cliente?.razao_social || cliente?.nome_empresa} · {mesShort} · Análise com base nos 9 indicadores DRE
+                </span>
+              </div>
+              {prepData?.editado_em && (
+                <span className="ml-auto text-[9px] font-bold px-2 py-1 rounded" style={{ background: 'rgba(0,201,122,.12)', color: C.green }}>
+                  ✓ Revisado · {new Date(prepData.editado_em).toLocaleDateString('pt-BR')}
+                </span>
+              )}
+            </div>
+          </AI>
         </div>
 
-        {hasContent ? (
-          <div className="grid grid-cols-2 grid-rows-2 gap-4 flex-1 p-6 min-h-0">
-            {campos.map((c, i) => {
-              const val = prepData?.[c.key];
-              const isReviewed = !!prepData?.editado_em;
-              const isIA = !!prepData?.gerado_em && !prepData?.editado_em;
-              return (
+        <div className="flex-1 overflow-auto px-10 py-5 space-y-3">
+          <AI i={1}>
+            <h2 className="text-lg font-bold mb-1" style={{ color: '#fff' }}>Análise Consultiva</h2>
+          </AI>
+
+          {campos.map((c, i) => {
+            const val = prepData?.[c.key] || '';
+            const expanded = expandedCards.has(`s4-${c.key}`);
+            const metricsForBlock = [
+              { label: 'Faturamento', value: fmtR(fat) },
+              { label: 'Custos %', value: `${groupData[1]?.avPct.toFixed(1)}%` },
+              { label: 'MC %', value: fat ? `${(totalizadores.mc / Math.abs(fat) * 100).toFixed(1)}%` : '—' },
+            ];
+
+            return (
+              <AI key={c.key} i={i + 2}>
                 <div
-                  key={c.key}
-                  className="rounded-xl flex flex-col overflow-hidden"
-                  style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}`, opacity: 0, animation: `slideUp 0.5s ease forwards ${i * 80}ms` }}
+                  className="rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.002]"
+                  style={{ background: C.cardBg, border: `1px solid ${C.cardBorder}` }}
+                  onClick={() => toggleCard(`s4-${c.key}`)}
                 >
-                  <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${CARD_BORDER}` }}>
-                    <span className="text-base">{c.icon}</span>
-                    <span className="text-xs font-bold font-mono flex-1" style={{ color: TXT }}>{c.label}</span>
-                    {isReviewed && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,201,122,0.12)', color: GREEN }}>✓ Revisado</span>
-                    )}
-                    {isIA && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(26,60,255,0.12)', color: PRIMARY }}>✨ IA</span>
-                    )}
+                  <div className="flex">
+                    <div className="w-[3px] self-stretch" style={{ background: C.blue }} />
+                    <div className="flex-1 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-base">{c.icon}</span>
+                        <span className="text-xs font-bold" style={{ color: C.txt }}>{c.label}</span>
+                        <ChevronRight className="h-3.5 w-3.5 ml-auto transition-transform" style={{ color: C.txtSec, transform: expanded ? 'rotate(90deg)' : 'none' }} />
+                      </div>
+                      <p className={`text-[12px] leading-[1.7] whitespace-pre-wrap ${!expanded ? 'line-clamp-3' : ''}`} style={{ color: C.txtSec }}>
+                        {val || 'Conteúdo não gerado'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 overflow-auto px-4 py-3">
-                    <p className="text-[12px] leading-[1.7] whitespace-pre-wrap" style={{ color: TXT_SEC }}>
-                      {val || 'Conteúdo não gerado'}
-                    </p>
-                  </div>
+                  {expanded && (
+                    <div className="px-5 pb-4 border-t flex gap-3" style={{ borderColor: C.cardBorder }}>
+                      {metricsForBlock.map((m, j) => (
+                        <div key={j} className="flex-1 rounded-lg p-2.5 mt-2" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${C.cardBorder}` }}>
+                          <span className="text-[9px] uppercase tracking-wider block" style={{ color: C.txtSec }}>{m.label}</span>
+                          <span className="text-sm font-bold" style={{ color: C.txt, fontFamily: "'JetBrains Mono',monospace" }}>{m.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="rounded-xl p-8 text-center" style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}` }}>
-              <p className="text-sm mb-4" style={{ color: TXT_SEC }}>Nenhuma análise consultiva gerada para este mês.</p>
-              <button onClick={onExit} className="text-sm font-medium px-4 py-2 rounded-lg" style={{ background: PRIMARY, color: '#fff' }}>
-                Voltar para Preparar Apresentação
-              </button>
-            </div>
-          </div>
-        )}
+              </AI>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
-  // ─── SLIDE 5 — TORRE AO VIVO ───
+  /* ═══════════════════════════ SLIDE 5 — TORRE AO VIVO ═══════════════════════════ */
   const renderSlide5 = () => {
     const dreGroups = ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'];
     const torreRows = dreGroups.map(tipo => {
@@ -484,214 +680,257 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
       });
       const isRec = tipo === 'receita';
       const status = torreCalcStatus(realizado, hasMeta ? metaTotal : null, isRec);
-      return { tipo, label: TYPE_LABELS[tipo], realizado, meta: hasMeta ? metaTotal : null, status };
+      return { tipo, label: TYPE_LABELS[tipo], color: TYPE_COLORS[tipo], realizado, meta: hasMeta ? metaTotal : null, status };
     });
 
-    const statusBg = (s: string) => s === 'ok' ? 'rgba(0,201,122,0.06)' : s === 'atencao' ? 'rgba(217,119,6,0.06)' : s === 'critico' ? 'rgba(220,38,38,0.06)' : 'transparent';
     const statusIcon = (s: string) => s === 'ok' ? '✅' : s === 'critico' ? '❌' : s === 'atencao' ? '⚠️' : '—';
+    const statusBg = (s: string) => s === 'ok' ? 'rgba(0,201,122,0.04)' : s === 'critico' ? 'rgba(255,59,59,0.04)' : 'transparent';
 
     return (
-      <div className="h-full flex flex-col p-8 gap-5 overflow-auto">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xs font-bold tracking-[0.2em] uppercase font-mono" style={{ color: PRIMARY }}>
-            Torre de Controle · {mesShort} — Metas vs Realizado
-          </h2>
-          <span className="text-[9px] font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: TXT_SEC }}>SOMENTE LEITURA</span>
-        </div>
+      <div className="h-full flex flex-col overflow-hidden">
+        <SlideHeader num={5} eyebrow="Metas" title="Torre de Controle ao Vivo" />
 
-        {/* Legend */}
-        <div className="flex gap-4">
-          {[
-            { icon: '✅', label: 'Atingiu meta', color: GREEN },
-            { icon: '❌', label: 'Abaixo da meta', color: RED },
-            { icon: '—', label: 'Sem meta', color: TXT_SEC },
-          ].map(l => (
-            <div key={l.label} className="flex items-center gap-1.5 text-[10px] font-mono" style={{ color: l.color }}>
-              <span>{l.icon}</span> {l.label}
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-xl overflow-hidden flex-1" style={{ background: CARD_BG, border: `1px solid ${CARD_BORDER}` }}>
-          <table className="w-full text-xs font-mono">
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                <th className="text-left p-4 font-bold tracking-wider" style={{ color: TXT_SEC }}>CONTA DRE</th>
-                <th className="text-right p-4 font-bold tracking-wider" style={{ color: TXT_SEC }}>REALIZADO</th>
-                <th className="text-right p-4 font-bold tracking-wider" style={{ color: PRIMARY }}>META</th>
-                <th className="text-center p-4 font-bold tracking-wider" style={{ color: TXT_SEC }}>STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {torreRows.map((r, i) => (
-                <tr key={r.tipo} style={{ borderTop: `1px solid ${CARD_BORDER}`, background: statusBg(r.status), opacity: 0, animation: `slideUp 0.4s ease forwards ${i * 60}ms` }}>
-                  <td className="p-4 font-bold" style={{ color: TXT }}>{r.label}</td>
-                  <td className="p-4 text-right" style={{ color: TXT }}>{fmtR(r.realizado)}</td>
-                  <td className="p-4 text-right" style={{ color: r.meta !== null ? PRIMARY : TXT_SEC }}>{r.meta !== null ? fmtR(r.meta) : '—'}</td>
-                  <td className="p-4 text-center text-sm">{statusIcon(r.status)}</td>
-                </tr>
-              ))}
+        <div className="flex-1 overflow-auto px-10 pb-6 space-y-4">
+          <AI i={1}>
+            <div className="flex gap-5">
               {[
-                { label: '= MARGEM DE CONTRIBUIÇÃO', val: totalizadores.mc },
-                { label: '= RESULTADO OPERACIONAL', val: totalizadores.ro },
-                { label: '= GERAÇÃO DE CAIXA', val: totalizadores.gc },
-              ].map(t => (
-                <tr key={t.label} style={{ borderTop: `1px solid ${CARD_BORDER}`, background: 'rgba(13,27,53,0.5)' }}>
-                  <td className="p-4 font-bold" style={{ color: TXT }}>{t.label}</td>
-                  <td className="p-4 text-right font-bold" style={{ color: t.val >= 0 ? GREEN : RED }}>{fmtR(t.val)}</td>
-                  <td className="p-4 text-right" style={{ color: TXT_SEC }}>—</td>
-                  <td className="p-4" />
-                </tr>
+                { icon: '✅', label: 'Atingiu meta', color: C.green },
+                { icon: '❌', label: 'Abaixo da meta', color: C.red },
+                { icon: '—', label: 'Sem meta', color: C.txtSec },
+              ].map(l => (
+                <span key={l.label} className="flex items-center gap-1.5 text-[10px]" style={{ color: l.color, fontFamily: "'JetBrains Mono',monospace" }}>
+                  {l.icon} {l.label}
+                </span>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </AI>
+
+          <AI i={2}>
+            <div className="rounded-xl overflow-hidden" style={{ background: C.cardBg, border: `1px solid ${C.cardBorder}` }}>
+              <table className="w-full text-xs" style={{ fontFamily: "'JetBrains Mono',monospace" }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <th className="text-left p-4 font-bold tracking-wider" style={{ color: C.txtSec }}>CONTA DRE</th>
+                    <th className="text-right p-4 font-bold tracking-wider" style={{ color: C.txtSec }}>{mesShort} REALIZADO</th>
+                    <th className="text-right p-4 font-bold tracking-wider" style={{ color: C.blue }}>META</th>
+                    <th className="text-center p-4 font-bold tracking-wider" style={{ color: C.txtSec }}>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {torreRows.map((r, i) => (
+                    <tr key={r.tipo} style={{ borderTop: `1px solid ${C.cardBorder}`, background: statusBg(r.status) }}>
+                      <td className="p-4 font-bold flex items-center gap-2" style={{ color: C.txt }}>
+                        <div className="w-2 h-2 rounded-full" style={{ background: r.color }} />
+                        {r.label}
+                      </td>
+                      <td className="p-4 text-right" style={{ color: C.txt }}>{fmtR(r.realizado)}</td>
+                      <td className="p-4 text-right" style={{ color: r.meta !== null ? C.blue : C.txtSec }}>{r.meta !== null ? fmtR(r.meta) : '—'}</td>
+                      <td className="p-4 text-center text-sm">{statusIcon(r.status)}</td>
+                    </tr>
+                  ))}
+                  {/* Totalizadores */}
+                  {[
+                    { label: '= MARGEM DE CONTRIBUIÇÃO', val: totalizadores.mc },
+                    { label: '= RESULTADO OPERACIONAL', val: totalizadores.ro },
+                    { label: '= GERAÇÃO DE CAIXA', val: totalizadores.gc },
+                  ].map((t, i) => (
+                    <tr key={t.label} style={{ borderTop: `1px solid ${C.cardBorder}`, background: 'rgba(13,27,53,0.5)' }}>
+                      <td className="p-4 font-bold" style={{ color: '#fff' }}>{t.label}</td>
+                      <td className="p-4 text-right font-bold" style={{ color: t.val >= 0 ? C.green : C.red }}>{fmtR(t.val)}</td>
+                      <td className="p-4 text-right" style={{ color: C.txtSec }}>—</td>
+                      <td className="p-4" />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </AI>
         </div>
       </div>
     );
   };
 
-  // ─── SLIDE 6 — PLANO DE VOO ───
+  /* ═══════════════════════════ SLIDE 6 — PLANO DE VOO ═══════════════════════════ */
   const renderSlide6 = () => {
     const gcAtual = totalizadores.gc;
     const gcAtualPct = fat ? (gcAtual / Math.abs(fat)) * 100 : 0;
+    const gcColor = gcAtualPct >= 10 ? C.green : gcAtualPct >= 0 ? C.amber : C.red;
     const checkpoints = prepData?.checkpoints_json as Record<string, string> | null;
-    const gcColor = gcAtualPct >= 10 ? GREEN : gcAtualPct >= 0 ? AMBER : RED;
 
     const cpData = [
-      { n: 1, ...torreGroups[0], cpKey: 'faturamento', cx: 280, cy: 240 },
-      { n: 2, ...torreGroups[1], cpKey: 'custos', cx: 530, cy: 200 },
-      { n: 3, ...torreGroups[2], cpKey: 'despesas', cx: 780, cy: 170 },
-      { n: 4, ...torreGroups[3], cpKey: 'investimentos', cx: 1000, cy: 140 },
+      { n: 1, ...torreGroups[0], cpKey: 'faturamento', cx: 280, cy: 200 },
+      { n: 2, ...torreGroups[1], cpKey: 'custos', cx: 530, cy: 155 },
+      { n: 3, ...torreGroups[2], cpKey: 'despesas', cx: 780, cy: 155 },
+      { n: 4, ...torreGroups[3], cpKey: 'investimentos', cx: 1000, cy: 160 },
     ];
-    const cardPositions = [{ left: '20%' }, { left: '40%' }, { left: '60%' }, { left: '80%' }];
+
+    const pathD = "M 80,310 C 160,310 190,260 280,200 S 430,160 530,155 S 680,155 780,155 S 900,145 1000,160 S 1080,130 1110,100";
 
     return (
       <div className="h-full flex flex-col relative overflow-hidden">
-        {/* Stars */}
-        <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: 15 }).map((_, i) => (
-            <div key={i} className="absolute w-[2px] h-[2px] rounded-full" style={{
-              left: `${5 + (i * 6.3) % 90}%`, top: `${3 + (i * 7.1) % 30}%`,
-              background: 'rgba(255,255,255,0.3)', opacity: 0.4,
-            }} />
-          ))}
-        </div>
-
-        {/* Green horizon gradient */}
+        {/* Green horizon */}
         <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,201,122,0.04), transparent)' }} />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-8 pt-6 pb-2 z-10">
-          <h2 className="text-xs font-bold tracking-[0.2em] uppercase font-mono" style={{ color: PRIMARY }}>
-            Plano de Voo · Metas {nextCompLabel}
-          </h2>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,201,122,0.08)', border: '1px solid rgba(0,201,122,0.25)' }}>
-            <span className="text-[9px] font-bold tracking-wider font-mono" style={{ color: GREEN }}>GC PROJETADO</span>
-            <span className="text-sm font-mono font-bold" style={{ color: GREEN }}>{fmtR(gcProjetado)} · {gcProjetadoPct.toFixed(1)}%</span>
-          </div>
+        {/* Mini header */}
+        <div className="flex items-center justify-between px-10 pt-5 pb-2 z-10">
+          <AI i={0}>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-[2px] h-4 rounded" style={{ background: C.green }} />
+                <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: C.green, fontFamily: "'JetBrains Mono',monospace" }}>Slide 6 · Plano de Voo</span>
+              </div>
+              <h2 className="text-lg font-bold">
+                <span style={{ color: '#fff' }}>Rota para </span>
+                <span style={{ background: `linear-gradient(135deg,${C.green},${C.cyan})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontStyle: 'italic' }}>
+                  {nextCompLabel}
+                </span>
+              </h2>
+            </div>
+          </AI>
+          <AI i={1}>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(0,201,122,.08)', border: '1px solid rgba(0,201,122,.25)', animation: 'glowPulse 3s ease-in-out infinite' }}>
+              <span className="text-[8px] font-bold tracking-widest uppercase" style={{ color: C.green, fontFamily: "'JetBrains Mono',monospace" }}>ALTITUDE ALVO</span>
+              <span className="text-xs font-bold" style={{ color: C.green, fontFamily: "'JetBrains Mono',monospace" }}>GC ≥ {gcProjetadoPct >= 0 ? '+' : ''}{gcProjetadoPct.toFixed(1)}%</span>
+              <span className="text-[10px]" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{fmtR(gcProjetado)}</span>
+            </div>
+          </AI>
         </div>
 
-        {/* Flight map */}
-        <div className="flex-1 relative mx-8 mb-2" style={{ minHeight: 380 }}>
-          {/* Checkpoint cards */}
+        {/* Flight map area */}
+        <div className="flex-1 relative mx-10 mb-0" style={{ minHeight: 340 }}>
+          {/* CP cards above the SVG */}
           {cpData.map((cp, i) => {
-            const varColor = cp.isReceita ? (cp.varPct >= 0 ? GREEN : RED) : (cp.varPct <= 0 ? GREEN : RED);
-            const msg = checkpoints?.[cp.cpKey] || (cp.varPct > 0 === cp.isReceita ? 'Meta alinhada com tendência' : 'Redução necessária para margem');
+            const varColor = cp.isReceita ? (cp.varPct >= 0 ? C.green : C.red) : (cp.varPct <= 0 ? C.green : C.red);
+            const msg = checkpoints?.[cp.cpKey] || (cp.hasMeta ? 'Meta definida' : 'Sem meta definida');
             return (
-              <div
-                key={cp.n}
-                className="absolute top-0 w-[185px] rounded-xl p-3 z-10"
-                style={{
-                  left: cardPositions[i].left, transform: 'translateX(-50%)',
-                  background: CARD_BG, border: `1px solid ${CARD_BORDER}`,
-                  opacity: 0, animation: `slideUp 0.5s ease forwards ${300 + i * 120}ms`,
-                }}
-              >
-                <div className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded mb-1.5 inline-block" style={{ border: `1px solid ${cp.color}`, color: cp.color }}>
-                  CP-{cp.n} · {cp.label}
+              <AI key={cp.n} i={i + 2}>
+                <div className="absolute top-0 w-[175px] rounded-xl p-2.5 z-10"
+                  style={{ left: `${(cp.cx / 1200) * 100}%`, transform: 'translateX(-50%)', background: C.cardBg, border: `1px solid ${C.cardBorder}` }}>
+                  <div className="text-[8px] font-bold px-1.5 py-0.5 rounded inline-block mb-1"
+                    style={{ border: `1px solid ${cp.color}`, color: cp.color, fontFamily: "'JetBrains Mono',monospace" }}>
+                    CP-{cp.n} · {cp.label}
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] mb-1" style={{ fontFamily: "'JetBrains Mono',monospace" }}>
+                    <span style={{ color: C.txtSec }}>{fmtR(cp.realizado)}</span>
+                    <span style={{ color: C.txtSec }}>→</span>
+                    <span style={{ color: cp.color }}>{cp.metaTotal !== null ? fmtR(cp.metaTotal) : '—'}</span>
+                    {cp.hasMeta && <span className="text-[9px] px-1 rounded" style={{ background: `${varColor}22`, color: varColor }}>{fmtP(cp.varPct)}</span>}
+                  </div>
+                  <div className="text-[9px] leading-[1.4] pl-2" style={{ color: 'rgba(255,255,255,.4)', borderLeft: `2px solid ${cp.color}` }}>{msg}</div>
                 </div>
-                <div className="flex items-center gap-1 text-[10px] mb-1.5 font-mono">
-                  <span style={{ color: TXT_SEC }}>{fmtR(cp.realizado)}</span>
-                  <span style={{ color: TXT_SEC }}>→</span>
-                  <span style={{ color: cp.color }}>{cp.metaTotal !== null ? fmtR(cp.metaTotal) : '—'}</span>
-                  {cp.hasMeta && <span className="text-[9px] px-1 rounded" style={{ background: `${varColor}22`, color: varColor }}>{fmtP(cp.varPct)}</span>}
-                </div>
-                <div className="text-[9px] leading-[1.5] pl-2" style={{ color: 'rgba(255,255,255,0.4)', borderLeft: `2px solid ${cp.color}` }}>{msg}</div>
-              </div>
+              </AI>
             );
           })}
 
-          {/* SVG Route */}
-          <svg viewBox="0 0 1200 420" className="absolute bottom-0 left-0 w-full" style={{ height: 280 }} preserveAspectRatio="xMidYMid meet">
+          {/* Destination card */}
+          <AI i={7}>
+            <div className="absolute top-0 right-0 w-[160px] rounded-xl p-3 z-10"
+              style={{ background: 'rgba(0,201,122,.06)', border: '1px solid rgba(0,201,122,.25)' }}>
+              <span className="text-[10px] font-bold block mb-1" style={{ color: C.green }}>🎯 DESTINO</span>
+              <span className="text-lg font-bold block" style={{ color: C.green, fontFamily: "'JetBrains Mono',monospace" }}>
+                GC {gcProjetadoPct >= 0 ? '+' : ''}{gcProjetadoPct.toFixed(1)}%
+              </span>
+              <span className="text-[10px] block" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{fmtR(gcProjetado)}</span>
+              <span className="text-[9px]" style={{ color: C.txtSec }}>{nextCompLabel}</span>
+            </div>
+          </AI>
+
+          {/* SVG Flight route */}
+          <svg viewBox="0 0 1200 420" className="absolute bottom-0 left-0 w-full" style={{ height: 260 }} preserveAspectRatio="xMidYMid meet">
             <defs>
-              <linearGradient id="routeGrad6" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#FF3B3B" />
-                <stop offset="50%" stopColor="#F59E0B" />
-                <stop offset="100%" stopColor="#00C97A" />
+              <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={C.red} />
+                <stop offset="50%" stopColor={C.amber} />
+                <stop offset="100%" stopColor={C.green} />
               </linearGradient>
             </defs>
+            {/* Altitude lines */}
+            {[130, 220, 310].map((y, i) => (
+              <g key={y}>
+                <line x1="40" y1={y} x2="1160" y2={y} stroke="rgba(255,255,255,.04)" strokeDasharray="4 8" />
+                <text x="15" y={y + 3} fill="rgba(255,255,255,.15)" fontSize="8" fontFamily="'JetBrains Mono',monospace">
+                  {['ALT+3', 'ALT±0', 'ALT−3'][i]}
+                </text>
+              </g>
+            ))}
             {/* Shadow path */}
-            <path d="M 80,310 C 160,310 190,260 280,240 S 430,205 530,200 S 680,175 780,170 S 900,145 1000,140 S 1080,110 1110,100" fill="none" stroke="rgba(0,201,122,0.06)" strokeWidth="14" />
-            {/* Animated dashed path */}
-            <path d="M 80,310 C 160,310 190,260 280,240 S 430,205 530,200 S 680,175 780,170 S 900,145 1000,140 S 1080,110 1110,100" fill="none" stroke="url(#routeGrad6)" strokeWidth="2.5" strokeDasharray="8 4">
+            <path d={pathD} fill="none" stroke="rgba(0,201,122,.08)" strokeWidth="12" strokeLinecap="round" />
+            {/* Main dashed path */}
+            <path d={pathD} fill="none" stroke="url(#pathGrad)" strokeWidth="2.5" strokeDasharray="8 4">
               <animate attributeName="stroke-dashoffset" values="24;0" dur="1.5s" repeatCount="indefinite" />
             </path>
-
             {/* Start point */}
-            <circle cx="80" cy="310" r="12" fill="rgba(255,59,59,0.12)" stroke="#FF3B3B" strokeWidth="1.5">
-              <animate attributeName="r" values="10;14;10" dur="2s" repeatCount="indefinite" />
+            <circle cx="80" cy="310" r="14" fill="rgba(255,59,59,0.1)" stroke={C.red} strokeWidth="1">
+              <animate attributeName="r" values="12;16;12" dur="2s" repeatCount="indefinite" />
             </circle>
-            <circle cx="80" cy="310" r="4" fill="#FF3B3B" />
-            <text x="80" y="340" textAnchor="middle" fill={gcColor} fontSize="8" fontFamily="'JetBrains Mono', monospace" fontWeight="bold">AGORA</text>
-            <text x="80" y="355" textAnchor="middle" fill={gcColor} fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="bold">GC {gcAtualPct.toFixed(1)}%</text>
-
-            {/* Checkpoint nodes */}
+            <circle cx="80" cy="310" r="4" fill={C.red} />
+            <text x="80" y="340" textAnchor="middle" fill={gcColor} fontSize="8" fontFamily="'JetBrains Mono',monospace" fontWeight="bold">PARTIDA</text>
+            <text x="80" y="352" textAnchor="middle" fill={C.txtSec} fontSize="8" fontFamily="'JetBrains Mono',monospace">{mesShort}</text>
+            <text x="80" y="364" textAnchor="middle" fill={gcColor} fontSize="9" fontFamily="'JetBrains Mono',monospace" fontWeight="bold">GC {gcAtualPct.toFixed(1)}%</text>
+            {/* CP nodes */}
             {cpData.map(cp => (
               <g key={cp.n}>
                 <circle cx={cp.cx} cy={cp.cy} r="12" fill={`${cp.color}1A`} stroke={`${cp.color}66`} strokeWidth="1.5" />
                 <circle cx={cp.cx} cy={cp.cy} r="5" fill={cp.color} />
-                <line x1={cp.cx} y1={cp.cy - 12} x2={cp.cx} y2={cp.cy - 60} stroke={`${cp.color}40`} strokeDasharray="3 3" />
+                <line x1={cp.cx} y1={cp.cy - 12} x2={cp.cx} y2={cp.cy - 55} stroke={`${cp.color}40`} strokeDasharray="3 3" />
+                <text x={cp.cx} y={cp.cy + 25} textAnchor="middle" fill={cp.color} fontSize="8" fontFamily="'JetBrains Mono',monospace">CP-{cp.n}</text>
               </g>
             ))}
-
-            {/* Destination */}
-            <circle cx="1110" cy="100" r="28" fill="rgba(0,201,122,0.07)" stroke="rgba(0,201,122,0.20)" strokeWidth="1">
-              <animate attributeName="r" values="26;30;26" dur="3s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="1110" cy="100" r="8" fill={GREEN}>
+            {/* Destination zone */}
+            {[28, 20, 12].map((r, i) => (
+              <circle key={r} cx="1110" cy="100" r={r} fill="none" stroke={`rgba(0,201,122,${0.08 + i * 0.06})`} strokeWidth="1">
+                {i === 0 && <animate attributeName="r" values="26;30;26" dur="3s" repeatCount="indefinite" />}
+              </circle>
+            ))}
+            <circle cx="1110" cy="100" r="6" fill={C.green}>
               <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" />
             </circle>
-            <text x="1110" y="145" textAnchor="middle" fill={GREEN} fontSize="8" fontFamily="'JetBrains Mono', monospace" fontWeight="bold">GC PROJETADO</text>
-            <text x="1110" y="160" textAnchor="middle" fill={GREEN} fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="bold">{gcProjetadoPct >= 0 ? '+' : ''}{gcProjetadoPct.toFixed(1)}% · {fmtR(gcProjetado)}</text>
-
+            <text x="1110" y="145" textAnchor="middle" fill={C.green} fontSize="8" fontFamily="'JetBrains Mono',monospace" fontWeight="bold">DESTINO</text>
+            <text x="1110" y="158" textAnchor="middle" fill={C.txtSec} fontSize="8" fontFamily="'JetBrains Mono',monospace">{nextCompLabel}</text>
+            <text x="1110" y="170" textAnchor="middle" fill={C.green} fontSize="9" fontFamily="'JetBrains Mono',monospace" fontWeight="bold">GC ≥{gcProjetadoPct >= 0 ? '+' : ''}{gcProjetadoPct.toFixed(1)}%</text>
             {/* Airplane */}
-            <text fontSize="18" fill={PRIMARY} style={{ filter: `drop-shadow(0 0 6px ${PRIMARY})` }}>
-              <animateMotion dur="8s" repeatCount="indefinite" rotate="auto" path="M 80,310 C 160,310 190,260 280,240 S 430,205 530,200 S 680,175 780,170 S 900,145 1000,140 S 1080,110 1110,100" />
+            <text fontSize="18" fill={C.blue} style={{ filter: `drop-shadow(0 0 6px ${C.blue})` }}>
+              <animateMotion dur="8s" repeatCount="indefinite" rotate="auto" path={pathD} />
               ✈
             </text>
           </svg>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-8 pb-4 z-10">
-          <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: TXT_SEC }}>
-            <span>FAT − CMV − CMO − INVEST = GC</span>
-            <span className="ml-2 text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>🔔 alertas semanais automáticos</span>
+        <AI i={8}>
+          <div className="flex items-center justify-between px-10 pb-4 z-10">
+            <div className="flex items-center gap-2 flex-wrap text-[10px]" style={{ fontFamily: "'JetBrains Mono',monospace" }}>
+              <span style={{ color: '#7CB8FF' }}>{fmtR(torreGroups[0].metaTotal ?? fat)}</span>
+              <span style={{ color: C.txtSec }}>−</span>
+              <span style={{ color: '#FF8989' }}>{fmtR(Math.abs(torreGroups[1].metaTotal ?? torreGroups[1].realizado))}</span>
+              <span style={{ color: C.txtSec }}>−</span>
+              <span style={{ color: '#FCD34D' }}>{fmtR(Math.abs(torreGroups[2].metaTotal ?? torreGroups[2].realizado))}</span>
+              <span style={{ color: C.txtSec }}>−</span>
+              <span style={{ color: '#7DD3FC' }}>{fmtR(Math.abs(torreGroups[3].metaTotal ?? torreGroups[3].realizado))}</span>
+              <span style={{ color: C.txtSec }}>=</span>
+              <span style={{ color: C.green, fontWeight: 'bold' }}>{fmtR(gcProjetado)} · GC {gcProjetadoPct >= 0 ? '+' : ''}{gcProjetadoPct.toFixed(1)}%</span>
+              <span className="ml-3 flex items-center gap-1" style={{ color: 'rgba(255,255,255,.3)' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: C.amber, animation: 'pulse 2s infinite' }} />
+                🔔 Estas metas alimentam alertas semanais automáticos
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={handleGeneratePDF} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-colors hover:bg-white/10"
+                style={{ color: C.txtSec, border: `1px solid ${C.cardBorder}`, fontFamily: "'JetBrains Mono',monospace" }}>
+                <FileText className="h-3.5 w-3.5" /> 📄 Gerar PDF
+              </button>
+              <button onClick={handleWhatsApp} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-colors hover:bg-white/10"
+                style={{ color: C.txtSec, border: `1px solid ${C.cardBorder}`, fontFamily: "'JetBrains Mono',monospace" }}>
+                <MessageCircle className="h-3.5 w-3.5" /> 💬 Enviar por WhatsApp
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleGeneratePDF} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-mono transition-colors hover:bg-white/10" style={{ color: TXT_SEC, border: '1px solid rgba(255,255,255,0.1)' }}>
-              <FileText className="h-3.5 w-3.5" /> 📄 Gerar PDF
-            </button>
-            <button onClick={handleWhatsApp} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-mono transition-colors hover:bg-white/10" style={{ color: TXT_SEC, border: '1px solid rgba(255,255,255,0.1)' }}>
-              <MessageCircle className="h-3.5 w-3.5" /> 💬 Enviar por WhatsApp
-            </button>
-          </div>
-        </div>
+        </AI>
       </div>
     );
   };
 
-  // ─── PDF Generation ───
+  /* ── PDF Generation ── */
   const handleGeneratePDF = async () => {
     const doc = new jsPDF('p', 'mm', 'a4');
     const empresaNome = cliente?.razao_social || cliente?.nome_empresa || 'Cliente';
@@ -765,10 +1004,11 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  /* ── Loading state ── */
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: NAVY_BG }}>
-        <Loader2 className="h-10 w-10 animate-spin" style={{ color: PRIMARY }} />
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: SLIDE_BG }}>
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: C.blue }} />
       </div>
     );
   }
@@ -776,78 +1016,109 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
   const slides = [renderSlide1, renderSlide2, renderSlide3, renderSlide4, renderSlide5, renderSlide6];
 
   return (
-    <div className="fixed inset-0 z-[9999]" style={{ background: NAVY_BG, fontFamily: "'JetBrains Mono', monospace" }}>
-      {/* HUD Grid */}
-      <div className="fixed inset-0 pointer-events-none z-0" style={{
-        backgroundImage: 'linear-gradient(rgba(26,60,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(26,60,255,0.06) 1px, transparent 1px)',
-        backgroundSize: '52px 52px',
-        animation: 'gridPulse 4s ease-in-out infinite',
-      }} />
-
-      {/* Scanlines */}
+    <div className="fixed inset-0 z-[9999]" style={{ background: SLIDE_BG, fontFamily: "'JetBrains Mono', 'DM Sans', monospace" }}>
+      {/* SCANLINES */}
       <div className="fixed inset-0 pointer-events-none z-[1]" style={{
-        background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)',
+        background: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px)',
       }} />
 
-      {/* Transition flash */}
-      {transitioning && (
+      {/* HUD GRID */}
+      <div className="fixed inset-0 pointer-events-none z-0" style={{
+        backgroundImage: 'linear-gradient(rgba(26,60,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(26,60,255,.04) 1px, transparent 1px)',
+        backgroundSize: '60px 60px',
+        animation: 'gridShift 20s linear infinite',
+      }} />
+
+      {/* FLASH TRANSITION */}
+      {flash && (
         <div className="fixed inset-0 z-[10001] pointer-events-none" style={{
-          background: `linear-gradient(135deg, ${PRIMARY}, ${CYAN})`,
-          animation: 'flashTransition 150ms ease forwards',
+          background: `linear-gradient(135deg, ${C.blue}, ${C.cyan})`,
+          animation: 'flashTrans 180ms ease forwards',
         }} />
       )}
 
-      {/* Exit button */}
-      <button onClick={onExit} className="fixed top-4 right-4 z-[10002] p-2 rounded-lg transition-colors" style={{ color: TXT_SEC }} onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+      {/* EXIT BUTTON */}
+      <button onClick={onExit} className="fixed top-4 right-4 z-[10002] p-2 rounded-lg transition-all hover:bg-white/10" style={{ color: C.txtSec }}>
         <X className="h-5 w-5" />
       </button>
 
-      {/* Slide content */}
-      <div className="h-[calc(100%-52px)] overflow-hidden relative z-[2]">
-        {slides[slide - 1]()}
+      {/* SLIDE CONTENT */}
+      <div className="absolute inset-0 pb-[58px] z-[2]">
+        {slides.map((renderFn, i) => (
+          <div
+            key={i}
+            className="absolute inset-0"
+            style={{
+              opacity: i + 1 === slide ? 1 : 0,
+              pointerEvents: i + 1 === slide ? 'all' : 'none',
+              transition: 'opacity 0.15s ease',
+              paddingBottom: '58px',
+            }}
+          >
+            {i + 1 === slide && renderFn()}
+          </div>
+        ))}
       </div>
 
-      {/* Nav bar */}
-      <div className="fixed bottom-0 left-0 right-0 h-[52px] flex items-center justify-center gap-4 z-[10002]" style={{ background: 'rgba(6,13,26,0.85)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <button onClick={() => goTo(slide - 1)} disabled={slide === 1} className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-mono disabled:opacity-30 transition-colors" style={{ color: TXT_SEC }} onMouseEnter={e => { if (slide > 1) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+      {/* NAV BAR */}
+      <div className="fixed bottom-0 left-0 right-0 h-[58px] flex items-center justify-center gap-4 z-[10002]"
+        style={{ background: 'rgba(6,13,26,0.88)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(26,60,255,.15)' }}>
+        <button onClick={() => goTo(slide - 1)} disabled={slide === 1}
+          className="flex items-center gap-1 px-3 py-1.5 rounded text-[11px] disabled:opacity-30 transition-colors hover:bg-white/8"
+          style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>
           <ChevronLeft className="h-3.5 w-3.5" /> Anterior
         </button>
 
         <div className="flex gap-2 items-center">
           {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i + 1)}
-              className="w-2.5 h-2.5 rounded-full transition-all"
+            <button key={i} onClick={() => goTo(i + 1)} className="w-2.5 h-2.5 rounded-full transition-all"
               style={{
-                background: i + 1 === slide ? PRIMARY : 'rgba(255,255,255,0.2)',
-                boxShadow: i + 1 === slide ? `0 0 8px ${PRIMARY}` : 'none',
-                transform: i + 1 === slide ? 'scale(1.2)' : 'scale(1)',
-              }}
-            />
+                background: i + 1 === slide ? C.blue : 'rgba(255,255,255,0.2)',
+                boxShadow: i + 1 === slide ? `0 0 8px ${C.blue}` : 'none',
+                transform: i + 1 === slide ? 'scale(1.3)' : 'scale(1)',
+              }} />
           ))}
         </div>
 
-        <span className="text-[10px] font-mono mx-2" style={{ color: TXT_SEC }}>{slide} / {TOTAL_SLIDES}</span>
+        <span className="text-[10px] mx-2" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{slide} / {TOTAL_SLIDES}</span>
 
-        <button onClick={() => goTo(slide + 1)} disabled={slide === TOTAL_SLIDES} className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-mono disabled:opacity-30 transition-colors" style={{ color: TXT_SEC }} onMouseEnter={e => { if (slide < TOTAL_SLIDES) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+        <button onClick={() => goTo(slide + 1)} disabled={slide === TOTAL_SLIDES}
+          className="flex items-center gap-1 px-3 py-1.5 rounded text-[11px] disabled:opacity-30 transition-colors hover:bg-white/8"
+          style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>
           Próximo <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
+      {/* KEYFRAMES */}
       <style>{`
-        @keyframes slideUp {
+        @keyframes slideIn {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes flashTransition {
+        @keyframes flashTrans {
           0% { opacity: 0; }
-          40% { opacity: 0.15; }
+          40% { opacity: 0.18; }
           100% { opacity: 0; }
         }
-        @keyframes gridPulse {
-          0%, 100% { opacity: 0.7; }
-          50% { opacity: 1; }
+        @keyframes gridShift {
+          from { background-position: 0 0; }
+          to { background-position: 60px 60px; }
+        }
+        @keyframes radarSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes floatUp {
+          0%, 100% { transform: translateY(0); opacity: 0.4; }
+          50% { transform: translateY(-30px); opacity: 0.6; }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 8px rgba(0,201,122,0.15); }
+          50% { box-shadow: 0 0 16px rgba(0,201,122,0.3); }
         }
       `}</style>
     </div>
