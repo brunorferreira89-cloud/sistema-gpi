@@ -854,7 +854,7 @@ Segue o resumo da nossa reunião de ${mesShort}:
 📋 *Próximos passos:*
 ${proximosPassos || 'A definir'}
 
-Acesse seu portal para acompanhar: https://sistema-gpi.lovable.app/cliente
+Acesse seu portal para acompanhar: ${window.location.origin}/cliente
 
 Qualquer dúvida, estou à disposição! 🚀
 _GPI Inteligência Financeira_`;
