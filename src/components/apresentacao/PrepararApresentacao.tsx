@@ -1,17 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, RefreshCw, Check, Clock, ChevronDown, Play, Eye, Save, Sparkles } from 'lucide-react';
+import { Loader2, RefreshCw, Check, Clock, Play, Eye, Save, Sparkles, ArrowLeft, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo, calcIndicador } from '@/lib/dre-indicadores';
-import { fetchMergedIndicadores, calcularIndicadores, calcScore } from '@/lib/kpi-indicadores-utils';
+import { fetchMergedIndicadores, calcularIndicadores } from '@/lib/kpi-indicadores-utils';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   clienteId: string;
@@ -22,18 +20,23 @@ interface Props {
 
 const CAMPOS = ['diagnostico', 'objetivos', 'riscos', 'proximos_passos'] as const;
 const CAMPO_LABELS: Record<string, { label: string; icon: string }> = {
-  diagnostico: { label: 'Diagnóstico', icon: '🔍' },
-  objetivos: { label: 'Objetivos', icon: '🎯' },
-  riscos: { label: 'Riscos', icon: '⚠️' },
-  proximos_passos: { label: 'Próximos Passos', icon: '✅' },
+  diagnostico: { label: 'O que os números dizem', icon: '🔍' },
+  objetivos: { label: 'O que queremos alcançar', icon: '🎯' },
+  riscos: { label: 'Riscos se não agirmos agora', icon: '⚡' },
+  proximos_passos: { label: 'O que fazer esta semana', icon: '✅' },
 };
 
-const CHECKLIST_ITEMS = [
+const CHECKLIST_LABELS = [
   'DRE do mês importada',
-  'Metas da Torre de Controle definidas',
-  'Análise consultiva revisada',
-  'Slides pré-visualizados',
-  'WhatsApp de confirmação enviado',
+  'Metas definidas na Torre',
+  'Análises IA geradas',
+  'Slides revisados',
+  'Reunião agendada no sistema',
+];
+
+const INDICADOR_LABELS = [
+  'Faturamento', 'Custos Op.', 'MC', 'Despesas', 'RO',
+  'Investimentos', 'RAI', 'Financiamentos', 'GC',
 ];
 
 type PrepRow = {
@@ -49,15 +52,23 @@ type PrepRow = {
 
 export default function PrepararApresentacao({ clienteId, competencia, onStartPresentation, onPreview }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [prep, setPrep] = useState<PrepRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<string | null>(null); // null or campo name or 'all'
-  const [checklist, setChecklist] = useState<boolean[]>(CHECKLIST_ITEMS.map(() => false));
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [editingCampo, setEditingCampo] = useState<string | null>(null);
   const [editedFields, setEditedFields] = useState<Record<string, string>>({});
   const [editorNome, setEditorNome] = useState<string | null>(null);
   const [cliente, setCliente] = useState<any>(null);
-  const [indicadorSummary, setIndicadorSummary] = useState<{ nome: string; valor: string }[]>([]);
+  const [indicadorSummary, setIndicadorSummary] = useState<{ nome: string; valor: string; hasData: boolean }[]>([]);
   const [apresentacao, setApresentacao] = useState<any>(null);
+  const [checklistState, setChecklistState] = useState({
+    dreImportada: false,
+    metasDefinidas: false,
+    analiseGerada: false,
+    slidesRevisados: false,
+    reuniaoAgendada: false,
+  });
 
   // Fetch prep data
   useEffect(() => {
@@ -77,26 +88,52 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         setEditorNome(profileData?.nome || null);
       }
 
-      // Build indicator summary
+      // Build indicator summary + checklist state
       try {
         const { data: contasRaw } = await supabase.from('plano_de_contas').select('*').eq('cliente_id', clienteId).order('ordem');
         const contasTyped = (contasRaw || []) as ContaRow[];
+        const contaIds = contasTyped.map(c => c.id);
         const { data: valores } = await supabase.from('valores_mensais').select('conta_id, valor_realizado')
-          .in('conta_id', contasTyped.map(c => c.id)).eq('competencia', competencia);
+          .in('conta_id', contaIds).eq('competencia', competencia);
         const valMap: Record<string, number | null> = {};
         (valores || []).forEach((v: any) => { valMap[v.conta_id] = v.valor_realizado; });
+
         const fat = sumLeafByTipo(contasTyped, valMap, 'receita');
+        const custos = sumLeafByTipo(contasTyped, valMap, 'custo_variavel');
         const mc = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel']);
+        const despesas = sumLeafByTipo(contasTyped, valMap, 'despesa_fixa');
         const ro = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel', 'despesa_fixa']);
+        const invest = sumLeafByTipo(contasTyped, valMap, 'investimento');
+        const rai = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']);
+        const financ = sumLeafByTipo(contasTyped, valMap, 'financeiro');
         const gc = calcIndicador(contasTyped, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
+
         const fmtR = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
-        const fmtP = (v: number, base: number) => base ? `${((v / Math.abs(base)) * 100).toFixed(1)}%` : '—';
-        setIndicadorSummary([
-          { nome: 'Faturamento', valor: fmtR(fat) },
-          { nome: 'MC', valor: fmtP(mc, fat) },
-          { nome: 'RO', valor: fmtP(ro, fat) },
-          { nome: 'GC', valor: fmtP(gc, fat) },
-        ]);
+        const vals = [fat, custos, mc, despesas, ro, invest, rai, financ, gc];
+        const summary = INDICADOR_LABELS.map((nome, i) => ({
+          nome,
+          valor: fmtR(vals[i]),
+          hasData: vals[i] !== 0,
+        }));
+        setIndicadorSummary(summary);
+
+        // Auto-check DRE
+        const hasDre = (valores || []).length > 0;
+        // Auto-check metas
+        const { count: metasCount } = await supabase.from('torre_metas' as any).select('id', { count: 'exact', head: true })
+          .eq('cliente_id', clienteId).eq('competencia', competencia);
+        // Auto-check reunião
+        const hoje = new Date().toISOString().split('T')[0];
+        const { count: reuniaoCount } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
+          .eq('cliente_id', clienteId).gte('data_reuniao', hoje);
+
+        setChecklistState({
+          dreImportada: hasDre,
+          metasDefinidas: (metasCount || 0) > 0,
+          analiseGerada: !!prepRes.data?.gerado_em,
+          slidesRevisados: false, // manual
+          reuniaoAgendada: (reuniaoCount || 0) > 0,
+        });
       } catch { /* ignore */ }
 
       setLoading(false);
@@ -105,14 +142,30 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
   }, [clienteId, competencia]);
 
   const hasAnyContent = CAMPOS.some(c => prep?.[c] || editedFields[c]);
-
   const getFieldValue = (campo: string) => editedFields[campo] ?? prep?.[campo as keyof PrepRow] as string ?? '';
 
   const handleFieldChange = (campo: string, value: string) => {
     setEditedFields(prev => ({ ...prev, [campo]: value }));
   };
 
-  const handleSave = async () => {
+  const handleSaveBlock = async (campo: string) => {
+    const val = editedFields[campo];
+    if (val === undefined) return;
+    const updates: any = { editado_em: new Date().toISOString(), editado_por: user?.id, [campo]: val };
+
+    if (prep?.id) {
+      await supabase.from('apresentacao_preparacao').update(updates).eq('id', prep.id);
+    } else {
+      await supabase.from('apresentacao_preparacao').insert({ cliente_id: clienteId, competencia, ...updates });
+    }
+    toast.success(`${CAMPO_LABELS[campo]?.label} salvo`);
+    const { data } = await supabase.from('apresentacao_preparacao').select('*').eq('cliente_id', clienteId).eq('competencia', competencia).maybeSingle();
+    setPrep(data as any);
+    setEditedFields(prev => { const n = { ...prev }; delete n[campo]; return n; });
+    setEditingCampo(null);
+  };
+
+  const handleSaveAll = async () => {
     const updates: any = { editado_em: new Date().toISOString(), editado_por: user?.id };
     CAMPOS.forEach(c => {
       const val = editedFields[c];
@@ -125,10 +178,10 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
       await supabase.from('apresentacao_preparacao').insert({ cliente_id: clienteId, competencia, ...updates });
     }
     toast.success('Preparação salva');
-    // Reload
     const { data } = await supabase.from('apresentacao_preparacao').select('*').eq('cliente_id', clienteId).eq('competencia', competencia).maybeSingle();
     setPrep(data as any);
     setEditedFields({});
+    setEditingCampo(null);
   };
 
   const buildPayload = async () => {
@@ -146,9 +199,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     const prevValMap: Record<string, number | null> = {};
     (valores || []).filter((v: any) => v.competencia === prevComp).forEach((v: any) => { prevValMap[v.conta_id] = v.valor_realizado; });
 
-    const leafs = getLeafContas(contasAll);
     const fat = sumLeafByTipo(contasAll, valMap, 'receita');
-    const prevFat = sumLeafByTipo(contasAll, prevValMap, 'receita');
 
     const tipos = ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'];
     const tipoLabels: Record<string, string> = {
@@ -163,19 +214,15 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         const cats = contasAll.filter(c => c.conta_pai_id === sg.id && c.nivel === 2);
         const sgVal = cats.reduce((s, c) => s + (valMap[c.id] || 0), 0);
         return {
-          nome: sg.nome,
-          valor: sgVal,
+          nome: sg.nome, valor: sgVal,
           categorias: cats.map(c => ({ nome: c.nome, valor: valMap[c.id] || 0 })).filter(c => c.valor !== 0).sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor)),
         };
       }).filter(sg => sg.valor !== 0);
 
       return {
-        nome: tipoLabels[tipo] || tipo,
-        valor_realizado: val,
-        valor_mes_anterior: prevVal,
+        nome: tipoLabels[tipo] || tipo, valor_realizado: val, valor_mes_anterior: prevVal,
         variacao_pct: prevVal ? ((val - prevVal) / Math.abs(prevVal)) * 100 : 0,
-        av_pct: fat ? (Math.abs(val) / Math.abs(fat)) * 100 : 0,
-        subgrupos,
+        av_pct: fat ? (Math.abs(val) / Math.abs(fat)) * 100 : 0, subgrupos,
       };
     });
 
@@ -184,7 +231,6 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     const rai = calcIndicador(contasAll, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento']);
     const gc = calcIndicador(contasAll, valMap, ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro']);
 
-    // Add totalizadores as indicators too
     const totIndicadores = [
       { nome: 'Margem de Contribuição', valor_realizado: mc, valor_mes_anterior: 0, variacao_pct: 0, av_pct: fat ? (mc / Math.abs(fat)) * 100 : 0, subgrupos: [] },
       { nome: 'Resultado Operacional', valor_realizado: ro, valor_mes_anterior: 0, variacao_pct: 0, av_pct: fat ? (ro / Math.abs(fat)) * 100 : 0, subgrupos: [] },
@@ -192,21 +238,17 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
       { nome: 'Geração de Caixa', valor_realizado: gc, valor_mes_anterior: 0, variacao_pct: 0, av_pct: fat ? (gc / Math.abs(fat)) * 100 : 0, subgrupos: [] },
     ];
 
-    // KPIs
     let kpisArr: any[] = [];
     try {
       const kpiInds = await fetchMergedIndicadores(clienteId);
       const calcs = calcularIndicadores(kpiInds, contasAll, valMap);
       kpisArr = calcs.filter(c => c.indicador.ativo).map(c => ({
-        nome: c.indicador.nome,
-        valor: c.pct?.toFixed(1) || '0',
-        status: c.status,
+        nome: c.indicador.nome, valor: c.pct?.toFixed(1) || '0', status: c.status,
       }));
     } catch { /* ignore */ }
 
     return {
-      cliente_id: clienteId,
-      competencia,
+      cliente_id: clienteId, competencia,
       indicadores: [...indicadores, ...totIndicadores],
       totalizadores: {
         MC: mc, MC_pct: fat ? (mc / Math.abs(fat)) * 100 : 0,
@@ -242,191 +284,324 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
 
   // Timeline steps
   const steps = [
-    { label: 'Dados importados', done: indicadorSummary.length > 0 },
+    { label: 'Dados importados', done: checklistState.dreImportada },
     { label: 'IA gerou', done: !!prep?.gerado_em },
     { label: 'Consultor revisou', done: !!prep?.editado_em },
     { label: 'Ao vivo', done: !!apresentacao?.encerrada_em },
   ];
+  const activeStepIdx = steps.findIndex(s => !s.done);
 
   const mesLabel = (() => {
     const d = new Date(competencia + 'T00:00:00');
-    return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+    const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    return `${meses[d.getMonth()]}/${d.getFullYear()}`;
   })();
+
+  const checklistItems = [
+    { label: CHECKLIST_LABELS[0], checked: checklistState.dreImportada },
+    { label: CHECKLIST_LABELS[1], checked: checklistState.metasDefinidas },
+    { label: CHECKLIST_LABELS[2], checked: checklistState.analiseGerada },
+    { label: CHECKLIST_LABELS[3], checked: checklistState.slidesRevisados },
+    { label: CHECKLIST_LABELS[4], checked: checklistState.reuniaoAgendada },
+  ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center h-96" style={{ background: '#F0F4FA' }}>
+        <Loader2 className="h-8 w-8 animate-spin text-[#1A3CFF]" />
       </div>
     );
   }
 
+  const isFieldEdited = (campo: string) => {
+    // Was manually edited and saved (prep has editado_em and content exists, no pending edits)
+    return !!prep?.editado_em && !!prep?.[campo as keyof PrepRow] && editedFields[campo] === undefined;
+  };
+
+  const isFieldFromIA = (campo: string) => {
+    return !!prep?.gerado_em && !!prep?.[campo as keyof PrepRow] && !prep?.editado_em;
+  };
+
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#0D1B35]">Preparar Apresentação</h1>
-        <p className="text-sm text-[#4A5E80]">{cliente?.razao_social || cliente?.nome_empresa} · {mesLabel}</p>
-      </div>
-
-      {/* Timeline */}
-      <div className="flex items-center gap-2 bg-white rounded-xl border border-[#DDE4F0] p-4">
-        {steps.map((step, i) => (
-          <div key={i} className="flex items-center gap-2 flex-1">
-            <div className={`flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold ${step.done ? 'bg-emerald-100 text-emerald-700' : 'bg-[#F0F4FA] text-[#4A5E80]'}`}>
-              {step.done ? <Check className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-            </div>
-            <span className={`text-xs font-medium ${step.done ? 'text-emerald-700' : 'text-[#4A5E80]'}`}>{step.label}</span>
-            {i < steps.length - 1 && <div className="flex-1 h-px bg-[#DDE4F0]" />}
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        {/* Main content */}
-        <div className="space-y-4">
-          {/* Generate all button */}
-          {!hasAnyContent && (
-            <Button
-              onClick={() => handleGenerate()}
-              disabled={generating !== null}
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-white"
+    <div className="min-h-screen" style={{ background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }}>
+      <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+        {/* HEADER */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <button
+              onClick={() => navigate(`/clientes/${clienteId}`)}
+              className="inline-flex items-center gap-1 text-sm text-[#4A5E80] hover:text-[#1A3CFF] transition-colors mb-1"
             >
-              {generating === 'all' ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Analisando {mesLabel} com IA...</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" /> Gerar Análise Completa</>
-              )}
-            </Button>
-          )}
-
-          {/* 4 editable blocks */}
-          {CAMPOS.map(campo => {
-            const val = getFieldValue(campo);
-            const wasEdited = prep?.editado_em && prep?.[campo] && editedFields[campo] === undefined;
-            const isGenerating = generating === campo;
-
-            return (
-              <Card key={campo} className="bg-white border-[#DDE4F0] relative overflow-hidden">
-                {wasEdited && (
-                  <div className="h-1 bg-amber-400 w-full" />
-                )}
-                <CardHeader className="pb-2 flex-row items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span>{CAMPO_LABELS[campo].icon}</span>
-                    <CardTitle className="text-base font-semibold text-[#0D1B35]">{CAMPO_LABELS[campo].label}</CardTitle>
-                    {wasEdited && <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px]">Editado manualmente</Badge>}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleGenerate(campo)}
-                    disabled={generating !== null}
-                    className="text-xs text-[#4A5E80]"
-                  >
-                    {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                    <span className="ml-1">Regenerar</span>
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={val}
-                    onChange={e => handleFieldChange(campo, e.target.value)}
-                    placeholder="Clique em Gerar Análise para preencher"
-                    className="min-h-[100px] resize-y border-[#DDE4F0] bg-[#FAFCFF] text-sm text-[#0D1B35]"
-                  />
-                </CardContent>
-              </Card>
-            );
-          })}
-
-          {/* Footer buttons */}
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={handleSave} className="border-[#DDE4F0]">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Voltar para {cliente?.razao_social || cliente?.nome_empresa}
+            </button>
+            <h1 className="text-2xl font-bold text-[#0D1B35]">
+              Preparar Apresentação — {mesLabel}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSaveAll}
+              className="border-[#DDE4F0] text-[#0D1B35]"
+              disabled={Object.keys(editedFields).length === 0}
+            >
               <Save className="h-4 w-4 mr-1" /> Salvar
             </Button>
-            <Button variant="outline" onClick={onPreview} className="border-[#DDE4F0]">
-              <Eye className="h-4 w-4 mr-1" /> Pré-visualizar slides
+            <Button variant="outline" onClick={onPreview} className="border-[#DDE4F0] text-[#0D1B35]">
+              <Eye className="h-4 w-4 mr-1" /> Pré-visualizar
             </Button>
-            <Button onClick={onStartPresentation} className="bg-primary text-white">
+            <Button
+              onClick={onStartPresentation}
+              className="text-white"
+              style={{ background: 'linear-gradient(135deg, #1A3CFF, #0099E6)' }}
+            >
               <Play className="h-4 w-4 mr-1" /> Iniciar Apresentação
             </Button>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Checklist */}
-          <Collapsible defaultOpen>
-            <Card className="bg-white border-[#DDE4F0]">
-              <CollapsibleTrigger className="w-full">
-                <CardHeader className="pb-2 flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-[#0D1B35]">Checklist pré-reunião</CardTitle>
-                  <ChevronDown className="h-4 w-4 text-[#4A5E80]" />
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-2">
-                  {CHECKLIST_ITEMS.map((item, i) => (
-                    <label key={i} className="flex items-center gap-2 text-sm text-[#0D1B35] cursor-pointer">
-                      <Checkbox
-                        checked={checklist[i]}
-                        onCheckedChange={(v) => setChecklist(prev => { const n = [...prev]; n[i] = !!v; return n; })}
-                      />
-                      {item}
-                    </label>
-                  ))}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-
-          {/* Dados usados pela IA */}
-          <Collapsible>
-            <Card className="bg-white border-[#DDE4F0]">
-              <CollapsibleTrigger className="w-full">
-                <CardHeader className="pb-2 flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-[#0D1B35]">Dados usados pela IA</CardTitle>
-                  <ChevronDown className="h-4 w-4 text-[#4A5E80]" />
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {indicadorSummary.map((ind, i) => (
-                      <span key={i} className="text-xs text-[#4A5E80] bg-[#F0F4FA] px-2 py-1 rounded">
-                        {ind.nome} {ind.valor}
-                      </span>
-                    ))}
+        {/* TIMELINE */}
+        <div className="rounded-xl border border-[#DDE4F0] bg-white p-4" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+          <div className="flex items-center">
+            {steps.map((step, i) => {
+              const isActive = i === activeStepIdx;
+              const isDone = step.done;
+              const isFuture = !isDone && !isActive;
+              return (
+                <div key={i} className="flex items-center flex-1">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold"
+                      style={{
+                        background: isDone ? 'rgba(0,168,107,0.12)' : isActive ? 'rgba(26,60,255,0.12)' : '#F0F4FA',
+                        color: isDone ? '#00A86B' : isActive ? '#1A3CFF' : '#8A9BBC',
+                      }}
+                    >
+                      {isDone ? <Check className="h-4 w-4" /> : <span>{i + 1}</span>}
+                    </div>
+                    <span
+                      className="text-xs font-medium whitespace-nowrap"
+                      style={{ color: isDone ? '#00A86B' : isActive ? '#1A3CFF' : '#8A9BBC' }}
+                    >
+                      {step.label}
+                    </span>
                   </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-
-          {/* Histórico de edições */}
-          <Collapsible>
-            <Card className="bg-white border-[#DDE4F0]">
-              <CollapsibleTrigger className="w-full">
-                <CardHeader className="pb-2 flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-[#0D1B35]">Histórico de edições</CardTitle>
-                  <ChevronDown className="h-4 w-4 text-[#4A5E80]" />
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  {prep?.editado_em ? (
-                    <p className="text-xs text-[#4A5E80]">
-                      Editado por {editorNome || 'consultor'} em{' '}
-                      {new Date(prep.editado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-[#4A5E80]">Nenhuma edição manual registrada</p>
+                  {i < steps.length - 1 && (
+                    <div className="flex-1 h-px mx-3" style={{ background: isDone ? '#00A86B' : '#DDE4F0' }} />
                   )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          {/* MAIN COLUMN */}
+          <div className="space-y-4">
+            {/* Generate all button */}
+            {!hasAnyContent && (
+              <button
+                onClick={() => handleGenerate()}
+                disabled={generating !== null}
+                className="w-full rounded-xl border-2 border-dashed border-[#1A3CFF] bg-white p-8 text-center transition-all hover:bg-[#F6F9FF] disabled:opacity-60"
+                style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}
+              >
+                {generating === 'all' ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#1A3CFF]" />
+                    <span className="text-sm font-semibold text-[#1A3CFF]">Analisando {mesLabel} com IA...</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <Sparkles className="h-6 w-6 text-[#1A3CFF]" />
+                    <span className="text-sm font-semibold text-[#1A3CFF]">✨ Gerar análise com IA</span>
+                    <span className="text-xs text-[#8A9BBC]">A IA irá preencher os 4 blocos com base nos dados do mês</span>
+                  </div>
+                )}
+              </button>
+            )}
+
+            {/* 4 EDITABLE BLOCKS */}
+            {CAMPOS.map(campo => {
+              const val = getFieldValue(campo);
+              const isEditing = editingCampo === campo;
+              const isGen = generating === campo;
+              const edited = isFieldEdited(campo);
+              const fromIA = isFieldFromIA(campo);
+
+              return (
+                <div
+                  key={campo}
+                  className="rounded-xl bg-white overflow-hidden"
+                  style={{
+                    border: '1px solid #DDE4F0',
+                    borderTop: isEditing ? '3px solid #D97706' : edited ? '3px solid #00A86B' : '1px solid #DDE4F0',
+                    boxShadow: '0 2px 8px rgba(13,27,53,0.06)',
+                  }}
+                >
+                  {/* Block header */}
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{CAMPO_LABELS[campo].icon}</span>
+                      <span className="text-sm font-semibold text-[#0D1B35]">{CAMPO_LABELS[campo].label}</span>
+                      {edited && (
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ color: '#00A86B', background: 'rgba(0,168,107,0.1)' }}>
+                          ✓ Revisado
+                        </span>
+                      )}
+                      {fromIA && (
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ color: '#1A3CFF', background: 'rgba(26,60,255,0.1)' }}>
+                          ✨ IA
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {!isEditing && val && (
+                        <button
+                          onClick={() => setEditingCampo(campo)}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#4A5E80] hover:bg-[#F0F4FA] transition-colors"
+                        >
+                          <Pencil className="h-3 w-3" /> Editar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleGenerate(campo)}
+                        disabled={generating !== null}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#4A5E80] hover:bg-[#F0F4FA] transition-colors disabled:opacity-50"
+                      >
+                        {isGen ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                        Regenerar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Block body */}
+                  <div className="px-5 pb-4">
+                    {isGen ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-[#1A3CFF] mr-2" />
+                        <span className="text-sm text-[#4A5E80]">Regenerando com IA...</span>
+                      </div>
+                    ) : isEditing || !val ? (
+                      <>
+                        <Textarea
+                          value={val}
+                          onChange={e => handleFieldChange(campo, e.target.value)}
+                          placeholder="Clique em 'Gerar análise com IA' para preencher automaticamente"
+                          className="min-h-[120px] resize-y text-sm text-[#0D1B35]"
+                          style={{ border: '1px solid #DDE4F0', background: '#FAFCFF' }}
+                        />
+                        {isEditing && editedFields[campo] !== undefined && (
+                          <div className="flex justify-end mt-2">
+                            <button
+                              onClick={() => { setEditingCampo(null); setEditedFields(prev => { const n = { ...prev }; delete n[campo]; return n; }); }}
+                              className="mr-2 rounded-md px-3 py-1.5 text-xs font-medium text-[#4A5E80] hover:bg-[#F0F4FA]"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => handleSaveBlock(campo)}
+                              className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
+                              style={{ background: '#1A3CFF' }}
+                            >
+                              💾 Salvar bloco
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-[#0D1B35] leading-relaxed whitespace-pre-wrap">
+                        {val}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* SIDEBAR */}
+          <div className="space-y-4">
+            {/* Checklist pré-reunião */}
+            <div className="rounded-xl border border-[#DDE4F0] bg-white p-4" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+              <h3 className="text-sm font-semibold text-[#0D1B35] mb-3">Checklist pré-reunião</h3>
+              <div className="space-y-2.5">
+                {checklistItems.map((item, i) => (
+                  <label key={i} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={item.checked}
+                      onCheckedChange={(v) => {
+                        // Only "Slides revisados" is manually toggleable
+                        if (i === 3) {
+                          setChecklistState(prev => ({ ...prev, slidesRevisados: !!v }));
+                        }
+                      }}
+                      disabled={i !== 3}
+                      className={item.checked ? '' : 'opacity-50'}
+                    />
+                    <span style={{ color: item.checked ? '#00A86B' : '#4A5E80', fontWeight: item.checked ? 600 : 400 }}>
+                      {item.checked && '✓ '}{item.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Dados usados pela IA */}
+            <div className="rounded-xl border border-[#DDE4F0] bg-white p-4" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+              <h3 className="text-sm font-semibold text-[#0D1B35] mb-3">Dados usados pela IA</h3>
+              <div className="space-y-1.5">
+                {indicadorSummary.map((ind, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-xs text-[#4A5E80]">{ind.nome}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-medium" style={{ fontFamily: 'Courier New, monospace', color: '#0D1B35' }}>
+                        {ind.valor}
+                      </span>
+                      <span className="text-[10px]" style={{ color: ind.hasData ? '#00A86B' : '#8A9BBC' }}>
+                        {ind.hasData ? '✓' : '—'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Histórico de edições */}
+            <div className="rounded-xl border border-[#DDE4F0] bg-white p-4" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+              <h3 className="text-sm font-semibold text-[#0D1B35] mb-3">Histórico de edições</h3>
+              <div className="space-y-2">
+                {prep?.gerado_em && (
+                  <div className="flex items-start gap-2">
+                    <div className="mt-1 h-1.5 w-1.5 rounded-full bg-[#1A3CFF] flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-[#0D1B35] font-medium">Gerou análise inicial (4 blocos)</p>
+                      <p className="text-[10px] text-[#8A9BBC]">
+                        {new Date(prep.gerado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {prep?.editado_em && (
+                  <div className="flex items-start gap-2">
+                    <div className="mt-1 h-1.5 w-1.5 rounded-full bg-[#D97706] flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-[#0D1B35] font-medium">
+                        Editado por {editorNome || 'consultor'}
+                      </p>
+                      <p className="text-[10px] text-[#8A9BBC]">
+                        {new Date(prep.editado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {!prep?.gerado_em && !prep?.editado_em && (
+                  <p className="text-xs text-[#8A9BBC]">Nenhuma ação registrada</p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
