@@ -79,6 +79,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [alertasOpen, setAlertasOpen] = useState(true);
+  const [hasApresentacao, setHasApresentacao] = useState(false);
+  const navigate = useNavigate();
 
   // If prop clienteId (espelho mode), skip empresa selection
   const resolvedClienteId = propClienteId || clienteIdSelecionado;
