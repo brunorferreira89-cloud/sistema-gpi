@@ -208,6 +208,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="treinamento">Treinamento</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="apresentacao">📊 Apresentação</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
           <TabsTrigger value="publicacao">📅 Publicação</TabsTrigger>
           <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
