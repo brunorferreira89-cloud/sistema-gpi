@@ -569,6 +569,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
         </div>
 
+        {/* 3.5 APRESENTAÇÃO DO MÊS */}
+        {hasApresentacao && (
+          <div>
+            <h2 className="text-sm font-bold text-[#0D1B35] mb-3 flex items-center gap-1.5">
+              📊 Apresentação do Mês
+            </h2>
+            <div
+              className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden flex items-center gap-4 p-5"
+              style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}
+            >
+              <div className="flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-lg bg-[#EBF0FF]">
+                <span className="text-[32px] leading-none">📊</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#0D1B35]">
+                  Relatório de Inteligência Financeira · {fmtMesAno(competencia)}
+                </p>
+                <p className="text-xs text-[#4A5E80] mt-0.5">
+                  Preparado pela equipe GPI · Clique para iniciar
+                </p>
+              </div>
+              <button
+                onClick={() => navigate(`/apresentacao/${resolvedClienteId}`)}
+                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                style={{ background: '#1A3CFF', borderRadius: '8px' }}
+              >
+                <Play className="h-4 w-4" /> Iniciar Apresentação
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 4. SAÚDE FINANCEIRA — KPIs */}
         {kpisAtivos.length > 0 && (
           <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>

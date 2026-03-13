@@ -351,13 +351,11 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
             <Button variant="outline" onClick={onPreview} className="border-[#DDE4F0] text-[#0D1B35]">
               <Eye className="h-4 w-4 mr-1" /> Pré-visualizar
             </Button>
-            <Button
-              onClick={onStartPresentation}
-              className="text-white"
-              style={{ background: 'linear-gradient(135deg, #1A3CFF, #0099E6)' }}
-            >
-              <Play className="h-4 w-4 mr-1" /> Iniciar Apresentação
-            </Button>
+            {prep?.id && (
+              <span className="inline-flex items-center gap-1 text-xs" style={{ color: '#00A86B' }}>
+                <Check className="h-3.5 w-3.5" /> Apresentação disponível no portal do cliente
+              </span>
+            )}
           </div>
         </div>
 
