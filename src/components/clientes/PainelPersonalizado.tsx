@@ -1317,12 +1317,31 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
                 <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: '#4A5E80', letterSpacing: '0.1em' }}>{h.grupo.nome}</span>
               </div>
               {h.subgrupos.map(({ sub, categorias }) => {
+                const filhaIds = categorias.map(c => c.id);
                 const selSub = selected.includes(sub.id);
+                const filhasSel = filhaIds.filter(id => selected.includes(id)).length;
+                const todasSel = filhaIds.length > 0 && filhasSel === filhaIds.length;
+                const algumaSel = filhasSel > 0 && !todasSel;
+                const checkado = selSub || todasSel;
                 const tipoCor = TIPO_CORES[sub.tipo] || '#8A9BBC';
+                const handleSubClick = () => {
+                  const ids = [sub.id, ...filhaIds];
+                  if (checkado) {
+                    setSelected(prev => prev.filter(x => !ids.includes(x)));
+                  } else {
+                    setSelected(prev => Array.from(new Set([...prev, ...ids])));
+                  }
+                };
                 return (
                   <div key={sub.id}>
-                    <button onClick={() => setSelected(prev => selSub ? prev.filter(x => x !== sub.id) : [...prev, sub.id])} className="w-full text-left flex items-center gap-2 transition-colors" style={{ padding: '8px 12px 8px 20px', background: selSub ? 'rgba(26,60,255,0.06)' : 'transparent' }} onMouseEnter={e => { if (!selSub) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }} onMouseLeave={e => { if (!selSub) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-                      <input type="checkbox" checked={selSub} readOnly style={{ accentColor: '#1A3CFF', width: 13, height: 13 }} />
+                    <button onClick={handleSubClick} className="w-full text-left flex items-center gap-2 transition-colors" style={{ padding: '8px 12px 8px 20px', background: checkado ? 'rgba(26,60,255,0.06)' : 'transparent' }} onMouseEnter={e => { if (!checkado) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }} onMouseLeave={e => { if (!checkado) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                      <input
+                        type="checkbox"
+                        checked={checkado}
+                        readOnly
+                        ref={el => { if (el) el.indeterminate = algumaSel; }}
+                        style={{ accentColor: '#1A3CFF', width: 13, height: 13 }}
+                      />
                       <span style={{ width: 8, height: 8, borderRadius: 2, background: tipoCor, flexShrink: 0 }} />
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#0D1B35' }}>{sub.nome}</span>
                       <span style={{ marginLeft: 'auto', fontSize: 7, background: '#F0F4FA', color: '#8A9BBC', padding: '1px 5px', borderRadius: 3 }}>subgrupo</span>
