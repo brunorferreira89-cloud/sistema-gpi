@@ -1016,6 +1016,12 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
         const isPct = widget.formato_resultado === 'percentual';
         return `Este widget divide o valor de ${nomeA} pelo valor de ${nomeB} para revelar uma relação entre as duas grandezas. O resultado ${isPct ? 'é expresso em %' : 'é expresso como índice'} e acompanha a tendência dos últimos meses para mostrar se essa relação está melhorando ou piorando.`;
       }
+      case 'detalhamento': {
+        const nomes = fmtNomes(nomesList);
+        const ordTxt = (widget as any).ordenacao_lista === 'ordem_plano' ? 'As contas seguem a ordem do plano de contas.' : 'As contas estão ordenadas da maior para a menor contribuição.';
+        const zeroTxt = (widget as any).ocultar_zeros ? ' Contas sem movimentação no período estão ocultas.' : '';
+        return `Este painel lista individualmente as contas selecionadas para ${mesAtual}, mostrando o valor de cada uma e sua participação no total. ${ordTxt}${zeroTxt}`;
+      }
       default: return widget.titulo;
     }
   }
