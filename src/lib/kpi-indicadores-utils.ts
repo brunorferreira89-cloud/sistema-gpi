@@ -24,7 +24,7 @@ export interface IndicadorCalculado {
   faturamento: number;
   status: 'verde' | 'ambar' | 'vermelho';
   pontos: number;
-  detalhe: { nome: string; valor: number; pct: number }[];
+  detalhe: { nome: string; valor: number; pct: number; contaId: string }[];
 }
 
 const TOTALIZADOR_TIPOS: Record<string, string[]> = {
