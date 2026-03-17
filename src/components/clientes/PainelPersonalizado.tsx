@@ -537,7 +537,36 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
   const [colunas, setColunas] = useState(1);
   const [corDestaque, setCorDestaque] = useState('#1A3CFF');
   const [saving, setSaving] = useState(false);
-  const [showContaPicker, setShowContaPicker] = useState(false);
+  const [buscaConta, setBuscaConta] = useState('');
+
+  const TIPO_CORES: Record<string, string> = { receita: '#1A3CFF', custo_variavel: '#DC2626', despesa_fixa: '#D97706', investimento: '#0099E6', financiamento: '#00A86B' };
+
+  const allContas = contas; // includes nivel 0,1,2
+  const grupos = useMemo(() => allContas.filter(c => c.nivel === 0), [allContas]);
+
+  const contasFiltradas = useMemo(() => {
+    if (!buscaConta.trim()) return null; // null = show hierarchy
+    const term = buscaConta.toLowerCase();
+    return allContas.filter(c => c.nivel >= 1 && c.nome.toLowerCase().includes(term));
+  }, [buscaConta, allContas]);
+
+  const contasByParent = useMemo(() => {
+    const map: Record<string, Conta[]> = {};
+    allContas.filter(c => c.nivel >= 1).forEach(c => {
+      // find parent grupo
+      const parentGrupo = grupos.find(g => {
+        const gIdx = allContas.indexOf(g);
+        const nextGrupo = grupos.find((g2, i2) => allContas.indexOf(g2) > gIdx && i2 > grupos.indexOf(g));
+        const nextIdx = nextGrupo ? allContas.indexOf(nextGrupo) : allContas.length;
+        const cIdx = allContas.indexOf(c);
+        return cIdx > gIdx && cIdx < nextIdx;
+      });
+      const key = parentGrupo?.id || '__none';
+      if (!map[key]) map[key] = [];
+      map[key].push(c);
+    });
+    return map;
+  }, [allContas, grupos]);
 
   const handleCreate = async () => {
     if (!titulo.trim() || !selectedContas.length) return;
