@@ -1260,6 +1260,7 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   const needsPeriodo = tipo === 'grafico_barras';
   const needsMeta = tipo === 'indicador';
   const needsFormato = tipo === 'cruzamento';
+  const needsDetalhamento = tipo === 'detalhamento';
 
   const allContas = contas;
 
