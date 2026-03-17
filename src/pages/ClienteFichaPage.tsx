@@ -212,7 +212,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="apresentacao">📊 Apresentação</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
           <TabsTrigger value="publicacao">📅 Publicação</TabsTrigger>
-          <TabsTrigger value="painel">📊 Painel</TabsTrigger>
+          
           <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
         </TabsList>
 
