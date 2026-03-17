@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BookOpen, ArrowLeft, Calendar } from 'lucide-react';
 import { OnboardingTab } from '@/components/clientes/OnboardingTab';
+import { ApresentacaoListTab } from '@/components/clientes/ApresentacaoListTab';
 import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
 import { ImportacaoTab } from '@/components/clientes/ImportacaoTab';
