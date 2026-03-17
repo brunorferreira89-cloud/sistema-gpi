@@ -655,7 +655,7 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   const TIPO_CORES: Record<string, string> = { receita: '#1A3CFF', custo_variavel: '#DC2626', despesa_fixa: '#D97706', investimento: '#0099E6', financiamento: '#00A86B' };
 
   const allContas = contas;
-  const grupos = useMemo(() => allContas.filter(c => c.nivel === 0), [allContas]);
+  
 
   const contasFiltradas = useMemo(() => {
     if (!buscaConta.trim()) return null;
