@@ -349,7 +349,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
               variant="outline"
               onClick={handleSaveAll}
               className="border-[#DDE4F0] text-[#0D1B35]"
-              disabled={Object.keys(editedFields).length === 0}
+              disabled={!prep || saving}
             >
               <Save className="h-4 w-4 mr-1" /> Salvar
             </Button>
