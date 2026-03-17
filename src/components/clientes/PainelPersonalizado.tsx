@@ -59,6 +59,7 @@ const TIPO_OPTIONS = [
   { value: 'grafico_pizza', icon: '🍕', color: '#0099E6', title: 'Pizza', desc: 'Composição grupo', badge: 'PIZZA' },
   { value: 'indicador', icon: '🎯', color: '#D97706', title: 'Indicador', desc: 'Valor com semáforo', badge: 'INDIC.' },
   { value: 'cruzamento', icon: '🔗', color: '#8A9BBC', title: 'Cruzamento', desc: 'Relação entre contas', badge: 'CRUZAM.' },
+  { value: 'detalhamento', icon: 'detail', color: '#4A5E80', title: 'Detalhamento', desc: 'Lista de categorias', badge: 'DETALHE' },
 ] as const;
 
 const COLOR_SWATCHES = ['#1A3CFF', '#00A86B', '#D97706', '#0099E6', '#DC2626'];
