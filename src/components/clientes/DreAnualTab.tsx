@@ -935,14 +935,37 @@ export function DreAnualTab({ clienteId }: Props) {
 
       {/* Painéis Personalizados */}
       <div>
-        <button
+        <div
           onClick={() => setPainelOpen(v => !v)}
-          className="flex items-center gap-2 w-full text-left py-2"
-          style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: 44,
+            padding: '0 16px',
+            background: painelOpen ? '#E8EEF8' : '#F0F4FA',
+            borderTop: '1px solid #DDE4F0',
+            borderBottom: '1px solid #DDE4F0',
+            cursor: 'pointer',
+            transition: 'background 0.15s',
+            userSelect: 'none',
+          }}
+          onMouseEnter={e => { (e.currentTarget.style.background = '#E8EEF8'); }}
+          onMouseLeave={e => { if (!painelOpen) e.currentTarget.style.background = '#F0F4FA'; }}
         >
-          {painelOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          📊 Painéis Personalizados
-        </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 14 }}>📊</span>
+            <span style={{ fontSize: 11, color: '#4A5E80', letterSpacing: '0.15em', fontWeight: 600 }}>
+              PAINÉIS PERSONALIZADOS
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {painelOpen
+              ? <ChevronDown className="h-4 w-4" style={{ color: '#4A5E80', transition: 'transform 0.2s' }} />
+              : <ChevronRight className="h-4 w-4" style={{ color: '#4A5E80', transition: 'transform 0.2s' }} />
+            }
+          </div>
+        </div>
         {painelOpen && mesEfetivo && (
           <PainelPersonalizado clienteId={clienteId} competencia={mesEfetivo} modoConfig={false} />
         )}
