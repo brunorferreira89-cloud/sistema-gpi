@@ -350,7 +350,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
       <div className="min-h-screen" style={{ background: '#F0F4FA' }}>
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0] px-4 py-3">
-          <div className="max-w-[1100px] mx-auto flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
               <span className="text-sm font-semibold text-[#0D1B35]">{cliente?.razao_social || cliente?.nome_empresa || ''}</span>
@@ -410,10 +410,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const kpisAtivos = indicadoresCalc.filter((c: any) => c.indicador.ativo);
 
   return (
-    <div className="min-h-screen" style={{ background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ width: '100%', maxWidth: '100%', padding: 0, background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
       {/* 1. HEADER */}
       <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0]">
-        <div className="max-w-[1100px] mx-auto flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
             <span className="text-sm font-semibold text-[#0D1B35]">
@@ -450,7 +450,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
       </header>
 
-      <main className="max-w-[1100px] mx-auto px-4 py-6 space-y-6">
+      <main className="px-4 py-6 space-y-6">
         {/* 2. SAUDAÇÃO */}
         <div>
           <p className="text-sm text-[#4A5E80]">Olá, {profile?.nome || 'Cliente'} 👋</p>
@@ -498,7 +498,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* 3. TRÊS HERO CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
           {/* FATURAMENTO */}
           <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #1A3CFF, #0099E6)' }} />
