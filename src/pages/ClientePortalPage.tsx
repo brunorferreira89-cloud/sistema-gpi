@@ -410,7 +410,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const kpisAtivos = indicadoresCalc.filter((c: any) => c.indicador.ativo);
 
   return (
-    <div style={{ width: '100%', maxWidth: '100%', padding: 0, background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
+    <div style={{ width: '100%', padding: '24px', background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
       {/* 1. HEADER */}
       <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0]">
         <div className="flex items-center justify-between px-4 py-3">
