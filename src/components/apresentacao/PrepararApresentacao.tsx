@@ -630,5 +630,6 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         }}
         preselectedClienteId={clienteId}
       />
+    </>
   );
 }
