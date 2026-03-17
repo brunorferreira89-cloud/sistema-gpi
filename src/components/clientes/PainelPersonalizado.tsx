@@ -1621,7 +1621,7 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
               )}
 
 
-              {duplicateAlerts.length > 0 && (
+              {tipo !== 'detalhamento' && duplicateAlerts.length > 0 && (
                 <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
                   {duplicateAlerts.map((a, i) => (
                     <p key={i} style={{ fontSize: 10.5, color: '#92400E' }}>⚠️ Atenção: {a}. Isso pode duplicar valores no resultado.</p>
