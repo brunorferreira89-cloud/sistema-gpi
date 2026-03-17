@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { PainelPersonalizado } from './PainelPersonalizado';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -101,6 +102,14 @@ export function BenchmarkConfigTab({ clienteId }: Props) {
 
   return (
     <div className="space-y-6 py-4">
+      {/* Widgets do Painel Personalizado */}
+      <div>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35' }}>Widgets do Painel Personalizado</h3>
+        <p style={{ fontSize: 11, color: '#8A9BBC', marginBottom: 12 }}>Configure widgets exclusivos para este cliente.</p>
+        <PainelPersonalizado clienteId={clienteId} modoConfig={true} />
+      </div>
+
+      <div style={{ height: 1, background: '#DDE4F0' }} />
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.08em' }}>
           INDICADORES DE SAÚDE

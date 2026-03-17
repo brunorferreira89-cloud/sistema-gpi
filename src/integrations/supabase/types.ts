@@ -662,46 +662,67 @@ export type Database = {
       }
       painel_widgets: {
         Row: {
+          analise_gerada_em: string | null
+          analise_hash: string | null
+          analise_ia: string | null
           ativo: boolean | null
           cliente_id: string
           colunas: number | null
           conta_ids: string[] | null
+          conta_ids_b: string[] | null
           cor_destaque: string | null
           created_at: string | null
+          formato_resultado: string | null
           id: string
           meta_direcao: string | null
           meta_valor: number | null
+          meta_valor_b: number | null
           ordem: number | null
+          periodo_meses: number | null
           tipo: string
           titulo: string
           updated_at: string | null
         }
         Insert: {
+          analise_gerada_em?: string | null
+          analise_hash?: string | null
+          analise_ia?: string | null
           ativo?: boolean | null
           cliente_id: string
           colunas?: number | null
           conta_ids?: string[] | null
+          conta_ids_b?: string[] | null
           cor_destaque?: string | null
           created_at?: string | null
+          formato_resultado?: string | null
           id?: string
           meta_direcao?: string | null
           meta_valor?: number | null
+          meta_valor_b?: number | null
           ordem?: number | null
+          periodo_meses?: number | null
           tipo: string
           titulo: string
           updated_at?: string | null
         }
         Update: {
+          analise_gerada_em?: string | null
+          analise_hash?: string | null
+          analise_ia?: string | null
           ativo?: boolean | null
           cliente_id?: string
           colunas?: number | null
           conta_ids?: string[] | null
+          conta_ids_b?: string[] | null
           cor_destaque?: string | null
           created_at?: string | null
+          formato_resultado?: string | null
           id?: string
           meta_direcao?: string | null
           meta_valor?: number | null
+          meta_valor_b?: number | null
           ordem?: number | null
+          periodo_meses?: number | null
           tipo?: string
           titulo?: string
           updated_at?: string | null

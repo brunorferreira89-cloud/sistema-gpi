@@ -23,7 +23,7 @@ import { fetchKpiData } from '@/lib/kpi-utils';
 import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
 import { PortalTab } from '@/components/clientes/PortalTab';
 import { PublicacaoTab } from '@/components/clientes/PublicacaoTab';
-import { PainelPersonalizado } from '@/components/clientes/PainelPersonalizado';
+
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
@@ -212,7 +212,7 @@ export default function ClienteFichaPage() {
           <TabsTrigger value="apresentacao">📊 Apresentação</TabsTrigger>
           <TabsTrigger value="portal">Portal</TabsTrigger>
           <TabsTrigger value="publicacao">📅 Publicação</TabsTrigger>
-          <TabsTrigger value="painel">📊 Painel</TabsTrigger>
+          
           <TabsTrigger value="visao-cliente">👁 Visão do Cliente</TabsTrigger>
         </TabsList>
 
@@ -355,10 +355,7 @@ export default function ClienteFichaPage() {
           <ClientePortalEspelho clienteId={clienteId!} onSwitchTab={setActiveTab} />
         </TabsContent>
 
-        {/* Painel Personalizado */}
-        <TabsContent value="painel">
-          <PainelPersonalizado clienteId={clienteId!} />
-        </TabsContent>
+        
       </Tabs>
 
       <ReuniaoDialog

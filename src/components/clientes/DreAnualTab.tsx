@@ -10,6 +10,7 @@ import { DreIndicadoresHeader } from './DreIndicadoresHeader';
 import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
 import { KpiPainelDre } from './KpiPainelDre';
 import { DreBanner } from './DreBanner';
+import { PainelPersonalizado } from './PainelPersonalizado';
 
 // --- helpers ---
 
@@ -139,6 +140,7 @@ export function DreAnualTab({ clienteId }: Props) {
   const [drawerDados, setDrawerDados] = useState<AnaliseDrawerDados | null>(null);
   const months = getMonthsForYear(ano);
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
+  const [painelOpen, setPainelOpen] = useState(true);
 
   const now = new Date();
   const currentMonthComp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -930,6 +932,21 @@ export function DreAnualTab({ clienteId }: Props) {
       {hasContas && mesEfetivo && (
         <KpiPainelDre clienteId={clienteId} competencia={mesEfetivo} faturamento={bannerData.faturamento ?? undefined} cmv={bannerData.cmv ?? undefined} />
       )}
+
+      {/* Painéis Personalizados */}
+      <div>
+        <button
+          onClick={() => setPainelOpen(v => !v)}
+          className="flex items-center gap-2 w-full text-left py-2"
+          style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35' }}
+        >
+          {painelOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          📊 Painéis Personalizados
+        </button>
+        {painelOpen && mesEfetivo && (
+          <PainelPersonalizado clienteId={clienteId} competencia={mesEfetivo} modoConfig={false} />
+        )}
+      </div>
 
       {/* Month selector */}
       {monthsWithData.length > 0 && (
