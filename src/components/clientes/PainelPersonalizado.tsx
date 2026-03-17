@@ -140,6 +140,8 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
         conta_ids_b: w.conta_ids_b || [],
         periodo_meses: w.periodo_meses || 6,
         formato_resultado: w.formato_resultado || 'percentual',
+        ocultar_zeros: w.ocultar_zeros ?? true,
+        ordenacao_lista: w.ordenacao_lista || 'maior_primeiro',
       })) as Widget[];
     },
   });
