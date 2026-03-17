@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { X, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/plano-contas-utils';
