@@ -33,6 +33,7 @@ interface Conta {
   tipo: string;
   nivel: number;
   ordem: number;
+  conta_pai_id: string | null;
 }
 
 interface Props {
@@ -122,7 +123,7 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('plano_de_contas')
-        .select('id, nome, tipo, nivel, ordem')
+        .select('id, nome, tipo, nivel, ordem, conta_pai_id')
         .eq('cliente_id', clienteId)
         .order('ordem', { ascending: true });
       if (error) throw error;
@@ -654,7 +655,7 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   const TIPO_CORES: Record<string, string> = { receita: '#1A3CFF', custo_variavel: '#DC2626', despesa_fixa: '#D97706', investimento: '#0099E6', financiamento: '#00A86B' };
 
   const allContas = contas;
-  const grupos = useMemo(() => allContas.filter(c => c.nivel === 0), [allContas]);
+  
 
   const contasFiltradas = useMemo(() => {
     if (!buscaConta.trim()) return null;
@@ -662,19 +663,26 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
     return allContas.filter(c => c.nivel >= 1 && c.nome.toLowerCase().includes(term));
   }, [buscaConta, allContas]);
 
-  const contasByParent = useMemo(() => {
-    const map: Record<string, Conta[]> = {};
-    let currentGrupoId = '__none';
+  // Build hierarchy: N0 groups → N1 subgroups → N2 categories, all in ordem ASC order
+  const hierarquia = useMemo(() => {
+    // Already sorted by ordem ASC from the query
+    const gruposList: { grupo: Conta; subgrupos: { sub: Conta; categorias: Conta[] }[] }[] = [];
+    let currentGrupo: typeof gruposList[number] | null = null;
+    let currentSub: { sub: Conta; categorias: Conta[] } | null = null;
+
     allContas.forEach(c => {
       if (c.nivel === 0) {
-        currentGrupoId = c.id;
-        if (!map[currentGrupoId]) map[currentGrupoId] = [];
-      } else {
-        if (!map[currentGrupoId]) map[currentGrupoId] = [];
-        map[currentGrupoId].push(c);
+        currentGrupo = { grupo: c, subgrupos: [] };
+        gruposList.push(currentGrupo);
+        currentSub = null;
+      } else if (c.nivel === 1) {
+        currentSub = { sub: c, categorias: [] };
+        if (currentGrupo) currentGrupo.subgrupos.push(currentSub);
+      } else if (c.nivel === 2) {
+        if (currentSub) currentSub.categorias.push(c);
       }
     });
-    return map;
+    return gruposList;
   }, [allContas]);
 
   const handleSave = async () => {
@@ -855,47 +863,57 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
                     );
                   })
                 ) : (
-                  grupos.map((g, gi) => {
-                    const children = contasByParent[g.id] || [];
-                    return (
-                      <div key={g.id}>
-                        {gi > 0 && <div style={{ height: 1, background: '#DDE4F0' }} />}
-                        <div style={{ background: '#E8EEF8', padding: '6px 12px' }}>
-                          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: '#4A5E80', letterSpacing: '0.1em' }}>{g.nome}</span>
-                        </div>
-                        {children.map(c => {
-                          const sel = selectedContas.includes(c.id);
-                          const tipoCor = TIPO_CORES[c.tipo] || '#8A9BBC';
-                          const isSubgrupo = c.nivel === 1;
-                          return (
+                  hierarquia.map((h, gi) => (
+                    <div key={h.grupo.id}>
+                      {gi > 0 && <div style={{ height: 1, background: '#DDE4F0' }} />}
+                      <div style={{ background: '#E8EEF8', padding: '6px 12px' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: '#4A5E80', letterSpacing: '0.1em' }}>{h.grupo.nome}</span>
+                      </div>
+                      {h.subgrupos.map(({ sub, categorias }) => {
+                        const selSub = selectedContas.includes(sub.id);
+                        const tipoCor = TIPO_CORES[sub.tipo] || '#8A9BBC';
+                        return (
+                          <div key={sub.id}>
                             <button
-                              key={c.id}
-                              onClick={() => setSelectedContas(prev => sel ? prev.filter(x => x !== c.id) : [...prev, c.id])}
+                              onClick={() => setSelectedContas(prev => selSub ? prev.filter(x => x !== sub.id) : [...prev, sub.id])}
                               className="w-full text-left flex items-center gap-2 transition-colors"
                               style={{
-                                padding: isSubgrupo ? '8px 12px 8px 20px' : '6px 12px 6px 36px',
-                                background: sel ? (isSubgrupo ? 'rgba(26,60,255,0.06)' : 'rgba(26,60,255,0.04)') : 'transparent',
+                                padding: '8px 12px 8px 20px',
+                                background: selSub ? 'rgba(26,60,255,0.06)' : 'transparent',
                               }}
-                              onMouseEnter={e => { if (!sel) (e.currentTarget as HTMLElement).style.background = isSubgrupo ? 'rgba(26,60,255,0.04)' : 'rgba(26,60,255,0.03)'; }}
-                              onMouseLeave={e => { if (!sel) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                              onMouseEnter={e => { if (!selSub) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
+                              onMouseLeave={e => { if (!selSub) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                             >
-                              <input type="checkbox" checked={sel} readOnly style={{ accentColor: '#1A3CFF', width: 13, height: 13 }} />
-                              <span style={{
-                                width: isSubgrupo ? 8 : 5, height: isSubgrupo ? 8 : 5,
-                                borderRadius: isSubgrupo ? 2 : '50%', background: tipoCor, flexShrink: 0,
-                              }} />
-                              <span style={{ fontSize: isSubgrupo ? 12 : 11, fontWeight: isSubgrupo ? 600 : 400, color: isSubgrupo ? '#0D1B35' : '#4A5E80' }}>
-                                {c.nome}
-                              </span>
-                              {isSubgrupo && (
-                                <span style={{ marginLeft: 'auto', fontSize: 7, background: '#F0F4FA', color: '#8A9BBC', padding: '1px 5px', borderRadius: 3 }}>subgrupo</span>
-                              )}
+                              <input type="checkbox" checked={selSub} readOnly style={{ accentColor: '#1A3CFF', width: 13, height: 13 }} />
+                              <span style={{ width: 8, height: 8, borderRadius: 2, background: tipoCor, flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, fontWeight: 600, color: '#0D1B35' }}>{sub.nome}</span>
+                              <span style={{ marginLeft: 'auto', fontSize: 7, background: '#F0F4FA', color: '#8A9BBC', padding: '1px 5px', borderRadius: 3 }}>subgrupo</span>
                             </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })
+                            {categorias.map(cat => {
+                              const selCat = selectedContas.includes(cat.id);
+                              return (
+                                <button
+                                  key={cat.id}
+                                  onClick={() => setSelectedContas(prev => selCat ? prev.filter(x => x !== cat.id) : [...prev, cat.id])}
+                                  className="w-full text-left flex items-center gap-2 transition-colors"
+                                  style={{
+                                    padding: '6px 12px 6px 36px',
+                                    background: selCat ? 'rgba(26,60,255,0.04)' : 'transparent',
+                                  }}
+                                  onMouseEnter={e => { if (!selCat) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.03)'; }}
+                                  onMouseLeave={e => { if (!selCat) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                                >
+                                  <input type="checkbox" checked={selCat} readOnly style={{ accentColor: '#1A3CFF', width: 13, height: 13 }} />
+                                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: tipoCor, flexShrink: 0 }} />
+                                  <span style={{ fontSize: 11, color: '#4A5E80' }}>{cat.nome}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))
                 )}
               </div>
 
