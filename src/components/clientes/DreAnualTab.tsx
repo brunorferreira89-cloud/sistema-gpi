@@ -923,6 +923,58 @@ export function DreAnualTab({ clienteId }: Props) {
       {/* Cockpit Banner */}
       <DreBanner faturamento={bannerData.faturamento} mcPct={bannerData.mcPct} gcPct={bannerData.gcPct} />
 
+      {/* Month selector — chips */}
+      {monthsWithData.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexWrap: 'wrap',
+          padding: '10px 0 4px',
+          borderBottom: '1px solid #DDE4F0',
+          marginBottom: 0,
+        }}>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: '#8A9BBC',
+            marginRight: 4,
+            flexShrink: 0,
+          }}>
+            Competência
+          </span>
+          {monthsWithData.map((m) => {
+            const isAtivo = m.value === mesEfetivo;
+            const label = new Date(m.value + 'T12:00:00')
+              .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+              .replace('.', '')
+              .toUpperCase();
+            return (
+              <button
+                key={m.value}
+                onClick={() => setMesSelecionado(m.value)}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: isAtivo ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  border: isAtivo ? '1.5px solid #1A3CFF' : '1px solid #DDE4F0',
+                  background: isAtivo ? '#1A3CFF' : '#FFFFFF',
+                  color: isAtivo ? '#FFFFFF' : '#4A5E80',
+                  boxShadow: isAtivo ? '0 2px 8px rgba(26,60,255,0.18)' : 'none',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Indicadores Header */}
       {hasContas && contas && valoresAnuais && (
         <DreIndicadoresHeader contas={contas} valoresAnuais={valoresAnuais} months={months} mesSelecionado={mesEfetivo || undefined} clienteId={clienteId} />
