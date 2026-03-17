@@ -175,7 +175,7 @@ export function calcularIndicadores(
               if (v != null) {
                 hasAny = true;
                 total += v;
-                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: c.id });
               }
             });
           } else if (conta.nivel === 2) {
@@ -184,7 +184,7 @@ export function calcularIndicadores(
             if (v != null) {
               hasAny = true;
               total += v;
-              detalhe.push({ nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+              detalhe.push({ nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: conta.id });
             }
           }
         }
