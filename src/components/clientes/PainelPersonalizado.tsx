@@ -1344,6 +1344,8 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
           meta_valor: metaValor || null,
           meta_direcao: metaDirecao,
           formato_resultado: formatoResultado,
+          ocultar_zeros: ocultarZeros,
+          ordenacao_lista: ordenacaoLista,
         } as any);
         if (error) throw error;
         toast({ title: 'Widget criado!' });
