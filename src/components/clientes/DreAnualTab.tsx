@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, type ContaRow } from '@/lib/plano-contas-utils';
-import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, ChevronLeft, Trash2, Loader2, Plus } from 'lucide-react';
+import { BookOpen, FileSpreadsheet, ArrowUp, ArrowDown, ChevronDown, ChevronRight, Trash2, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLeafContas } from '@/lib/dre-indicadores';
 import { DreIndicadoresHeader } from './DreIndicadoresHeader';
@@ -971,45 +971,55 @@ export function DreAnualTab({ clienteId }: Props) {
         )}
       </div>
 
-      {/* Month selector */}
+      {/* Month selector — chips */}
       {monthsWithData.length > 0 && (
-        <div className="flex items-center gap-2" style={{ marginBottom: -8 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#8A9BBC' }}>
-            Referência:
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          flexWrap: 'wrap',
+          padding: '10px 0 4px',
+          borderBottom: '1px solid #DDE4F0',
+          marginBottom: 16,
+        }}>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: '#8A9BBC',
+            marginRight: 4,
+            flexShrink: 0,
+          }}>
+            Competência
           </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                const idx = monthsWithData.findIndex(m => m.value === mesEfetivo);
-                if (idx > 0) setMesSelecionado(monthsWithData[idx - 1].value);
-              }}
-              disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0}
-              style={{
-                padding: '2px 4px', borderRadius: 4, cursor: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? 'default' : 'pointer',
-                color: monthsWithData.findIndex(m => m.value === mesEfetivo) <= 0 ? '#C4CFEA' : '#4A5E80',
-                background: 'transparent', border: 'none', lineHeight: 0,
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#0D1B35', minWidth: 120, textAlign: 'center', display: 'inline-block' }}>
-              {mesEfetivo ? new Date(mesEfetivo + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').toUpperCase() : '—'}
-            </span>
-            <button
-              onClick={() => {
-                const idx = monthsWithData.findIndex(m => m.value === mesEfetivo);
-                if (idx < monthsWithData.length - 1) setMesSelecionado(monthsWithData[idx + 1].value);
-              }}
-              disabled={monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1}
-              style={{
-                padding: '2px 4px', borderRadius: 4, cursor: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? 'default' : 'pointer',
-                color: monthsWithData.findIndex(m => m.value === mesEfetivo) >= monthsWithData.length - 1 ? '#C4CFEA' : '#4A5E80',
-                background: 'transparent', border: 'none', lineHeight: 0,
-              }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          {monthsWithData.map((m) => {
+            const isAtivo = m.value === mesEfetivo;
+            const label = new Date(m.value + 'T12:00:00')
+              .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+              .replace('.', '')
+              .toUpperCase();
+            return (
+              <button
+                key={m.value}
+                onClick={() => setMesSelecionado(m.value)}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: isAtivo ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  border: isAtivo ? '1.5px solid #1A3CFF' : '1px solid #DDE4F0',
+                  background: isAtivo ? '#1A3CFF' : '#FFFFFF',
+                  color: isAtivo ? '#FFFFFF' : '#4A5E80',
+                  boxShadow: isAtivo ? '0 2px 8px rgba(26,60,255,0.18)' : 'none',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       )}
       {/* Title + Filter + Toggle Buttons */}
