@@ -327,6 +327,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
   };
 
   return (
+    <>
     <div className="min-h-screen" style={{ background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }}>
       <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         {/* HEADER */}
