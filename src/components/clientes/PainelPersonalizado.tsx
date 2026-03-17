@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
@@ -832,7 +833,7 @@ function hexToHsl(hex: string) {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-/* ─── Detail Modal ─── */
+/* ─── Detail Modal (KpiDetalheModal style) ─── */
 function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap, getContaTipoSemantico, onClose }: {
   widget: Widget; comp: string; contaMap: Record<string, Conta>;
   getSoma: (ids: string[], comp: string) => number;
@@ -842,6 +843,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   onClose: () => void;
 }) {
   const tipoOpt = TIPO_OPTIONS.find(t => t.value === widget.tipo);
+  const eyebrow = `${(tipoOpt?.title || widget.tipo).toUpperCase()} · IA`;
   const prevComp = getPrevCompetencia(comp);
   const somaAtual = getSoma(widget.conta_ids, comp);
   const somaPrev = getSoma(widget.conta_ids, prevComp);
@@ -849,6 +851,57 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   const hasAnalise = !!widget.analise_ia;
   const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp);
 
+  // Indicador semaphore
+  const indicadorData = useMemo(() => {
+    if (widget.tipo !== 'indicador') return null;
+    const num = getSoma(widget.conta_ids, comp);
+    const den = getSoma(widget.conta_ids_b || [], comp);
+    const resultado = den !== 0 ? (num / den) * 100 : 0;
+    const meta = widget.meta_valor || 0;
+    const direcao = widget.meta_direcao || 'menor_melhor';
+    let semaforo: 'verde' | 'ambar' | 'vermelho';
+    if (direcao === 'menor_melhor') {
+      semaforo = resultado <= meta ? 'verde' : resultado <= meta * 1.05 ? 'ambar' : 'vermelho';
+    } else {
+      semaforo = resultado >= meta ? 'verde' : resultado >= meta * 0.95 ? 'ambar' : 'vermelho';
+    }
+    return { resultado, meta, semaforo, distancia: resultado - meta, num, den };
+  }, [widget, comp, getSoma]);
+
+  const STATUS_LABEL: Record<string, { text: string; bg: string; color: string }> = {
+    verde: { text: 'OK', bg: 'rgba(0,168,107,0.12)', color: '#00A86B' },
+    ambar: { text: 'Atenção', bg: 'rgba(217,119,6,0.12)', color: '#D97706' },
+    vermelho: { text: 'Crítico', bg: 'rgba(220,38,38,0.12)', color: '#DC2626' },
+  };
+
+  const statusCfg = indicadorData ? STATUS_LABEL[indicadorData.semaforo] : null;
+
+  // History: last 6 months
+  const histMeses = useMemo(() => getNPrevCompetencias(comp, 6), [comp]);
+
+  const histValues = useMemo(() => {
+    return histMeses.map(m => {
+      if (widget.tipo === 'indicador') {
+        const num = getSoma(widget.conta_ids, m);
+        const den = getSoma(widget.conta_ids_b || [], m);
+        return den !== 0 ? (num / den) * 100 : 0;
+      }
+      if (widget.tipo === 'cruzamento') {
+        const a = getSoma(widget.conta_ids, m);
+        const b = getSoma(widget.conta_ids_b || [], m);
+        if (b === 0) return 0;
+        return widget.formato_resultado === 'percentual' ? (a / b) * 100 : a / b;
+      }
+      return getSoma(widget.conta_ids, m);
+    });
+  }, [widget, histMeses, getSoma]);
+
+  const fmtMonthLong = (c: string) => {
+    const d = new Date(c + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  // Formula builder
   function buildFormula() {
     const contaNomes = widget.conta_ids.map(id => contaMap[id]?.nome || id.slice(0, 8));
     const contaVals = widget.conta_ids.map(id => formatCurrency(valMap[`${id}__${comp}`] || 0));
@@ -875,12 +928,8 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
         return `${widget.titulo}\nTotal: ${formatCurrency(widget.conta_ids.reduce((s, id) => s + Math.abs(valMap[`${id}__${comp}`] || 0), 0))}\n${items.join('\n')}`;
       }
       case 'indicador': {
-        const num = getSoma(widget.conta_ids, comp);
-        const den = getSoma(widget.conta_ids_b || [], comp);
-        const res = den !== 0 ? (num / den * 100).toFixed(1) : '0';
-        const meta = widget.meta_valor || 0;
-        const dist = (parseFloat(res) - meta).toFixed(1);
-        return `${widget.titulo}\nNumerador: ${formatCurrency(num)}\nDenominador: ${formatCurrency(den)}\nResultado: ${formatCurrency(num)} / ${formatCurrency(den)} = ${res}%\nMeta: ${widget.meta_direcao === 'menor_melhor' ? 'menor que' : 'maior que'} ${meta}%\nDistância da meta: ${dist} p.p.`;
+        if (!indicadorData) return widget.titulo;
+        return `${widget.titulo}\nNumerador: ${formatCurrency(indicadorData.num)}\nDenominador: ${formatCurrency(indicadorData.den)}\nResultado: ${formatCurrency(indicadorData.num)} / ${formatCurrency(indicadorData.den)} = ${indicadorData.resultado.toFixed(1)}%\nMeta: ${widget.meta_direcao === 'menor_melhor' ? 'menor que' : 'maior que'} ${indicadorData.meta}%\nDistância da meta: ${indicadorData.distancia.toFixed(1)} p.p.`;
       }
       case 'cruzamento': {
         const a = getSoma(widget.conta_ids, comp);
@@ -893,70 +942,193 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
     }
   }
 
+  // Composition table data
+  const composicao = useMemo(() => {
+    const rows: { nome: string; valor: number; pctFat: number | null }[] = [];
+    widget.conta_ids.forEach(id => {
+      const v = valMap[`${id}__${comp}`] || 0;
+      rows.push({ nome: contaMap[id]?.nome || id.slice(0, 8), valor: v, pctFat: fat ? (Math.abs(v) / Math.abs(fat) * 100) : null });
+    });
+    if (widget.tipo === 'comparativo') {
+      // Show prev month values too
+      return widget.conta_ids.map(id => ({
+        nome: contaMap[id]?.nome || id.slice(0, 8),
+        valor: valMap[`${id}__${comp}`] || 0,
+        valorPrev: valMap[`${id}__${prevComp}`] || 0,
+        pctFat: fat ? (Math.abs(valMap[`${id}__${comp}`] || 0) / Math.abs(fat) * 100) : null,
+      }));
+    }
+    if ((widget.tipo === 'indicador' || widget.tipo === 'cruzamento') && widget.conta_ids_b?.length) {
+      (widget.conta_ids_b || []).forEach(id => {
+        const v = valMap[`${id}__${comp}`] || 0;
+        rows.push({ nome: `${contaMap[id]?.nome || id.slice(0, 8)} (B)`, valor: v, pctFat: fat ? (Math.abs(v) / Math.abs(fat) * 100) : null });
+      });
+    }
+    return rows;
+  }, [widget, comp, prevComp, valMap, contaMap, fat]);
+
+  // Sparkline for history
+  const sparkMin = Math.min(...histValues);
+  const sparkMax = Math.max(...histValues);
+  const sparkRange = sparkMax - sparkMin || 1;
+
+  // ESC to close
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'rgba(13,27,53,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'fadeIn 0.2s ease',
+      }}
     >
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(13,27,53,0.45)' }} />
-      <div style={{
-        position: 'relative', borderRadius: 16, background: '#fff', width: '100%', maxWidth: 600,
-        maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        animation: 'modalEnter 0.22s cubic-bezier(0.16,1,0.3,1)',
-      }}>
-        {/* Header */}
-        <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid #DDE4F0', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', background: `${widget.cor_destaque}18`, color: widget.cor_destaque, padding: '2px 7px', borderRadius: 4 }}>{tipoOpt?.badge || widget.tipo}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35', flex: 1 }}>{widget.titulo}</span>
-          <span style={{ fontFamily: 'Courier New, monospace', fontSize: 10, color: '#8A9BBC' }}>{fmtComp(comp)}</span>
-          <button onClick={onClose} style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: '#F0F4FA', color: '#4A5E80', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalEnter { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
+      `}</style>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 600, maxHeight: '88vh',
+          borderRadius: 16, overflow: 'hidden',
+          background: '#FAFCFF',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+          animation: 'modalEnter 0.22s ease',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {/* Header — dark, matching KpiDetalheModal */}
+        <div style={{ background: '#0D1B35', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.15em', marginBottom: 4 }}>{eyebrow}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#FFFFFF' }}>{widget.titulo}</span>
+              {statusCfg && indicadorData && (
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 10px', borderRadius: 8, background: statusCfg.bg, color: statusCfg.color }}>
+                  {indicadorData.resultado.toFixed(1)}% · {statusCfg.text}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 4, display: 'block' }}>{fmtMonthLong(comp)}</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 20, cursor: 'pointer', padding: '4px 8px', lineHeight: 1 }}>✕</button>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-          {/* Formula block */}
-          <div style={{ background: '#E8EEF8', borderRadius: 8, padding: '12px 14px', fontFamily: 'Courier New, monospace', fontSize: 11, color: '#0D1B35', whiteSpace: 'pre-wrap', lineHeight: 1.6, marginBottom: 16 }}>
-            {buildFormula()}
-          </div>
-
-          {/* Grid of values */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-            {widget.conta_ids.map(id => (
-              <div key={id} style={{ padding: '6px 8px', borderRadius: 6, background: '#F6F9FF' }}>
-                <span style={{ fontSize: 10, color: '#8A9BBC', display: 'block' }}>{contaMap[id]?.nome || id.slice(0, 8)}</span>
-                <span style={{ fontFamily: 'Courier New, monospace', fontSize: 13, fontWeight: 700, color: '#0D1B35' }}>{formatCurrency(valMap[`${id}__${comp}`] || 0)}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Análise GPI */}
-          <div style={{ borderTop: '1px solid #DDE4F0', paddingTop: 12 }}>
-            <div className="flex items-center gap-2 mb-2">
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#0D1B35' }}>✦ Análise GPI</span>
-              {hasAnalise && !hashChanged && <span style={{ fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(0,168,107,0.1)', color: '#00A86B' }}>✓ CACHE</span>}
-              {hasAnalise && hashChanged && <span style={{ fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(217,119,6,0.1)', color: '#D97706' }}>⚠ DESATUALIZADA</span>}
+        <div style={{ overflowY: 'auto', padding: 24, flex: 1 }}>
+          {/* Section 1 — COMO É CALCULADO */}
+          <div style={{ marginBottom: 24 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>📐 COMO É CALCULADO</span>
+            <div style={{ background: '#E8EEF8', border: '1px solid #DDE4F0', borderRadius: 8, padding: '10px 14px', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#0D1B35', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+              {buildFormula()}
             </div>
+          </div>
+
+          {/* Section 2 — COMPOSIÇÃO */}
+          <div style={{ marginBottom: 24 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>🔢 COMPOSIÇÃO — {fmtMonthLong(comp).toUpperCase()}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 12 }}>
+              {(Array.isArray(composicao) ? composicao : []).map((item: any, i: number) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
+                  <span style={{ fontSize: 12, color: '#4A5E80' }}>{item.nome}</span>
+                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(item.valor ?? item.valorPrev ?? 0))}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
+                <span style={{ fontSize: 12, color: '#4A5E80' }}>Faturamento</span>
+                <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(fat))}</span>
+              </div>
+            </div>
+            {/* Result highlight */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: statusCfg?.bg || 'rgba(26,60,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35' }}>= {widget.titulo}</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: statusCfg?.color || widget.cor_destaque, fontFamily: "'JetBrains Mono', monospace" }}>
+                {widget.tipo === 'indicador' && indicadorData ? `${indicadorData.resultado.toFixed(1)}%` :
+                  widget.tipo === 'cruzamento' ? (() => { const a = getSoma(widget.conta_ids, comp); const b = getSoma(widget.conta_ids_b || [], comp); const r = b !== 0 ? a / b : 0; return widget.formato_resultado === 'percentual' ? `${(r * 100).toFixed(1)}%` : r.toFixed(2); })() :
+                  formatCurrency(somaAtual)}
+              </span>
+            </div>
+          </div>
+
+          {/* Section 3 — HISTÓRICO */}
+          <div style={{ marginBottom: 24 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>📈 HISTÓRICO</span>
+            <div style={{ background: '#F6F9FF', border: '1px solid #DDE4F0', borderRadius: 8, padding: '12px 14px' }}>
+              <svg width="100%" height={60} viewBox="0 0 500 60" preserveAspectRatio="none" style={{ display: 'block' }}>
+                {histValues.length > 1 && (
+                  <>
+                    <polyline
+                      fill="none" stroke={widget.cor_destaque} strokeWidth={2} strokeOpacity={0.7}
+                      points={histValues.map((v, i) => `${(i / (histValues.length - 1)) * 480 + 10},${55 - ((v - sparkMin) / sparkRange) * 45}`).join(' ')}
+                    />
+                    {histValues.map((v, i) => (
+                      <circle key={i} cx={(i / (histValues.length - 1)) * 480 + 10} cy={55 - ((v - sparkMin) / sparkRange) * 45}
+                        r={i === histValues.length - 1 ? 4 : 2.5}
+                        fill={i === histValues.length - 1 ? widget.cor_destaque : '#fff'}
+                        stroke={widget.cor_destaque} strokeWidth={1.5} />
+                    ))}
+                  </>
+                )}
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                {histMeses.map((m, i) => (
+                  <span key={m} style={{ fontSize: 9, color: '#8A9BBC', fontFamily: "'JetBrains Mono', monospace" }}>{fmtCompShort(m)}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4 — ANÁLISE GPI */}
+          <div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>✨ ANÁLISE DO CONSULTOR GPI</span>
+
+            {hasAnalise && !hashChanged && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#00A86B', background: 'rgba(0,168,107,0.1)', padding: '2px 6px', borderRadius: 4 }}>✓ CACHE</span>
+                {widget.analise_gerada_em && (
+                  <span style={{ fontSize: 11, color: '#8A9BBC' }}>
+                    {new Date(widget.analise_gerada_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            )}
+            {hasAnalise && hashChanged && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#D97706', background: 'rgba(217,119,6,0.1)', padding: '2px 6px', borderRadius: 4 }}>⚠ DESATUALIZADA</span>
+              </div>
+            )}
+
             {hasAnalise ? (
-              <p style={{ fontSize: 12, color: '#0D1B35', lineHeight: 1.7 }}>{widget.analise_ia}</p>
+              <p style={{ fontSize: 13, color: '#0D1B35', margin: 0, lineHeight: 1.7 }}>{widget.analise_ia}</p>
             ) : (
-              <div className="flex flex-col items-center justify-center py-6">
-                <span style={{ fontSize: 24, color: '#C4CFEA' }}>✦</span>
-                <p style={{ fontSize: 12, color: '#8A9BBC', marginTop: 4 }}>Análise não gerada</p>
+              <div style={{ background: '#F0F4FA', border: '1px solid #DDE4F0', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
+                <Skeleton className="h-4 w-3/4 mb-3 mx-auto" />
+                <Skeleton className="h-4 w-full mb-3" />
+                <Skeleton className="h-4 w-5/6 mb-3 mx-auto" />
+                <Skeleton className="h-4 w-2/3 mx-auto" />
+                <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 12 }}>Analisando indicadores...</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ borderTop: '1px solid #DDE4F0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontFamily: 'Courier New, monospace', fontSize: 10, color: '#8A9BBC' }}>{fmtComp(comp)}</span>
-          <div className="flex items-center gap-2">
+        {/* Footer — matching KpiDetalheModal pattern */}
+        <div style={{ borderTop: '1px solid #DDE4F0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: '#8A9BBC' }}>{fmtMonthLong(comp)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={() => toast({ title: 'Em breve' })}
               style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, background: '#F0F4FA', border: '1px solid #DDE4F0', color: '#4A5E80', cursor: 'pointer', opacity: hasAnalise ? 1 : 0.4 }}
               disabled={!hasAnalise}
             >
-              🔄 Regenerar análise
+              🔄 Regenerar
             </button>
             {!hasAnalise && (
               <button onClick={() => toast({ title: 'Em breve' })} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, background: '#F6F9FF', border: '1px solid #DDE4F0', color: '#1A3CFF', cursor: 'pointer', fontWeight: 600 }}>
@@ -967,13 +1139,6 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes modalEnter {
-          from { opacity: 0; transform: scale(0.96) translateY(8px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }
