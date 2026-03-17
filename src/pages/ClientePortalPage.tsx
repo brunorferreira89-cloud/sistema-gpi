@@ -192,11 +192,9 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         const competencia = competenciaSelecionada && compDisp.includes(competenciaSelecionada)
           ? competenciaSelecionada
-          : compDisp[0] || getCompetenciaAtual();
+          : compDisp.length > 0 ? compDisp[0] : getCompetenciaAtual();
 
-        if (!competenciaSelecionada) {
-          setCompetenciaSelecionada(competencia);
-        }
+        setCompetenciaSelecionada(competencia);
 
         const [kpiCurr, kpiPrev] = await Promise.all([
           fetchKpiData(clienteId, competencia),
