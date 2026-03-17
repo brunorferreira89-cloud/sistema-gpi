@@ -350,7 +350,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
       <div className="min-h-screen" style={{ background: '#F0F4FA' }}>
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0] px-4 py-3">
-          <div className="max-w-[1100px] mx-auto flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
               <span className="text-sm font-semibold text-[#0D1B35]">{cliente?.razao_social || cliente?.nome_empresa || ''}</span>
