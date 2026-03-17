@@ -123,7 +123,7 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('plano_de_contas')
-        .select('id, nome, tipo, nivel, ordem')
+        .select('id, nome, tipo, nivel, ordem, conta_pai_id')
         .eq('cliente_id', clienteId)
         .order('ordem', { ascending: true });
       if (error) throw error;
