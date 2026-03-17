@@ -612,5 +612,22 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         </div>
       </div>
     </div>
+
+      <ReuniaoDialog
+        open={reuniaoDialogOpen}
+        onOpenChange={(open) => {
+          setReuniaoDialogOpen(open);
+          if (!open) {
+            // Re-check reunião after dialog closes
+            (async () => {
+              const hoje = new Date().toISOString().split('T')[0];
+              const { count } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
+                .eq('cliente_id', clienteId).gte('data_reuniao', hoje);
+              setChecklistState(prev => ({ ...prev, reuniaoAgendada: (count || 0) > 0 }));
+            })();
+          }
+        }}
+        preselectedClienteId={clienteId}
+      />
   );
 }
