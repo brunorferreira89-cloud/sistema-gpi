@@ -354,6 +354,11 @@ export default function ClienteFichaPage() {
         <TabsContent value="visao-cliente">
           <ClientePortalEspelho clienteId={clienteId!} onSwitchTab={setActiveTab} />
         </TabsContent>
+
+        {/* Painel Personalizado */}
+        <TabsContent value="painel">
+          <PainelPersonalizado clienteId={clienteId!} />
+        </TabsContent>
       </Tabs>
 
       <ReuniaoDialog
