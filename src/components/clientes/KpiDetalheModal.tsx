@@ -241,7 +241,6 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
 
   if (!open) return null;
 
-  const composicaoRaiz = getComposicaoRaiz();
   const totalRaiz = composicaoRaiz.reduce((s, c) => s + c.valor, 0);
 
   // Drill level 2 data
