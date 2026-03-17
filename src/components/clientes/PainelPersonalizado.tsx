@@ -656,40 +656,117 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
                 }}
               />
 
-              {/* Contas */}
+              {/* Contas incluídas */}
               <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', display: 'block', marginBottom: 4 }}>Contas incluídas *</label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {selectedContas.map(id => {
-                  const c = contas.find(x => x.id === id);
+
+              {/* 1. Chips */}
+              <div className="flex flex-wrap gap-1.5 mb-2" style={{ minHeight: 24 }}>
+                {selectedContas.length === 0 ? (
+                  <span style={{ fontSize: 10, color: '#8A9BBC' }}>Nenhuma conta selecionada ainda</span>
+                ) : selectedContas.map(id => {
+                  const c = allContas.find(x => x.id === id);
+                  const nome = c?.nome || id.slice(0, 8);
                   return (
-                    <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#F0F4FA', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: '#0D1B35' }}>
-                      {c?.nome || id.slice(0, 8)}
-                      <button onClick={() => setSelectedContas(prev => prev.filter(x => x !== id))} style={{ fontSize: 13, color: '#8A9BBC', cursor: 'pointer' }}>×</button>
+                    <span key={id} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'rgba(26,60,255,0.07)', border: '1px solid rgba(26,60,255,0.2)',
+                      borderRadius: 6, padding: '3px 9px', fontSize: 10, fontWeight: 700, color: '#1A3CFF',
+                    }}>
+                      {nome.length > 22 ? nome.slice(0, 22) + '…' : nome}
+                      <button onClick={() => setSelectedContas(prev => prev.filter(x => x !== id))} style={{ fontSize: 13, color: '#1A3CFF', cursor: 'pointer', lineHeight: 1 }}>×</button>
                     </span>
                   );
                 })}
               </div>
-              <button
-                onClick={() => setShowContaPicker(!showContaPicker)}
-                style={{ fontSize: 11, color: '#1A3CFF', fontWeight: 600, cursor: 'pointer', marginBottom: showContaPicker ? 6 : 14 }}
-              >
-                + Adicionar conta
-              </button>
-              {showContaPicker && (
-                <div style={{ maxHeight: 180, overflow: 'auto', border: '1px solid #DDE4F0', borderRadius: 8, marginBottom: 14 }}>
-                  {contas.filter(c => !selectedContas.includes(c.id)).map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => { setSelectedContas(prev => [...prev, c.id]); }}
-                      className="w-full text-left px-3 py-1.5 hover:bg-[#F6F9FF] transition-colors"
-                      style={{ fontSize: 11, color: '#0D1B35', borderBottom: '1px solid #F0F4FA' }}
-                    >
-                      <span style={{ color: '#8A9BBC', fontSize: 9, marginRight: 6 }}>{c.tipo}</span>
-                      {c.nome}
-                    </button>
-                  ))}
-                </div>
-              )}
+
+              {/* 2. Search input */}
+              <div style={{ position: 'relative', marginBottom: 6 }}>
+                <svg style={{ position: 'absolute', left: 10, top: 9, width: 14, height: 14, color: '#8A9BBC' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input
+                  value={buscaConta}
+                  onChange={e => setBuscaConta(e.target.value)}
+                  placeholder="Buscar conta pelo nome..."
+                  style={{
+                    width: '100%', padding: '8px 12px 8px 32px', borderRadius: 8,
+                    border: '1px solid #DDE4F0', fontSize: 12, color: '#0D1B35', outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* 3. Conta list */}
+              <div style={{ border: '1px solid #DDE4F0', borderRadius: 8, maxHeight: 220, overflowY: 'auto', background: '#FAFCFF', marginBottom: 14 }}>
+                {contasFiltradas !== null ? (
+                  /* Search results mode */
+                  contasFiltradas.length === 0 ? (
+                    <p style={{ textAlign: 'center', padding: 16, fontSize: 12, color: '#8A9BBC' }}>Nenhuma conta encontrada</p>
+                  ) : contasFiltradas.map(c => {
+                    const sel = selectedContas.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedContas(prev => sel ? prev.filter(x => x !== c.id) : [...prev, c.id])}
+                        className="w-full text-left flex items-center gap-2 transition-colors"
+                        style={{
+                          padding: '7px 12px', fontSize: 11, color: '#0D1B35',
+                          background: sel ? 'rgba(26,60,255,0.06)' : 'transparent',
+                          borderBottom: '1px solid #F0F4FA',
+                        }}
+                      >
+                        <input type="checkbox" checked={sel} readOnly style={{ accentColor: '#1A3CFF', width: 13, height: 13 }} />
+                        <span>{c.nome}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 7, background: c.nivel === 1 ? '#F0F4FA' : '#F6F9FF', color: c.nivel === 1 ? '#8A9BBC' : '#C4CFEA', padding: '1px 5px', borderRadius: 3 }}>
+                          {c.nivel === 1 ? 'subgrupo' : 'categoria'}
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  /* Hierarchy mode */
+                  grupos.map((g, gi) => {
+                    const children = contasByParent[g.id] || [];
+                    return (
+                      <div key={g.id}>
+                        {gi > 0 && <div style={{ height: 1, background: '#DDE4F0' }} />}
+                        {/* Grupo header */}
+                        <div style={{ background: '#E8EEF8', padding: '6px 12px' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: '#4A5E80', letterSpacing: '0.1em' }}>{g.nome}</span>
+                        </div>
+                        {/* Children */}
+                        {children.map(c => {
+                          const sel = selectedContas.includes(c.id);
+                          const tipoCor = TIPO_CORES[c.tipo] || '#8A9BBC';
+                          const isSubgrupo = c.nivel === 1;
+                          return (
+                            <button
+                              key={c.id}
+                              onClick={() => setSelectedContas(prev => sel ? prev.filter(x => x !== c.id) : [...prev, c.id])}
+                              className="w-full text-left flex items-center gap-2 transition-colors"
+                              style={{
+                                padding: isSubgrupo ? '8px 12px 8px 20px' : '6px 12px 6px 36px',
+                                background: sel ? (isSubgrupo ? 'rgba(26,60,255,0.06)' : 'rgba(26,60,255,0.04)') : 'transparent',
+                              }}
+                              onMouseEnter={e => { if (!sel) (e.currentTarget as HTMLElement).style.background = isSubgrupo ? 'rgba(26,60,255,0.04)' : 'rgba(26,60,255,0.03)'; }}
+                              onMouseLeave={e => { if (!sel) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              <input type="checkbox" checked={sel} readOnly style={{ accentColor: '#1A3CFF', width: 13, height: 13 }} />
+                              <span style={{
+                                width: isSubgrupo ? 8 : 5, height: isSubgrupo ? 8 : 5,
+                                borderRadius: isSubgrupo ? 2 : '50%', background: tipoCor, flexShrink: 0,
+                              }} />
+                              <span style={{ fontSize: isSubgrupo ? 12 : 11, fontWeight: isSubgrupo ? 600 : 400, color: isSubgrupo ? '#0D1B35' : '#4A5E80' }}>
+                                {c.nome}
+                              </span>
+                              {isSubgrupo && (
+                                <span style={{ marginLeft: 'auto', fontSize: 7, background: '#F0F4FA', color: '#8A9BBC', padding: '1px 5px', borderRadius: 3 }}>subgrupo</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
 
               {/* Size */}
               <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', display: 'block', marginBottom: 4 }}>Tamanho</label>
