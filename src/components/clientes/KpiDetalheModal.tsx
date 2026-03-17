@@ -391,7 +391,7 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
                           const pct = totalRaiz ? (Math.abs(item.valor) / Math.abs(totalRaiz)) * 100 : 0;
                           return (
                             <tr
-                              key={item.id}
+                              key={item.id || `item-${item.nome}`}
                               onClick={() => item.temFilhas ? avancar({ id: item.id, nome: item.nome, valor: item.valor }) : undefined}
                               style={{
                                 borderBottom: '1px solid #F0F4FA',
