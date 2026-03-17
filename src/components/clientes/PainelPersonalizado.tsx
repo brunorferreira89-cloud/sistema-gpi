@@ -33,6 +33,7 @@ interface Conta {
   tipo: string;
   nivel: number;
   ordem: number;
+  conta_pai_id: string | null;
 }
 
 interface Props {
