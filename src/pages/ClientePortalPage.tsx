@@ -410,7 +410,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const kpisAtivos = indicadoresCalc.filter((c: any) => c.indicador.ativo);
 
   return (
-    <div style={{ width: '100%', maxWidth: '100%', padding: 0, background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
+    <div style={{ width: '100%', padding: '24px', background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
       {/* 1. HEADER */}
       <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0]">
         <div className="flex items-center justify-between px-4 py-3">
@@ -450,7 +450,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6">
+      <main className="space-y-6" style={{ paddingTop: 24 }}>
         {/* 2. SAUDAÇÃO */}
         <div>
           <p className="text-sm text-[#4A5E80]">Olá, {profile?.nome || 'Cliente'} 👋</p>
@@ -498,7 +498,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* 3. TRÊS HERO CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, marginBottom: 16 }}>
           {/* FATURAMENTO */}
           <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #1A3CFF, #0099E6)' }} />
