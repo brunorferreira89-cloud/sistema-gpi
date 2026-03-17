@@ -152,10 +152,11 @@ function StatusBadge({ status }: { status: 'ok' | 'atencao' | 'critico' | 'neutr
 
 // ── Editable meta cell ──────────────────────────────────────────
 function EditableMetaCell({
-  meta, contaId, clienteId, competencia, isTotal, onSaved,
+  meta, contaId, clienteId, competencia, isTotal, onSaved, displayPct,
 }: {
   meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean;
   onSaved: (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => void;
+  displayPct?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [localTipo, setLocalTipo] = useState<'pct' | 'valor'>(meta?.meta_tipo || 'pct');
@@ -239,9 +240,11 @@ function EditableMetaCell({
     );
   }
 
-  const display = meta.meta_tipo === 'pct'
-    ? `${meta.meta_valor! >= 0 ? '+' : ''}${meta.meta_valor}%`
-    : fmtTorre(meta.meta_valor);
+  const display = displayPct !== undefined
+    ? `${displayPct >= 0 ? '+' : ''}${displayPct.toFixed(1)}%`
+    : meta.meta_tipo === 'pct'
+      ? `${meta.meta_valor! >= 0 ? '+' : ''}${meta.meta_valor}%`
+      : fmtTorre(meta.meta_valor);
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEditing(true); setInput(meta.meta_valor != null ? String(meta.meta_valor) : ''); setLocalTipo(meta.meta_tipo); }}>
@@ -1074,33 +1077,15 @@ export function TorreControleTab({ clienteId }: Props) {
                   <>
                     {/* AJUSTE */}
                     <td style={{ textAlign: 'right', padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
-                      {(isGrupo || isSubgrupo) && !isTotal ? (() => {
-                        const pct = calcAjustePctNode(node);
-                        const rounded = Math.round(pct * 10) / 10;
-                        const isImprove = conta.tipo === 'receita' ? rounded > 0 : rounded < 0;
-                        const isWorsen = conta.tipo === 'receita' ? rounded < 0 : rounded > 0;
-                        const color = rounded === 0 ? C.txtMuted : isImprove ? C.green : isWorsen ? C.red : C.txtMuted;
-                        const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
-                        const display = `${sign}${Math.abs(rounded).toFixed(1)}%`;
-                        return (
-                          <span style={{
-                            fontFamily: C.mono, fontSize: 11, fontWeight: 700, color,
-                            background: 'rgba(26,60,255,0.05)', borderRadius: 6, padding: '3px 8px',
-                            display: 'inline-block',
-                          }}>
-                            {display}
-                          </span>
-                        );
-                      })() : (
-                        <EditableMetaCell
-                          meta={meta}
-                          contaId={conta.id}
-                          clienteId={clienteId}
-                          competencia={mesSeg}
-                          isTotal={isTotal}
-                          onSaved={handleMetaSaved}
-                        />
-                      )}
+                      <EditableMetaCell
+                        meta={meta}
+                        contaId={conta.id}
+                        clienteId={clienteId}
+                        competencia={mesSeg}
+                        isTotal={isTotal}
+                        onSaved={handleMetaSaved}
+                        displayPct={(isGrupo || isSubgrupo) && !isTotal ? calcAjustePctNode(node) : undefined}
+                      />
                     </td>
                     {/* R$ */}
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
