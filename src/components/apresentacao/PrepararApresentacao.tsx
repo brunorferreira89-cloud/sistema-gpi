@@ -10,6 +10,7 @@ import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo, calcIndicador } from '@/lib/dre-indicadores';
 import { fetchMergedIndicadores, calcularIndicadores } from '@/lib/kpi-indicadores-utils';
 import { useNavigate } from 'react-router-dom';
+import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 
 interface Props {
   clienteId: string;
