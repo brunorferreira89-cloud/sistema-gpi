@@ -694,6 +694,18 @@ export function TorreControleTab({ clienteId }: Props) {
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMapSel, modoMeta, modoAnaliseMeta]);
 
+// ── Ajuste% dinâmico para N0/N1 ─────────────────────────────
+  const calcAjustePctNode = useCallback((node: DreNode): number => {
+    const sumReal = (n: DreNode): number => {
+      if (n.conta.nivel === 2) return realizadoMapSel[n.conta.id] ?? 0;
+      return n.children.reduce((acc, c) => acc + sumReal(c), 0);
+    };
+    const real = sumReal(node);
+    const proj = sumNodeProjetado(node, realizadoMapSel, metaMap);
+    if (real === 0 || proj == null) return 0;
+    return ((proj - real) / Math.abs(real)) * 100;
+  }, [realizadoMapSel, metaMap]);
+
   // ── Variation (R$) helper ─────────────────────────────────────
   const calcVariacao = useCallback((node: DreNode): number | null => {
     const conta = node.conta;
