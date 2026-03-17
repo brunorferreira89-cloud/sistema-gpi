@@ -17,7 +17,7 @@ export interface AnaliseDrawerDados {
   direcao: string;
   historico: { mes: string; valor: number }[];
   formula: string;
-  composicao: { nome: string; valor: number; grupo?: string; nivel?: string; pct_faturamento?: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number; pct?: number | null }[];
+  composicao: { nome: string; valor: number; grupo?: string; nivel?: string; pct_faturamento?: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number; pct?: number | null; filhas?: { nome: string; valor: number; pct_faturamento: number }[] }[];
   instrucao_especifica?: string;
 }
 
