@@ -1412,7 +1412,10 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
             </>
           ) : (
             <>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0D1B35', marginBottom: 4 }}>{isEdit ? 'Editar Widget' : 'Configurar Widget'}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0D1B35' }}>{isEdit ? 'Editar Widget' : 'Configurar Widget'}</h3>
+                <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: '#F0F4FA', color: '#4A5E80', border: '1px solid #DDE4F0', cursor: 'pointer' }}>Cancelar</button>
+              </div>
               {isEdit && (
                 <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', background: 'rgba(26,60,255,0.07)', color: '#1A3CFF', padding: '3px 8px', borderRadius: 4, marginBottom: 12 }}>{tipoLabel}</span>
               )}
