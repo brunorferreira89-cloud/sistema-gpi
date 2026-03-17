@@ -321,7 +321,7 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
       {modalOpen && (
         <CreateWidgetModal
           clienteId={clienteId}
-          contas={contas.filter(c => c.nivel >= 1)}
+          contas={contas}
           maxOrdem={widgets.length ? Math.max(...widgets.map(w => w.ordem)) : -1}
           onClose={() => setModalOpen(false)}
           onCreated={() => {
