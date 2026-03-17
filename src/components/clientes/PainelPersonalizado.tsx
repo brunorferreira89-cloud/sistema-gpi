@@ -1028,13 +1028,16 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
 
   // Composition table data
   const composicao = useMemo(() => {
-    const rows: { nome: string; valor: number; pctFat: number | null }[] = [];
+    const rows: { nome: string; valor: number; pctFat: number | null; pctTotal?: number }[] = [];
     widget.conta_ids.forEach(id => {
       const v = valMap[`${id}__${comp}`] || 0;
       rows.push({ nome: contaMap[id]?.nome || id.slice(0, 8), valor: v, pctFat: fat ? (Math.abs(v) / Math.abs(fat) * 100) : null });
     });
+    if (widget.tipo === 'detalhamento') {
+      const total = Math.abs(rows.reduce((s, r) => s + r.valor, 0));
+      return rows.map(r => ({ ...r, pctTotal: total > 0 ? (Math.abs(r.valor) / total) * 100 : 0 }));
+    }
     if (widget.tipo === 'comparativo') {
-      // Show prev month values too
       return widget.conta_ids.map(id => ({
         nome: contaMap[id]?.nome || id.slice(0, 8),
         valor: valMap[`${id}__${comp}`] || 0,
