@@ -195,7 +195,7 @@ export function calcularIndicadores(
           valor = sumLeafByTipo(contas, valoresMap, 'custo_variavel');
           leafs.filter(c => c.tipo === 'custo_variavel').forEach(c => {
             const v = valoresMap[c.id];
-            if (v != null) detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+            if (v != null) detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: c.id });
           });
         } else if (ind.nome === 'CMO') {
           const pessoalSubs = contas.filter(c => c.nivel === 1 && CMO_KEYWORDS.some(kw => c.nome.toLowerCase().includes(kw)));
