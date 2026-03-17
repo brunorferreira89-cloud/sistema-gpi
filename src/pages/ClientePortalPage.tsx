@@ -463,22 +463,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                 {fmtMesAnoLong(competencia)} · Fechamento disponível
               </span>
             )}
-            {competenciasLiberadas.length > 1 && (
-              <select
-                value={competencia}
-                onChange={(e) => setCompetenciaSelecionada(e.target.value)}
-                className="rounded-full bg-[#EBF0FF] px-3 py-0.5 text-[11px] font-semibold text-[#1A3CFF] border-none outline-none cursor-pointer"
-              >
-                {competenciasLiberadas.map((c) => (
-                  <option key={c} value={c}>{fmtMesAno(c)}</option>
-                ))}
-              </select>
-            )}
-            <span className="rounded-full bg-[#EBF0FF] px-3 py-0.5 text-[11px] font-semibold text-[#1A3CFF]">
-              📅 {fmtMesAno(competencia)}
-              {competenciasLiberadas.length > 1 && ` · ${competenciasLiberadas.length} meses disponíveis`}
-            </span>
           </div>
+          {competenciasLiberadas.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '8px 0 16px' }}>
+              {competenciasLiberadas.map((m) => {
+                const isAtivo = m === competencia;
+                const label = new Date(m + 'T12:00:00')
+                  .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+                  .replace('.', '')
+                  .toUpperCase();
+                return (
+                  <button
+                    key={m}
+                    onClick={() => setCompetenciaSelecionada(m)}
+                    style={{
+                      padding: '4px 14px',
+                      borderRadius: 20,
+                      fontSize: 11,
+                      fontWeight: isAtivo ? 700 : 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      border: isAtivo ? '1.5px solid #1A3CFF' : '1px solid #DDE4F0',
+                      background: isAtivo ? '#1A3CFF' : '#FFFFFF',
+                      color: isAtivo ? '#FFFFFF' : '#4A5E80',
+                      boxShadow: isAtivo ? '0 2px 8px rgba(26,60,255,0.18)' : 'none',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* 3. TRÊS HERO CARDS */}
