@@ -450,7 +450,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
       </header>
 
-      <main className="max-w-[1100px] mx-auto px-4 py-6 space-y-6">
+      <main className="px-4 py-6 space-y-6">
         {/* 2. SAUDAÇÃO */}
         <div>
           <p className="text-sm text-[#4A5E80]">Olá, {profile?.nome || 'Cliente'} 👋</p>
