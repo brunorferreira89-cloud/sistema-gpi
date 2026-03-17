@@ -90,7 +90,7 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
       if (error) throw error;
       return data;
     },
-    enabled: open && todasContas.length > 0,
+    enabled: open && !!clienteId && todasContas.length > 0,
   });
 
   const getValor = (contaId: string) =>
