@@ -127,7 +127,7 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
 
   useEffect(() => {
     if (!isOpen || !dados) return;
-
+    setExpandedIdx(null);
     const carregarAnalise = async () => {
       if (!clienteId || !competencia) {
         await gerarNovaAnalise();
