@@ -70,6 +70,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     slidesRevisados: false,
     reuniaoAgendada: false,
   });
+  const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
 
   // Fetch prep data
   useEffect(() => {
