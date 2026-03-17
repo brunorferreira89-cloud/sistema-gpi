@@ -121,9 +121,11 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
 
         // Auto-check DRE
         const hasDre = (valores || []).length > 0;
-        // Auto-check metas
+        // Auto-check metas (torre salva metas para o mês seguinte)
+        const compDate = new Date(competencia + 'T00:00:00');
+        const mesSeg = new Date(compDate.getFullYear(), compDate.getMonth() + 1, 1).toISOString().split('T')[0];
         const { count: metasCount } = await supabase.from('torre_metas' as any).select('id', { count: 'exact', head: true })
-          .eq('cliente_id', clienteId).eq('competencia', competencia);
+          .eq('cliente_id', clienteId).eq('competencia', mesSeg);
         // Auto-check reunião
         const hoje = new Date().toISOString().split('T')[0];
         const { count: reuniaoCount } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
