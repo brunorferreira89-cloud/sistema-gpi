@@ -33,6 +33,8 @@ interface Widget {
   analise_ia: string | null;
   analise_gerada_em: string | null;
   analise_hash: string | null;
+  ocultar_zeros: boolean;
+  ordenacao_lista: string;
 }
 
 interface Conta {
@@ -57,6 +59,7 @@ const TIPO_OPTIONS = [
   { value: 'grafico_pizza', icon: '🍕', color: '#0099E6', title: 'Pizza', desc: 'Composição grupo', badge: 'PIZZA' },
   { value: 'indicador', icon: '🎯', color: '#D97706', title: 'Indicador', desc: 'Valor com semáforo', badge: 'INDIC.' },
   { value: 'cruzamento', icon: '🔗', color: '#8A9BBC', title: 'Cruzamento', desc: 'Relação entre contas', badge: 'CRUZAM.' },
+  { value: 'detalhamento', icon: 'detail', color: '#4A5E80', title: 'Detalhamento', desc: 'Lista de categorias', badge: 'DETALHE' },
 ] as const;
 
 const COLOR_SWATCHES = ['#1A3CFF', '#00A86B', '#D97706', '#0099E6', '#DC2626'];
@@ -137,6 +140,8 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
         conta_ids_b: w.conta_ids_b || [],
         periodo_meses: w.periodo_meses || 6,
         formato_resultado: w.formato_resultado || 'percentual',
+        ocultar_zeros: w.ocultar_zeros ?? true,
+        ordenacao_lista: w.ordenacao_lista || 'maior_primeiro',
       })) as Widget[];
     },
   });
@@ -525,6 +530,7 @@ function WidgetCard({
         {widget.tipo === 'grafico_pizza' && <GraficoPizzaBody widget={widget} valMap={valMap} contaMap={contaMap} comp={comp} />}
         {widget.tipo === 'indicador' && <IndicadorBody widget={widget} getSoma={getSoma} comp={comp} />}
         {widget.tipo === 'cruzamento' && <CruzamentoBody widget={widget} getSoma={getSoma} contaMap={contaMap} valMap={valMap} comp={comp} />}
+        {widget.tipo === 'detalhamento' && <DetalhamentoBody widget={widget} contaMap={contaMap} valMap={valMap} comp={comp} somaAtual={somaAtual} avPct={avPct} />}
       </div>
 
       {/* Footer */}
@@ -829,6 +835,67 @@ function CruzamentoBody({ widget, getSoma, contaMap, valMap, comp }: {
   );
 }
 
+/* ─── detalhamento body ─── */
+function DetalhamentoBody({ widget, contaMap, valMap, comp, somaAtual, avPct }: {
+  widget: Widget; contaMap: Record<string, Conta>; valMap: Record<string, number>;
+  comp: string; somaAtual: number; avPct: number | null;
+}) {
+  const items = (widget.conta_ids || []).map(id => ({
+    id, nome: contaMap[id]?.nome || id.slice(0, 8), valor: valMap[`${id}__${comp}`] || 0, ordem: contaMap[id]?.ordem ?? 0,
+  }));
+
+  let filtered = widget.ocultar_zeros ? items.filter(i => i.valor !== 0) : items;
+  if (widget.ordenacao_lista === 'maior_primeiro') {
+    filtered = [...filtered].sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
+  } else {
+    filtered = [...filtered].sort((a, b) => a.ordem - b.ordem);
+  }
+
+  const total = Math.abs(somaAtual);
+  const top7 = filtered.slice(0, 7);
+  const rest = filtered.slice(7);
+  const restSum = rest.reduce((s, i) => s + i.valor, 0);
+
+  return (
+    <>
+      {/* Total block */}
+      <div style={{ padding: '8px 0 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div>
+          <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.1em', display: 'block' }}>TOTAL</span>
+          <span style={{ fontFamily: 'Courier New, monospace', fontSize: 20, fontWeight: 700, color: widget.cor_destaque }}>{formatCurrency(somaAtual)}</span>
+        </div>
+        {avPct != null && <span style={{ fontSize: 10, color: '#8A9BBC' }}>{avPct.toFixed(1)}% do fat.</span>}
+      </div>
+      <div style={{ height: 1, background: '#DDE4F0', margin: '0 0 6px' }} />
+      {/* List */}
+      <div style={{ padding: '0 0 8px' }}>
+        {top7.map((item, i) => {
+          const pct = total > 0 ? (Math.abs(item.valor) / total) * 100 : 0;
+          return (
+            <div key={item.id} style={{ marginBottom: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 10.5, color: '#4A5E80', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>
+                  {item.nome.length > 20 ? item.nome.slice(0, 20) + '…' : item.nome}
+                </span>
+                <span style={{ fontFamily: 'Courier New, monospace', fontSize: 10.5, fontWeight: 700, color: '#0D1B35', marginLeft: 8 }}>{formatCurrency(item.valor)}</span>
+                <span style={{ fontSize: 9.5, color: '#8A9BBC', minWidth: 32, textAlign: 'right' }}>{pct.toFixed(0)}%</span>
+              </div>
+              <div style={{ height: 3, borderRadius: 2, background: '#F0F4FA', marginTop: 1 }}>
+                <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: widget.cor_destaque, opacity: 1 - i * 0.093, transition: 'width 0.5s' }} />
+              </div>
+            </div>
+          );
+        })}
+        {rest.length > 0 && (
+          <div style={{ fontSize: 10.5, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>
+            ＋ {rest.length} outras · {formatCurrency(restSum)}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 /* ─── hex to HSL helper ─── */
 function hexToHsl(hex: string) {
   let r = 0, g = 0, b = 0;
@@ -949,19 +1016,28 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
         const isPct = widget.formato_resultado === 'percentual';
         return `Este widget divide o valor de ${nomeA} pelo valor de ${nomeB} para revelar uma relação entre as duas grandezas. O resultado ${isPct ? 'é expresso em %' : 'é expresso como índice'} e acompanha a tendência dos últimos meses para mostrar se essa relação está melhorando ou piorando.`;
       }
+      case 'detalhamento': {
+        const nomes = fmtNomes(nomesList);
+        const ordTxt = (widget as any).ordenacao_lista === 'ordem_plano' ? 'As contas seguem a ordem do plano de contas.' : 'As contas estão ordenadas da maior para a menor contribuição.';
+        const zeroTxt = (widget as any).ocultar_zeros ? ' Contas sem movimentação no período estão ocultas.' : '';
+        return `Este painel lista individualmente as contas selecionadas para ${mesAtual}, mostrando o valor de cada uma e sua participação no total. ${ordTxt}${zeroTxt}`;
+      }
       default: return widget.titulo;
     }
   }
 
   // Composition table data
   const composicao = useMemo(() => {
-    const rows: { nome: string; valor: number; pctFat: number | null }[] = [];
+    const rows: { nome: string; valor: number; pctFat: number | null; pctTotal?: number }[] = [];
     widget.conta_ids.forEach(id => {
       const v = valMap[`${id}__${comp}`] || 0;
       rows.push({ nome: contaMap[id]?.nome || id.slice(0, 8), valor: v, pctFat: fat ? (Math.abs(v) / Math.abs(fat) * 100) : null });
     });
+    if (widget.tipo === 'detalhamento') {
+      const total = Math.abs(rows.reduce((s, r) => s + r.valor, 0));
+      return rows.map(r => ({ ...r, pctTotal: total > 0 ? (Math.abs(r.valor) / total) * 100 : 0 }));
+    }
     if (widget.tipo === 'comparativo') {
-      // Show prev month values too
       return widget.conta_ids.map(id => ({
         nome: contaMap[id]?.nome || id.slice(0, 8),
         valor: valMap[`${id}__${comp}`] || 0,
@@ -1045,18 +1121,47 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
           {/* Section 2 — COMPOSIÇÃO */}
           <div style={{ marginBottom: 24 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>🔢 COMPOSIÇÃO — {fmtMonthLong(comp).toUpperCase()}</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 12 }}>
-              {(Array.isArray(composicao) ? composicao : []).map((item: any, i: number) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
-                  <span style={{ fontSize: 12, color: '#4A5E80' }}>{item.nome}</span>
-                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(item.valor ?? item.valorPrev ?? 0))}</span>
+            {widget.tipo === 'detalhamento' ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #DDE4F0' }}>
+                    <th style={{ textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0' }}>Conta</th>
+                    <th style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0' }}>Valor</th>
+                    <th style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0', minWidth: 60 }}>% do total</th>
+                    <th style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0', minWidth: 60 }}>% do fat.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(composicao as any[]).map((item: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #F0F4FA' }}>
+                      <td style={{ fontSize: 12, color: '#4A5E80', padding: '6px 0' }}>{item.nome}</td>
+                      <td style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500, textAlign: 'right', padding: '6px 0' }}>{formatCurrency(item.valor)}</td>
+                      <td style={{ fontSize: 11, color: '#4A5E80', textAlign: 'right', padding: '6px 0' }}>{(item.pctTotal ?? 0).toFixed(1)}%</td>
+                      <td style={{ fontSize: 11, color: '#8A9BBC', textAlign: 'right', padding: '6px 0' }}>{item.pctFat != null ? `${item.pctFat.toFixed(1)}%` : '—'}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ borderTop: '1px solid #DDE4F0' }}>
+                    <td style={{ fontSize: 12, fontWeight: 700, color: '#0D1B35', padding: '8px 0' }}>Total</td>
+                    <td style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#0D1B35', textAlign: 'right', padding: '8px 0' }}>{formatCurrency(somaAtual)}</td>
+                    <td style={{ fontSize: 11, fontWeight: 700, color: '#0D1B35', textAlign: 'right', padding: '8px 0' }}>100%</td>
+                    <td style={{ fontSize: 11, color: '#8A9BBC', textAlign: 'right', padding: '8px 0' }}>{fat ? `${(Math.abs(somaAtual) / Math.abs(fat) * 100).toFixed(1)}%` : '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 12 }}>
+                {(Array.isArray(composicao) ? composicao : []).map((item: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
+                    <span style={{ fontSize: 12, color: '#4A5E80' }}>{item.nome}</span>
+                    <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(item.valor ?? item.valorPrev ?? 0))}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
+                  <span style={{ fontSize: 12, color: '#4A5E80' }}>Faturamento</span>
+                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(fat))}</span>
                 </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
-                <span style={{ fontSize: 12, color: '#4A5E80' }}>Faturamento</span>
-                <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(fat))}</span>
               </div>
-            </div>
+            )}
             {/* Result highlight */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: statusCfg?.bg || 'rgba(26,60,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35' }}>= {widget.titulo}</span>
@@ -1178,6 +1283,8 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   const [formatoResultado, setFormatoResultado] = useState(isEdit ? (widget!.formato_resultado || 'percentual') : 'percentual');
   const [saving, setSaving] = useState(false);
   const [buscaConta, setBuscaConta] = useState('');
+  const [ordenacaoLista, setOrdenacaoLista] = useState(isEdit ? ((widget as any).ordenacao_lista || 'maior_primeiro') : 'maior_primeiro');
+  const [ocultarZeros, setOcultarZeros] = useState(isEdit ? ((widget as any).ocultar_zeros ?? true) : true);
 
   const TIPO_CORES: Record<string, string> = { receita: '#1A3CFF', custo_variavel: '#DC2626', despesa_fixa: '#D97706', investimento: '#0099E6', financeiro: '#00A86B' };
 
@@ -1185,6 +1292,7 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   const needsPeriodo = tipo === 'grafico_barras';
   const needsMeta = tipo === 'indicador';
   const needsFormato = tipo === 'cruzamento';
+  const needsDetalhamento = tipo === 'detalhamento';
 
   const allContas = contas;
 
@@ -1248,6 +1356,8 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
           meta_valor: metaValor || null,
           meta_direcao: metaDirecao,
           formato_resultado: formatoResultado,
+          ocultar_zeros: ocultarZeros,
+          ordenacao_lista: ordenacaoLista,
           updated_at: new Date().toISOString(),
         } as any).eq('id', widget.id);
         if (error) throw error;
@@ -1266,6 +1376,8 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
           meta_valor: metaValor || null,
           meta_direcao: metaDirecao,
           formato_resultado: formatoResultado,
+          ocultar_zeros: ocultarZeros,
+          ordenacao_lista: ordenacaoLista,
         } as any);
         if (error) throw error;
         toast({ title: 'Widget criado!' });
@@ -1400,7 +1512,15 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {TIPO_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => setTipo(opt.value)} style={{ padding: 14, borderRadius: 10, textAlign: 'center', cursor: 'pointer', border: `1.5px solid ${tipo === opt.value ? '#1A3CFF' : '#DDE4F0'}`, background: tipo === opt.value ? 'rgba(26,60,255,0.07)' : '#fff', transition: 'all 0.15s' }}>
-                    <span style={{ fontSize: 28, display: 'block' }}>{opt.icon}</span>
+                    <span style={{ fontSize: 28, display: 'block' }}>
+                      {opt.icon === 'detail' ? (
+                        <svg width={28} height={28} viewBox="0 0 28 28" style={{ display: 'inline-block', background: 'rgba(74,94,128,0.1)', borderRadius: 6, padding: 4 }}>
+                          <rect x={5} y={9} width={14} height={2} rx={1} fill="#4A5E80" />
+                          <rect x={5} y={14} width={10} height={2} rx={1} fill="#4A5E80" />
+                          <rect x={5} y={19} width={7} height={2} rx={1} fill="#4A5E80" />
+                        </svg>
+                      ) : opt.icon}
+                    </span>
                     <p style={{ fontSize: 12, fontWeight: 700, color: '#0D1B35', marginTop: 6 }}>{opt.title}</p>
                     <p style={{ fontSize: 10, color: '#8A9BBC', marginTop: 2 }}>{opt.desc}</p>
                   </button>
@@ -1471,7 +1591,36 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
                 </>
               )}
 
-              {/* Duplicate alert */}
+              {/* Detalhamento options */}
+              {needsDetalhamento && (
+                <>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', display: 'block', marginBottom: 4 }}>Ordenar lista por</label>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                    {[{ value: 'maior_primeiro', label: 'Maior valor primeiro' }, { value: 'ordem_plano', label: 'Ordem do plano de contas' }].map(opt => (
+                      <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#0D1B35', cursor: 'pointer' }}>
+                        <input type="radio" name="ordenacao_lista" checked={ordenacaoLista === opt.value} onChange={() => setOrdenacaoLista(opt.value)} style={{ accentColor: '#1A3CFF' }} />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80' }}>Ocultar contas com valor R$ 0</label>
+                    <button
+                      onClick={() => setOcultarZeros(p => !p)}
+                      style={{
+                        width: 38, height: 20, borderRadius: 10, padding: 2,
+                        background: ocultarZeros ? '#1A3CFF' : '#DDE4F0',
+                        border: 'none', cursor: 'pointer', transition: 'background 0.2s',
+                        display: 'flex', alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', transform: ocultarZeros ? 'translateX(18px)' : 'translateX(0)' }} />
+                    </button>
+                  </div>
+                </>
+              )}
+
+
               {duplicateAlerts.length > 0 && (
                 <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
                   {duplicateAlerts.map((a, i) => (

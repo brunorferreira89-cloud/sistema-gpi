@@ -677,7 +677,9 @@ export type Database = {
           meta_direcao: string | null
           meta_valor: number | null
           meta_valor_b: number | null
+          ocultar_zeros: boolean | null
           ordem: number | null
+          ordenacao_lista: string | null
           periodo_meses: number | null
           tipo: string
           titulo: string
@@ -699,7 +701,9 @@ export type Database = {
           meta_direcao?: string | null
           meta_valor?: number | null
           meta_valor_b?: number | null
+          ocultar_zeros?: boolean | null
           ordem?: number | null
+          ordenacao_lista?: string | null
           periodo_meses?: number | null
           tipo: string
           titulo: string
@@ -721,7 +725,9 @@ export type Database = {
           meta_direcao?: string | null
           meta_valor?: number | null
           meta_valor_b?: number | null
+          ocultar_zeros?: boolean | null
           ordem?: number | null
+          ordenacao_lista?: string | null
           periodo_meses?: number | null
           tipo?: string
           titulo?: string
