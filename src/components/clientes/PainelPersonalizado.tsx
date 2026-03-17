@@ -363,7 +363,15 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
                         getContaTipoSemantico={getContaTipoSemantico}
                         isMelhora={isMelhora}
                         modoEdicao={modoEdicao && modoConfig}
-                        onResize={(cols) => updateWidget.mutate({ id: w.id, updates: { colunas: cols } })}
+                        onResize={(cols) => {
+                          queryClient.setQueryData(
+                            ['painel-widgets', clienteId],
+                            (old: any[]) => old?.map(widget =>
+                              widget.id === w.id ? { ...widget, colunas: cols } : widget
+                            ) ?? []
+                          );
+                          updateWidget.mutate({ id: w.id, updates: { colunas: cols } });
+                        }}
                         onDelete={() => { if (window.confirm('Excluir este widget?')) deleteWidget.mutate(w.id); }}
                         onEdit={() => setEditingWidget(w)}
                         onClick={() => setDetalheWidget(w)}
