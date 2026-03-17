@@ -150,7 +150,8 @@ export function calcularIndicadores(
           const tipoVal = sumLeafByTipo(contas, valoresMap, tipo);
           if (tipoVal !== 0) {
             const label = tipo === 'receita' ? 'Receitas' : tipo === 'custo_variavel' ? 'Custos Variáveis' : tipo === 'despesa_fixa' ? 'Despesas Fixas' : tipo === 'investimento' ? 'Investimentos' : 'Financeiro';
-            detalhe.push({ nome: label, valor: tipoVal, pct: faturamento ? (Math.abs(tipoVal) / Math.abs(faturamento)) * 100 : 0 });
+            const n0Conta = contas.find(c => c.nivel === 0 && c.tipo === tipo);
+            detalhe.push({ nome: label, valor: tipoVal, pct: faturamento ? (Math.abs(tipoVal) / Math.abs(faturamento)) * 100 : 0, contaId: n0Conta?.id ?? '' });
           }
         });
       }
