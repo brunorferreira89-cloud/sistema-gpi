@@ -215,11 +215,20 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
 
   /* ─── Mutations ─── */
   const updateWidget = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
-      const { error } = await supabase.from('painel_widgets' as any).update({ ...updates, updated_at: new Date().toISOString() } as any).eq('id', id);
-      if (error) throw error;
+    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, unknown> }) => {
+      const { error } = await supabase
+        .from('painel_widgets')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['painel-widgets', clienteId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['painel-widgets', clienteId] });
+    },
+    onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ['painel-widgets', clienteId] });
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    },
   });
 
   const deleteWidget = useMutation({
@@ -354,7 +363,15 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
                         getContaTipoSemantico={getContaTipoSemantico}
                         isMelhora={isMelhora}
                         modoEdicao={modoEdicao && modoConfig}
-                        onResize={(cols) => updateWidget.mutate({ id: w.id, updates: { colunas: cols } })}
+                        onResize={(cols) => {
+                          queryClient.setQueryData(
+                            ['painel-widgets', clienteId],
+                            (old: any[]) => old?.map(widget =>
+                              widget.id === w.id ? { ...widget, colunas: cols } : widget
+                            ) ?? []
+                          );
+                          updateWidget.mutate({ id: w.id, updates: { colunas: cols } });
+                        }}
                         onDelete={() => { if (window.confirm('Excluir este widget?')) deleteWidget.mutate(w.id); }}
                         onEdit={() => setEditingWidget(w)}
                         onClick={() => setDetalheWidget(w)}
