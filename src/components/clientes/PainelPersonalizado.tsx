@@ -1020,9 +1020,9 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
           {/* Section 1 — COMO É CALCULADO */}
           <div style={{ marginBottom: 24 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>📐 COMO É CALCULADO</span>
-            <div style={{ background: '#E8EEF8', border: '1px solid #DDE4F0', borderRadius: 8, padding: '10px 14px', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#0D1B35', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {buildFormula()}
-            </div>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12.5, color: '#4A5E80', lineHeight: 1.7, padding: '0 0 8px', margin: 0 }}>
+              {buildDescricao()}
+            </p>
           </div>
 
           {/* Section 2 — COMPOSIÇÃO */}
