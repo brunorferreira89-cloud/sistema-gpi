@@ -84,6 +84,7 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
   const [analysis, setAnalysis] = useState<{ titulo: string; contexto?: string; analise: string; alerta?: string | null; acao: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [geradoEm, setGeradoEm] = useState<string | null>(null);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const competencia = dados ? mesRefToCompetencia(dados.mes_referencia) : null;
 
