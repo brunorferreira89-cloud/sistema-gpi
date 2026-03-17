@@ -10,6 +10,7 @@ import { DreIndicadoresHeader } from './DreIndicadoresHeader';
 import { AnaliseDrawer, type AnaliseDrawerDados } from './AnaliseDrawer';
 import { KpiPainelDre } from './KpiPainelDre';
 import { DreBanner } from './DreBanner';
+import { PainelPersonalizado } from './PainelPersonalizado';
 
 // --- helpers ---
 
