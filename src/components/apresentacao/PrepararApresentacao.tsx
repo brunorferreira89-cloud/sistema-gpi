@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { type ContaRow } from '@/lib/plano-contas-utils';
 import { getLeafContas, sumLeafByTipo, calcIndicador } from '@/lib/dre-indicadores';
 import { fetchMergedIndicadores, calcularIndicadores } from '@/lib/kpi-indicadores-utils';
 import { useNavigate } from 'react-router-dom';
+import { ReuniaoDialog } from '@/components/reunioes/ReuniaoDialog';
 
 interface Props {
   clienteId: string;
@@ -69,6 +70,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     slidesRevisados: false,
     reuniaoAgendada: false,
   });
+  const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
 
   // Fetch prep data
   useEffect(() => {
@@ -119,9 +121,11 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
 
         // Auto-check DRE
         const hasDre = (valores || []).length > 0;
-        // Auto-check metas
+        // Auto-check metas (torre salva metas para o mês seguinte)
+        const compDate = new Date(competencia + 'T00:00:00');
+        const mesSeg = new Date(compDate.getFullYear(), compDate.getMonth() + 1, 1).toISOString().split('T')[0];
         const { count: metasCount } = await supabase.from('torre_metas' as any).select('id', { count: 'exact', head: true })
-          .eq('cliente_id', clienteId).eq('competencia', competencia);
+          .eq('cliente_id', clienteId).eq('competencia', mesSeg);
         // Auto-check reunião
         const hoje = new Date().toISOString().split('T')[0];
         const { count: reuniaoCount } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
@@ -323,6 +327,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
   };
 
   return (
+    <>
     <div className="min-h-screen" style={{ background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }}>
       <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         {/* HEADER */}
@@ -530,12 +535,17 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
                     <Checkbox
                       checked={item.checked}
                       onCheckedChange={(v) => {
-                        // Only "Slides revisados" is manually toggleable
                         if (i === 3) {
                           setChecklistState(prev => ({ ...prev, slidesRevisados: !!v }));
+                        } else if (i === 4) {
+                          if (v) {
+                            setReuniaoDialogOpen(true);
+                          } else {
+                            setChecklistState(prev => ({ ...prev, reuniaoAgendada: false }));
+                          }
                         }
                       }}
-                      disabled={i !== 3}
+                      disabled={i !== 3 && i !== 4}
                       className={item.checked ? '' : 'opacity-50'}
                     />
                     <span style={{ color: item.checked ? '#00A86B' : '#4A5E80', fontWeight: item.checked ? 600 : 400 }}>
@@ -603,5 +613,23 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         </div>
       </div>
     </div>
+
+      <ReuniaoDialog
+        open={reuniaoDialogOpen}
+        onOpenChange={(open) => {
+          setReuniaoDialogOpen(open);
+          if (!open) {
+            // Re-check reunião after dialog closes
+            (async () => {
+              const hoje = new Date().toISOString().split('T')[0];
+              const { count } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
+                .eq('cliente_id', clienteId).gte('data_reuniao', hoje);
+              setChecklistState(prev => ({ ...prev, reuniaoAgendada: (count || 0) > 0 }));
+            })();
+          }
+        }}
+        preselectedClienteId={clienteId}
+      />
+    </>
   );
 }
