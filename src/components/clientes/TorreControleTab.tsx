@@ -694,6 +694,18 @@ export function TorreControleTab({ clienteId }: Props) {
     return hasAny ? total : null;
   }, [contas, metaMap, realizadoMapSel, modoMeta, modoAnaliseMeta]);
 
+// ── Ajuste% dinâmico para N0/N1 ─────────────────────────────
+  const calcAjustePctNode = useCallback((node: DreNode): number => {
+    const sumReal = (n: DreNode): number => {
+      if (n.conta.nivel === 2) return realizadoMapSel[n.conta.id] ?? 0;
+      return n.children.reduce((acc, c) => acc + sumReal(c), 0);
+    };
+    const real = sumReal(node);
+    const proj = sumNodeProjetado(node, realizadoMapSel, metaMap);
+    if (real === 0 || proj == null) return 0;
+    return ((proj - real) / Math.abs(real)) * 100;
+  }, [realizadoMapSel, metaMap]);
+
   // ── Variation (R$) helper ─────────────────────────────────────
   const calcVariacao = useCallback((node: DreNode): number | null => {
     const conta = node.conta;
@@ -1062,14 +1074,33 @@ export function TorreControleTab({ clienteId }: Props) {
                   <>
                     {/* AJUSTE */}
                     <td style={{ textAlign: 'right', padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
-                      <EditableMetaCell
-                        meta={meta}
-                        contaId={conta.id}
-                        clienteId={clienteId}
-                        competencia={mesSeg}
-                        isTotal={isTotal}
-                        onSaved={handleMetaSaved}
-                      />
+                      {(isGrupo || isSubgrupo) && !isTotal ? (() => {
+                        const pct = calcAjustePctNode(node);
+                        const rounded = Math.round(pct * 10) / 10;
+                        const isImprove = conta.tipo === 'receita' ? rounded > 0 : rounded < 0;
+                        const isWorsen = conta.tipo === 'receita' ? rounded < 0 : rounded > 0;
+                        const color = rounded === 0 ? C.txtMuted : isImprove ? C.green : isWorsen ? C.red : C.txtMuted;
+                        const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
+                        const display = `${sign}${Math.abs(rounded).toFixed(1)}%`;
+                        return (
+                          <span style={{
+                            fontFamily: C.mono, fontSize: 11, fontWeight: 700, color,
+                            background: 'rgba(26,60,255,0.05)', borderRadius: 6, padding: '3px 8px',
+                            display: 'inline-block',
+                          }}>
+                            {display}
+                          </span>
+                        );
+                      })() : (
+                        <EditableMetaCell
+                          meta={meta}
+                          contaId={conta.id}
+                          clienteId={clienteId}
+                          competencia={mesSeg}
+                          isTotal={isTotal}
+                          onSaved={handleMetaSaved}
+                        />
+                      )}
                     </td>
                     {/* R$ */}
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
