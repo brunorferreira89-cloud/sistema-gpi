@@ -1324,6 +1324,8 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
           meta_valor: metaValor || null,
           meta_direcao: metaDirecao,
           formato_resultado: formatoResultado,
+          ocultar_zeros: ocultarZeros,
+          ordenacao_lista: ordenacaoLista,
           updated_at: new Date().toISOString(),
         } as any).eq('id', widget.id);
         if (error) throw error;
