@@ -1390,8 +1390,13 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
         <div className="p-6">
           {step === 1 ? (
             <>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0D1B35', marginBottom: 4 }}>Novo Widget</h3>
-              <p style={{ fontSize: 11, color: '#8A9BBC', marginBottom: 16 }}>Escolha o tipo de widget</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0D1B35', marginBottom: 4 }}>Novo Widget</h3>
+                  <p style={{ fontSize: 11, color: '#8A9BBC' }}>Escolha o tipo de widget</p>
+                </div>
+                <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: '#F0F4FA', color: '#4A5E80', border: '1px solid #DDE4F0', cursor: 'pointer' }}>Cancelar</button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {TIPO_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => setTipo(opt.value)} style={{ padding: 14, borderRadius: 10, textAlign: 'center', cursor: 'pointer', border: `1.5px solid ${tipo === opt.value ? '#1A3CFF' : '#DDE4F0'}`, background: tipo === opt.value ? 'rgba(26,60,255,0.07)' : '#fff', transition: 'all 0.15s' }}>
