@@ -140,7 +140,7 @@ export function calcularIndicadores(
 
   return indicadores.map(ind => {
     let valor: number | null = null;
-    const detalhe: { nome: string; valor: number; pct: number }[] = [];
+    const detalhe: { nome: string; valor: number; pct: number; contaId: string }[] = [];
 
     if (ind.tipo_fonte === 'totalizador' && ind.totalizador_key) {
       const tipos = TOTALIZADOR_TIPOS[ind.totalizador_key];
