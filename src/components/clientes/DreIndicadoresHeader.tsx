@@ -86,8 +86,7 @@ function getSubgroups(
         return { nome: ch.nome, valor, pct_faturamento: fat ? (Math.abs(valor) / fat) * 100 : 0 };
       })
       .filter(f => f.valor !== 0)
-      .sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor))
-      .slice(0, 5);
+      .sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
 
     const entry: any = {
       nome: s.nome,
