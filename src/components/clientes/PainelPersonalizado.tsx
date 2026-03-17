@@ -1480,7 +1480,15 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {TIPO_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => setTipo(opt.value)} style={{ padding: 14, borderRadius: 10, textAlign: 'center', cursor: 'pointer', border: `1.5px solid ${tipo === opt.value ? '#1A3CFF' : '#DDE4F0'}`, background: tipo === opt.value ? 'rgba(26,60,255,0.07)' : '#fff', transition: 'all 0.15s' }}>
-                    <span style={{ fontSize: 28, display: 'block' }}>{opt.icon}</span>
+                    <span style={{ fontSize: 28, display: 'block' }}>
+                      {opt.icon === 'detail' ? (
+                        <svg width={28} height={28} viewBox="0 0 28 28" style={{ display: 'inline-block', background: 'rgba(74,94,128,0.1)', borderRadius: 6, padding: 4 }}>
+                          <rect x={5} y={9} width={14} height={2} rx={1} fill="#4A5E80" />
+                          <rect x={5} y={14} width={10} height={2} rx={1} fill="#4A5E80" />
+                          <rect x={5} y={19} width={7} height={2} rx={1} fill="#4A5E80" />
+                        </svg>
+                      ) : opt.icon}
+                    </span>
                     <p style={{ fontSize: 12, fontWeight: 700, color: '#0D1B35', marginTop: 6 }}>{opt.title}</p>
                     <p style={{ fontSize: 10, color: '#8A9BBC', marginTop: 2 }}>{opt.desc}</p>
                   </button>
