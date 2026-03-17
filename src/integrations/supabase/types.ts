@@ -660,6 +660,62 @@ export type Database = {
           },
         ]
       }
+      painel_widgets: {
+        Row: {
+          ativo: boolean | null
+          cliente_id: string
+          colunas: number | null
+          conta_ids: string[] | null
+          cor_destaque: string | null
+          created_at: string | null
+          id: string
+          meta_direcao: string | null
+          meta_valor: number | null
+          ordem: number | null
+          tipo: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cliente_id: string
+          colunas?: number | null
+          conta_ids?: string[] | null
+          cor_destaque?: string | null
+          created_at?: string | null
+          id?: string
+          meta_direcao?: string | null
+          meta_valor?: number | null
+          ordem?: number | null
+          tipo: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cliente_id?: string
+          colunas?: number | null
+          conta_ids?: string[] | null
+          cor_destaque?: string | null
+          created_at?: string | null
+          id?: string
+          meta_direcao?: string | null
+          meta_valor?: number | null
+          ordem?: number | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "painel_widgets_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plano_de_contas: {
         Row: {
           cliente_id: string
