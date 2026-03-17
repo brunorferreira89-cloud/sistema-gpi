@@ -1251,6 +1251,8 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   const [formatoResultado, setFormatoResultado] = useState(isEdit ? (widget!.formato_resultado || 'percentual') : 'percentual');
   const [saving, setSaving] = useState(false);
   const [buscaConta, setBuscaConta] = useState('');
+  const [ordenacaoLista, setOrdenacaoLista] = useState(isEdit ? ((widget as any).ordenacao_lista || 'maior_primeiro') : 'maior_primeiro');
+  const [ocultarZeros, setOcultarZeros] = useState(isEdit ? ((widget as any).ocultar_zeros ?? true) : true);
 
   const TIPO_CORES: Record<string, string> = { receita: '#1A3CFF', custo_variavel: '#DC2626', despesa_fixa: '#D97706', investimento: '#0099E6', financeiro: '#00A86B' };
 
