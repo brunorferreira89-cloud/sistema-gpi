@@ -421,7 +421,7 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
                     </table>
                   </div>
                 ) : (
-                  /* ── NÍVEL 2 ── */
+                  /* ── NÍVEL DRILL-DOWN (recursivo) ── */
                   <div style={{ background: '#FFFFFF', border: '1px solid #DDE4F0', borderRadius: 8, overflow: 'hidden' }}>
                     {filhasNivel2.length === 0 ? (
                       <div style={{ padding: 20, textAlign: 'center' }}>
@@ -435,40 +435,40 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
                             <th style={{ fontSize: 9, fontWeight: 700, color: '#8A9BBC', letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'left', padding: '8px 12px' }}>Conta</th>
                             <th style={{ fontSize: 9, fontWeight: 700, color: '#8A9BBC', letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'right', padding: '8px 12px' }}>Valor</th>
                             <th style={{ fontSize: 9, fontWeight: 700, color: '#8A9BBC', letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'right', padding: '8px 12px', width: 50 }}>%</th>
+                            <th style={{ width: 20, padding: '8px 8px 8px 0' }}></th>
                           </tr>
                         </thead>
                         <tbody>
                           {filhasNivel2.map((f) => {
                             const pct = totalNivel2 ? (Math.abs(f.valor) / Math.abs(totalNivel2)) * 100 : 0;
+                            const temFilhasF = hasFilhas(f.id);
                             const isExpanded = expandedCatId === f.id;
                             return (
-                              <tr key={f.id} style={{ cursor: 'default' }}>
-                                <td colSpan={3} style={{ padding: 0 }}>
-                                  <div
-                                    onClick={() => setExpandedCatId(isExpanded ? null : f.id)}
-                                    style={{
-                                      display: 'flex', alignItems: 'center', padding: '7px 12px',
-                                      borderBottom: '1px solid #F0F4FA', cursor: 'pointer',
-                                    }}
-                                  >
-                                    <span style={{ fontSize: 12, color: '#4A5E80', flex: 1 }}>{f.nome.replace(/^\([+-]\)\s*/, '')}</span>
-                                    <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, color: '#0D1B35', marginRight: 12 }}>
-                                      {fmtCurrency(Math.abs(f.valor))}
-                                    </span>
-                                    <span style={{ fontSize: 11, color: '#8A9BBC', minWidth: 40, textAlign: 'right' }}>{pct.toFixed(1)}%</span>
-                                  </div>
-                                  {isExpanded && (
-                                    <div style={{
-                                      background: 'rgba(217,119,6,0.06)',
-                                      borderLeft: '2px solid #D97706',
-                                      borderRadius: '0 6px 6px 0',
-                                      padding: '6px 10px',
-                                      fontSize: 10.5,
-                                      color: '#92400E',
-                                      margin: '0 12px 6px 12px',
-                                    }}>
-                                      Esta é uma categoria — sem detalhamento disponível.
-                                    </div>
+                              <tr
+                                key={f.id}
+                                onClick={() => {
+                                  if (temFilhasF) {
+                                    avancar({ id: f.id, nome: f.nome.replace(/^\([+-]\)\s*/, ''), valor: f.valor });
+                                  } else {
+                                    setExpandedCatId(isExpanded ? null : f.id);
+                                  }
+                                }}
+                                style={{
+                                  borderBottom: '1px solid #F0F4FA',
+                                  cursor: temFilhasF ? 'pointer' : 'pointer',
+                                  transition: 'background 0.12s',
+                                }}
+                                onMouseEnter={e => { if (temFilhasF) e.currentTarget.style.background = 'rgba(26,60,255,0.04)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                              >
+                                <td style={{ fontSize: 12, color: '#4A5E80', padding: '7px 12px' }}>{f.nome.replace(/^\([+-]\)\s*/, '')}</td>
+                                <td style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, color: '#0D1B35', textAlign: 'right', padding: '7px 12px' }}>
+                                  {fmtCurrency(Math.abs(f.valor))}
+                                </td>
+                                <td style={{ fontSize: 11, color: '#8A9BBC', textAlign: 'right', padding: '7px 12px' }}>{pct.toFixed(1)}%</td>
+                                <td style={{ padding: '7px 8px 7px 0', textAlign: 'center' }}>
+                                  {temFilhasF && (
+                                    <span style={{ fontSize: 10, color: '#C4CFEA', transition: 'color 0.12s' }}>→</span>
                                   )}
                                 </td>
                               </tr>
@@ -481,6 +481,7 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
                               {fmtCurrency(Math.abs(totalNivel2))}
                             </td>
                             <td style={{ fontSize: 11, fontWeight: 700, color: '#8A9BBC', textAlign: 'right', padding: '8px 12px' }}>100%</td>
+                            <td></td>
                           </tr>
                         </tbody>
                       </table>
