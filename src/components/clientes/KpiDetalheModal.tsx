@@ -104,24 +104,15 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId
   const hasFilhas = (contaId: string) =>
     todasContas.some(c => c.conta_pai_id === contaId);
 
-  // Composição raiz: use kpiCalc.detalhe[] (already computed) + match to contas by name for drill
+  // Composição raiz: use kpiCalc.detalhe[] with contaId already populated
   const composicaoRaiz = useMemo(() => {
-    return (kpiCalc.detalhe ?? []).map(d => {
-      // Try to find matching conta in todasContas by normalized name
-      const normalizedName = d.nome.replace(/^\([+-]\)\s*/, '').trim().toLowerCase();
-      const matchedConta = todasContas.find(c => {
-        const cName = c.nome.replace(/^\([+-]\)\s*/, '').trim().toLowerCase();
-        return cName === normalizedName;
-      });
-      const contaId = matchedConta?.id ?? '';
-      return {
-        id: contaId,
-        nome: d.nome,
-        valor: d.valor,
-        pct: d.pct,
-        temFilhas: contaId ? hasFilhas(contaId) : false,
-      };
-    });
+    return (kpiCalc.detalhe ?? []).map(d => ({
+      id: d.contaId ?? '',
+      nome: d.nome,
+      valor: d.valor,
+      pct: d.pct,
+      temFilhas: d.contaId ? hasFilhas(d.contaId) : false,
+    }));
   }, [kpiCalc.detalhe, todasContas]);
 
   const avancar = (conta: DrillItem) => {

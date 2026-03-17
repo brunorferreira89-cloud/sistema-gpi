@@ -24,7 +24,7 @@ export interface IndicadorCalculado {
   faturamento: number;
   status: 'verde' | 'ambar' | 'vermelho';
   pontos: number;
-  detalhe: { nome: string; valor: number; pct: number }[];
+  detalhe: { nome: string; valor: number; pct: number; contaId: string }[];
 }
 
 const TOTALIZADOR_TIPOS: Record<string, string[]> = {
@@ -140,7 +140,7 @@ export function calcularIndicadores(
 
   return indicadores.map(ind => {
     let valor: number | null = null;
-    const detalhe: { nome: string; valor: number; pct: number }[] = [];
+    const detalhe: { nome: string; valor: number; pct: number; contaId: string }[] = [];
 
     if (ind.tipo_fonte === 'totalizador' && ind.totalizador_key) {
       const tipos = TOTALIZADOR_TIPOS[ind.totalizador_key];
@@ -150,7 +150,8 @@ export function calcularIndicadores(
           const tipoVal = sumLeafByTipo(contas, valoresMap, tipo);
           if (tipoVal !== 0) {
             const label = tipo === 'receita' ? 'Receitas' : tipo === 'custo_variavel' ? 'Custos Variáveis' : tipo === 'despesa_fixa' ? 'Despesas Fixas' : tipo === 'investimento' ? 'Investimentos' : 'Financeiro';
-            detalhe.push({ nome: label, valor: tipoVal, pct: faturamento ? (Math.abs(tipoVal) / Math.abs(faturamento)) * 100 : 0 });
+            const n0Conta = contas.find(c => c.nivel === 0 && c.tipo === tipo);
+            detalhe.push({ nome: label, valor: tipoVal, pct: faturamento ? (Math.abs(tipoVal) / Math.abs(faturamento)) * 100 : 0, contaId: n0Conta?.id ?? '' });
           }
         });
       }
@@ -174,7 +175,7 @@ export function calcularIndicadores(
               if (v != null) {
                 hasAny = true;
                 total += v;
-                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: c.id });
               }
             });
           } else if (conta.nivel === 2) {
@@ -183,7 +184,7 @@ export function calcularIndicadores(
             if (v != null) {
               hasAny = true;
               total += v;
-              detalhe.push({ nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+              detalhe.push({ nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: conta.id });
             }
           }
         }
@@ -194,7 +195,7 @@ export function calcularIndicadores(
           valor = sumLeafByTipo(contas, valoresMap, 'custo_variavel');
           leafs.filter(c => c.tipo === 'custo_variavel').forEach(c => {
             const v = valoresMap[c.id];
-            if (v != null) detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+            if (v != null) detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: c.id });
           });
         } else if (ind.nome === 'CMO') {
           const pessoalSubs = contas.filter(c => c.nivel === 1 && CMO_KEYWORDS.some(kw => c.nome.toLowerCase().includes(kw)));
@@ -207,7 +208,7 @@ export function calcularIndicadores(
               if (v != null) {
                 hasAny = true;
                 total += v;
-                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0 });
+                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: c.id });
               }
             });
           });
