@@ -552,21 +552,20 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
 
   const contasByParent = useMemo(() => {
     const map: Record<string, Conta[]> = {};
-    allContas.filter(c => c.nivel >= 1).forEach(c => {
-      // find parent grupo
-      const parentGrupo = grupos.find(g => {
-        const gIdx = allContas.indexOf(g);
-        const nextGrupo = grupos.find((g2, i2) => allContas.indexOf(g2) > gIdx && i2 > grupos.indexOf(g));
-        const nextIdx = nextGrupo ? allContas.indexOf(nextGrupo) : allContas.length;
-        const cIdx = allContas.indexOf(c);
-        return cIdx > gIdx && cIdx < nextIdx;
-      });
-      const key = parentGrupo?.id || '__none';
-      if (!map[key]) map[key] = [];
-      map[key].push(c);
+    // contas already sorted by `ordem` from DB query
+    // assign each nivel>=1 conta to the nearest preceding nivel=0 grupo
+    let currentGrupoId = '__none';
+    allContas.forEach(c => {
+      if (c.nivel === 0) {
+        currentGrupoId = c.id;
+        if (!map[currentGrupoId]) map[currentGrupoId] = [];
+      } else {
+        if (!map[currentGrupoId]) map[currentGrupoId] = [];
+        map[currentGrupoId].push(c);
+      }
     });
     return map;
-  }, [allContas, grupos]);
+  }, [allContas]);
 
   const handleCreate = async () => {
     if (!titulo.trim() || !selectedContas.length) return;
