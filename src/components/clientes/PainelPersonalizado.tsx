@@ -663,19 +663,26 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
     return allContas.filter(c => c.nivel >= 1 && c.nome.toLowerCase().includes(term));
   }, [buscaConta, allContas]);
 
-  const contasByParent = useMemo(() => {
-    const map: Record<string, Conta[]> = {};
-    let currentGrupoId = '__none';
+  // Build hierarchy: N0 groups → N1 subgroups → N2 categories, all in ordem ASC order
+  const hierarquia = useMemo(() => {
+    // Already sorted by ordem ASC from the query
+    const gruposList: { grupo: Conta; subgrupos: { sub: Conta; categorias: Conta[] }[] }[] = [];
+    let currentGrupo: typeof gruposList[number] | null = null;
+    let currentSub: { sub: Conta; categorias: Conta[] } | null = null;
+
     allContas.forEach(c => {
       if (c.nivel === 0) {
-        currentGrupoId = c.id;
-        if (!map[currentGrupoId]) map[currentGrupoId] = [];
-      } else {
-        if (!map[currentGrupoId]) map[currentGrupoId] = [];
-        map[currentGrupoId].push(c);
+        currentGrupo = { grupo: c, subgrupos: [] };
+        gruposList.push(currentGrupo);
+        currentSub = null;
+      } else if (c.nivel === 1) {
+        currentSub = { sub: c, categorias: [] };
+        if (currentGrupo) currentGrupo.subgrupos.push(currentSub);
+      } else if (c.nivel === 2) {
+        if (currentSub) currentSub.categorias.push(c);
       }
     });
-    return map;
+    return gruposList;
   }, [allContas]);
 
   const handleSave = async () => {
