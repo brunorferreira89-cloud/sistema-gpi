@@ -1074,14 +1074,33 @@ export function TorreControleTab({ clienteId }: Props) {
                   <>
                     {/* AJUSTE */}
                     <td style={{ textAlign: 'right', padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
-                      <EditableMetaCell
-                        meta={meta}
-                        contaId={conta.id}
-                        clienteId={clienteId}
-                        competencia={mesSeg}
-                        isTotal={isTotal}
-                        onSaved={handleMetaSaved}
-                      />
+                      {(isGrupo || isSubgrupo) && !isTotal ? (() => {
+                        const pct = calcAjustePctNode(node);
+                        const rounded = Math.round(pct * 10) / 10;
+                        const isImprove = conta.tipo === 'receita' ? rounded > 0 : rounded < 0;
+                        const isWorsen = conta.tipo === 'receita' ? rounded < 0 : rounded > 0;
+                        const color = rounded === 0 ? C.txtMuted : isImprove ? C.green : isWorsen ? C.red : C.txtMuted;
+                        const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
+                        const display = `${sign}${Math.abs(rounded).toFixed(1)}%`;
+                        return (
+                          <span style={{
+                            fontFamily: C.mono, fontSize: 11, fontWeight: 700, color,
+                            background: 'rgba(26,60,255,0.05)', borderRadius: 6, padding: '3px 8px',
+                            display: 'inline-block',
+                          }}>
+                            {display}
+                          </span>
+                        );
+                      })() : (
+                        <EditableMetaCell
+                          meta={meta}
+                          contaId={conta.id}
+                          clienteId={clienteId}
+                          competencia={mesSeg}
+                          isTotal={isTotal}
+                          onSaved={handleMetaSaved}
+                        />
+                      )}
                     </td>
                     {/* R$ */}
                     <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>
