@@ -530,6 +530,7 @@ function WidgetCard({
         {widget.tipo === 'grafico_pizza' && <GraficoPizzaBody widget={widget} valMap={valMap} contaMap={contaMap} comp={comp} />}
         {widget.tipo === 'indicador' && <IndicadorBody widget={widget} getSoma={getSoma} comp={comp} />}
         {widget.tipo === 'cruzamento' && <CruzamentoBody widget={widget} getSoma={getSoma} contaMap={contaMap} valMap={valMap} comp={comp} />}
+        {widget.tipo === 'detalhamento' && <DetalhamentoBody widget={widget} contaMap={contaMap} valMap={valMap} comp={comp} somaAtual={somaAtual} avPct={avPct} />}
       </div>
 
       {/* Footer */}
