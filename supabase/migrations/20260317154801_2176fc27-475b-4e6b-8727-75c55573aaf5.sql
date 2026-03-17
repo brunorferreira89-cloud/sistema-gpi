@@ -1,0 +1,1 @@
+ALTER TABLE public.apresentacao_preparacao ADD COLUMN visivel_portal boolean NOT NULL DEFAULT false;

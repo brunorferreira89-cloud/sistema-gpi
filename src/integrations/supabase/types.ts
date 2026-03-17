@@ -119,6 +119,7 @@ export type Database = {
           objetivos: string | null
           proximos_passos: string | null
           riscos: string | null
+          visivel_portal: boolean
         }
         Insert: {
           checkpoints_json?: Json | null
@@ -132,6 +133,7 @@ export type Database = {
           objetivos?: string | null
           proximos_passos?: string | null
           riscos?: string | null
+          visivel_portal?: boolean
         }
         Update: {
           checkpoints_json?: Json | null
@@ -145,6 +147,7 @@ export type Database = {
           objetivos?: string | null
           proximos_passos?: string | null
           riscos?: string | null
+          visivel_portal?: boolean
         }
         Relationships: [
           {
