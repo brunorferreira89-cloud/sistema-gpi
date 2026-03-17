@@ -901,42 +901,36 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
     return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   };
 
-  // Formula builder
-  function buildFormula() {
-    const contaNomes = widget.conta_ids.map(id => contaMap[id]?.nome || id.slice(0, 8));
-    const contaVals = widget.conta_ids.map(id => formatCurrency(valMap[`${id}__${comp}`] || 0));
-    const avPct = fat ? (Math.abs(somaAtual) / Math.abs(fat) * 100).toFixed(1) : null;
+  // Prose description builder
+  function buildDescricao() {
+    const nomesList = widget.conta_ids.map(id => contaMap[id]?.nome || id.slice(0, 8));
+    const fmtNomes = (nomes: string[]) => {
+      if (nomes.length <= 3) return nomes.join(', ');
+      return `${nomes.slice(0, 3).join(', ')} e mais ${nomes.length - 3} outras`;
+    };
+    const mesAtual = fmtMonthLong(comp);
+    const mesAnterior = fmtMonthLong(prevComp);
 
     switch (widget.tipo) {
       case 'card_resumo':
-        return `${widget.titulo}\n= ${contaNomes.join(' + ')}\n= ${contaVals.join(' + ')}\n= ${formatCurrency(somaAtual)}${avPct ? `  · ${avPct}% do faturamento` : ''}`;
-      case 'comparativo': {
-        const delta = somaPrev !== 0 ? ((somaAtual - somaPrev) / Math.abs(somaPrev) * 100).toFixed(1) : '—';
-        return `${widget.titulo}\nMês anterior (${fmtComp(prevComp)}): ${formatCurrency(somaPrev)}\nMês atual    (${fmtComp(comp)}): ${formatCurrency(somaAtual)}\nVariação: ${formatCurrency(somaAtual - somaPrev)}  (${delta}%)`;
-      }
-      case 'grafico_barras': {
-        const periodos = getNPrevCompetencias(comp, widget.periodo_meses || 6);
-        const vals = periodos.map(p => `${fmtComp(p)}: ${formatCurrency(getSoma(widget.conta_ids, p))}`);
-        return `${widget.titulo} — últimos ${widget.periodo_meses || 6} meses\n${vals.join(' · ')}`;
-      }
-      case 'grafico_pizza': {
-        const items = widget.conta_ids.map(id => {
-          const v = Math.abs(valMap[`${id}__${comp}`] || 0);
-          const total = widget.conta_ids.reduce((s, i) => s + Math.abs(valMap[`${i}__${comp}`] || 0), 0);
-          return `${contaMap[id]?.nome || id}: ${formatCurrency(v)}  (${total ? ((v / total) * 100).toFixed(1) : 0}%)`;
-        });
-        return `${widget.titulo}\nTotal: ${formatCurrency(widget.conta_ids.reduce((s, id) => s + Math.abs(valMap[`${id}__${comp}`] || 0), 0))}\n${items.join('\n')}`;
-      }
+        return `Este card soma os valores registrados em ${nomesList.length} conta(s) selecionada(s) — ${fmtNomes(nomesList)} — e exibe o total para ${mesAtual}. O resultado também é comparado com o faturamento total do período para mostrar qual fatia ele representa.`;
+      case 'comparativo':
+        return `Este card compara o total das contas selecionadas entre dois meses consecutivos — ${mesAnterior} e ${mesAtual} — para mostrar se houve evolução ou queda. A variação é calculada pela diferença entre os dois períodos, em valor (R$) e percentual (%).`;
+      case 'grafico_barras':
+        return `Este gráfico mostra a evolução mensal das contas selecionadas ao longo dos últimos ${widget.periodo_meses || 6} meses. Cada barra representa o valor registrado naquele mês, permitindo visualizar tendências de crescimento ou queda ao longo do tempo.`;
+      case 'grafico_pizza':
+        return `Este gráfico mostra como o total de ${mesAtual} está distribuído entre as contas selecionadas. Cada fatia representa a participação percentual de uma conta no total — quanto maior a fatia, maior o peso daquela conta no resultado.`;
       case 'indicador': {
-        if (!indicadorData) return widget.titulo;
-        return `${widget.titulo}\nNumerador: ${formatCurrency(indicadorData.num)}\nDenominador: ${formatCurrency(indicadorData.den)}\nResultado: ${formatCurrency(indicadorData.num)} / ${formatCurrency(indicadorData.den)} = ${indicadorData.resultado.toFixed(1)}%\nMeta: ${widget.meta_direcao === 'menor_melhor' ? 'menor que' : 'maior que'} ${indicadorData.meta}%\nDistância da meta: ${indicadorData.distancia.toFixed(1)} p.p.`;
+        const nomesNum = fmtNomes(nomesList);
+        const nomesDen = fmtNomes((widget.conta_ids_b || []).map(id => contaMap[id]?.nome || id.slice(0, 8)));
+        const meta = widget.meta_valor || 0;
+        return `Este indicador calcula a proporção entre ${nomesNum} e ${nomesDen} — ou seja, quanto do denominador é consumido pelo numerador. O resultado é comparado com a meta definida de ${meta}%, indicando se o negócio está dentro ou fora do parâmetro esperado.`;
       }
       case 'cruzamento': {
-        const a = getSoma(widget.conta_ids, comp);
-        const b = getSoma(widget.conta_ids_b || [], comp);
-        const res = b !== 0 ? a / b : 0;
+        const nomeA = fmtNomes(nomesList);
+        const nomeB = fmtNomes((widget.conta_ids_b || []).map(id => contaMap[id]?.nome || id.slice(0, 8)));
         const isPct = widget.formato_resultado === 'percentual';
-        return `${widget.titulo}\n${contaNomes.join('+')}: ${formatCurrency(a)}\n${(widget.conta_ids_b || []).map(id => contaMap[id]?.nome || id).join('+')}: ${formatCurrency(b)}\nResultado: ${formatCurrency(a)} / ${formatCurrency(b)} = ${isPct ? (res * 100).toFixed(1) + '%' : res.toFixed(2)}`;
+        return `Este widget divide o valor de ${nomeA} pelo valor de ${nomeB} para revelar uma relação entre as duas grandezas. O resultado ${isPct ? 'é expresso em %' : 'é expresso como índice'} e acompanha a tendência dos últimos meses para mostrar se essa relação está melhorando ou piorando.`;
       }
       default: return widget.titulo;
     }
