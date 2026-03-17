@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { X, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/plano-contas-utils';
@@ -17,7 +17,7 @@ export interface AnaliseDrawerDados {
   direcao: string;
   historico: { mes: string; valor: number }[];
   formula: string;
-  composicao: { nome: string; valor: number; grupo?: string; nivel?: string; pct_faturamento?: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number; pct?: number | null }[];
+  composicao: { nome: string; valor: number; grupo?: string; nivel?: string; pct_faturamento?: number; valor_anterior?: number; variacao_pct?: number; variacao_abs?: number; pct?: number | null; filhas?: { nome: string; valor: number; pct_faturamento: number }[] }[];
   instrucao_especifica?: string;
 }
 
@@ -84,6 +84,7 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
   const [analysis, setAnalysis] = useState<{ titulo: string; contexto?: string; analise: string; alerta?: string | null; acao: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [geradoEm, setGeradoEm] = useState<string | null>(null);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const competencia = dados ? mesRefToCompetencia(dados.mes_referencia) : null;
 
@@ -126,7 +127,7 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
 
   useEffect(() => {
     if (!isOpen || !dados) return;
-
+    setExpandedIdx(null);
     const carregarAnalise = async () => {
       if (!clienteId || !competencia) {
         await gerarNovaAnalise();
@@ -312,19 +313,50 @@ export function AnaliseDrawer({ isOpen, onClose, titulo, dados }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {dados.composicao.map((c, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #F8F9FB' }}>
-                      <td style={{ padding: '5px 0', color: '#4A5E80' }}>{c.nome}</td>
-                      <td style={{ textAlign: 'right', padding: '5px 0', fontFamily: 'monospace', color: '#0D1B35' }}>
-                        {fmtCur(c.valor)}
-                      </td>
-                      {dados.faturamento > 0 && (
-                        <td style={{ textAlign: 'right', padding: '5px 0', fontFamily: 'monospace', color: '#8A9BBC', fontSize: 11 }}>
-                          {((Math.abs(c.valor) / Math.abs(dados.faturamento)) * 100).toFixed(1)}%
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                  {dados.composicao.map((c, i) => {
+                    const hasFilhas = c.filhas && c.filhas.length > 0;
+                    const isExpanded = expandedIdx === i;
+                    return (
+                      <React.Fragment key={i}>
+                        <tr
+                          style={{ borderBottom: '1px solid #F8F9FB', cursor: hasFilhas ? 'pointer' : 'default', transition: 'background 0.12s' }}
+                          onClick={() => hasFilhas && setExpandedIdx(isExpanded ? null : i)}
+                          onMouseEnter={e => { if (hasFilhas) e.currentTarget.style.background = 'rgba(26,60,255,0.04)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <td style={{ padding: '5px 0', color: '#4A5E80', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {hasFilhas && (
+                              <span style={{ fontSize: 8, color: '#C4CFEA', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'none', display: 'inline-block' }}>▶</span>
+                            )}
+                            {c.nome}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '5px 0', fontFamily: 'monospace', color: '#0D1B35' }}>
+                            {fmtCur(c.valor)}
+                          </td>
+                          {dados.faturamento > 0 && (
+                            <td style={{ textAlign: 'right', padding: '5px 0', fontFamily: 'monospace', color: '#8A9BBC', fontSize: 11 }}>
+                              {((Math.abs(c.valor) / Math.abs(dados.faturamento)) * 100).toFixed(1)}%
+                            </td>
+                          )}
+                        </tr>
+                        {isExpanded && c.filhas && c.filhas.map((f, fi) => (
+                          <tr key={`${i}-${fi}`} style={{ borderBottom: '1px solid #F8F9FB', background: '#FAFCFF' }}>
+                            <td style={{ padding: '4px 0 4px 20px', color: '#8A9BBC', fontSize: 11 }}>
+                              ↳ {f.nome.replace(/^\([+-]\)\s*/, '')}
+                            </td>
+                            <td style={{ textAlign: 'right', padding: '4px 0', fontFamily: 'monospace', color: '#4A5E80', fontSize: 11 }}>
+                              {fmtCur(f.valor)}
+                            </td>
+                            {dados.faturamento > 0 && (
+                              <td style={{ textAlign: 'right', padding: '4px 0', fontFamily: 'monospace', color: '#C4CFEA', fontSize: 10 }}>
+                                {f.pct_faturamento.toFixed(1)}%
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
                   <tr style={{ borderTop: '2px solid #DDE4F0' }}>
                     <td style={{ padding: '5px 0', fontWeight: 700, color: '#0D1B35' }}>Total</td>
                     <td style={{ textAlign: 'right', padding: '5px 0', fontFamily: 'monospace', fontWeight: 700, color: '#0D1B35' }}>
