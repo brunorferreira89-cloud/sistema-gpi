@@ -50,8 +50,7 @@ interface DrillItem {
   valor: number;
 }
 
-export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) {
-  const { clienteId } = useParams();
+export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId }: Props) {
   const [analise, setAnalise] = useState<AnaliseResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasCheckedCache, setHasCheckedCache] = useState(false);
