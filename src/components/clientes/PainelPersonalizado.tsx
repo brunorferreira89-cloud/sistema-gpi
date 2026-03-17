@@ -835,6 +835,67 @@ function CruzamentoBody({ widget, getSoma, contaMap, valMap, comp }: {
   );
 }
 
+/* ─── detalhamento body ─── */
+function DetalhamentoBody({ widget, contaMap, valMap, comp, somaAtual, avPct }: {
+  widget: Widget; contaMap: Record<string, Conta>; valMap: Record<string, number>;
+  comp: string; somaAtual: number; avPct: number | null;
+}) {
+  const items = (widget.conta_ids || []).map(id => ({
+    id, nome: contaMap[id]?.nome || id.slice(0, 8), valor: valMap[`${id}__${comp}`] || 0, ordem: contaMap[id]?.ordem ?? 0,
+  }));
+
+  let filtered = widget.ocultar_zeros ? items.filter(i => i.valor !== 0) : items;
+  if (widget.ordenacao_lista === 'maior_primeiro') {
+    filtered = [...filtered].sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
+  } else {
+    filtered = [...filtered].sort((a, b) => a.ordem - b.ordem);
+  }
+
+  const total = Math.abs(somaAtual);
+  const top7 = filtered.slice(0, 7);
+  const rest = filtered.slice(7);
+  const restSum = rest.reduce((s, i) => s + i.valor, 0);
+
+  return (
+    <>
+      {/* Total block */}
+      <div style={{ padding: '8px 0 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div>
+          <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', color: '#8A9BBC', letterSpacing: '0.1em', display: 'block' }}>TOTAL</span>
+          <span style={{ fontFamily: 'Courier New, monospace', fontSize: 20, fontWeight: 700, color: widget.cor_destaque }}>{formatCurrency(somaAtual)}</span>
+        </div>
+        {avPct != null && <span style={{ fontSize: 10, color: '#8A9BBC' }}>{avPct.toFixed(1)}% do fat.</span>}
+      </div>
+      <div style={{ height: 1, background: '#DDE4F0', margin: '0 0 6px' }} />
+      {/* List */}
+      <div style={{ padding: '0 0 8px' }}>
+        {top7.map((item, i) => {
+          const pct = total > 0 ? (Math.abs(item.valor) / total) * 100 : 0;
+          return (
+            <div key={item.id} style={{ marginBottom: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 10.5, color: '#4A5E80', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>
+                  {item.nome.length > 20 ? item.nome.slice(0, 20) + '…' : item.nome}
+                </span>
+                <span style={{ fontFamily: 'Courier New, monospace', fontSize: 10.5, fontWeight: 700, color: '#0D1B35', marginLeft: 8 }}>{formatCurrency(item.valor)}</span>
+                <span style={{ fontSize: 9.5, color: '#8A9BBC', minWidth: 32, textAlign: 'right' }}>{pct.toFixed(0)}%</span>
+              </div>
+              <div style={{ height: 3, borderRadius: 2, background: '#F0F4FA', marginTop: 1 }}>
+                <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: widget.cor_destaque, opacity: 1 - i * 0.093, transition: 'width 0.5s' }} />
+              </div>
+            </div>
+          );
+        })}
+        {rest.length > 0 && (
+          <div style={{ fontSize: 10.5, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>
+            ＋ {rest.length} outras · {formatCurrency(restSum)}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 /* ─── hex to HSL helper ─── */
 function hexToHsl(hex: string) {
   let r = 0, g = 0, b = 0;
