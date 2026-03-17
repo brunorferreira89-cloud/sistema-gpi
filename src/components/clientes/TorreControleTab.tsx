@@ -240,9 +240,11 @@ function EditableMetaCell({
     );
   }
 
-  const display = meta.meta_tipo === 'pct'
-    ? `${meta.meta_valor! >= 0 ? '+' : ''}${meta.meta_valor}%`
-    : fmtTorre(meta.meta_valor);
+  const display = displayPct !== undefined
+    ? `${displayPct >= 0 ? '+' : ''}${displayPct.toFixed(1)}%`
+    : meta.meta_tipo === 'pct'
+      ? `${meta.meta_valor! >= 0 ? '+' : ''}${meta.meta_valor}%`
+      : fmtTorre(meta.meta_valor);
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEditing(true); setInput(meta.meta_valor != null ? String(meta.meta_valor) : ''); setLocalTipo(meta.meta_tipo); }}>
