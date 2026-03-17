@@ -1559,7 +1559,36 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
                 </>
               )}
 
-              {/* Duplicate alert */}
+              {/* Detalhamento options */}
+              {needsDetalhamento && (
+                <>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', display: 'block', marginBottom: 4 }}>Ordenar lista por</label>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                    {[{ value: 'maior_primeiro', label: 'Maior valor primeiro' }, { value: 'ordem_plano', label: 'Ordem do plano de contas' }].map(opt => (
+                      <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#0D1B35', cursor: 'pointer' }}>
+                        <input type="radio" name="ordenacao_lista" checked={ordenacaoLista === opt.value} onChange={() => setOrdenacaoLista(opt.value)} style={{ accentColor: '#1A3CFF' }} />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80' }}>Ocultar contas com valor R$ 0</label>
+                    <button
+                      onClick={() => setOcultarZeros(p => !p)}
+                      style={{
+                        width: 38, height: 20, borderRadius: 10, padding: 2,
+                        background: ocultarZeros ? '#1A3CFF' : '#DDE4F0',
+                        border: 'none', cursor: 'pointer', transition: 'background 0.2s',
+                        display: 'flex', alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', transform: ocultarZeros ? 'translateX(18px)' : 'translateX(0)' }} />
+                    </button>
+                  </div>
+                </>
+              )}
+
+
               {duplicateAlerts.length > 0 && (
                 <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
                   {duplicateAlerts.map((a, i) => (
