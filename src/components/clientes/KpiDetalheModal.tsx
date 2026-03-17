@@ -19,6 +19,7 @@ interface Props {
   onClose: () => void;
   kpiCalc: IndicadorCalculado;
   competencia: string;
+  clienteId: string;
 }
 
 const STATUS_LABEL: Record<string, { text: string; bg: string; color: string }> = {
