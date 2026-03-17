@@ -152,10 +152,11 @@ function StatusBadge({ status }: { status: 'ok' | 'atencao' | 'critico' | 'neutr
 
 // ── Editable meta cell ──────────────────────────────────────────
 function EditableMetaCell({
-  meta, contaId, clienteId, competencia, isTotal, onSaved,
+  meta, contaId, clienteId, competencia, isTotal, onSaved, displayPct,
 }: {
   meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean;
   onSaved: (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => void;
+  displayPct?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [localTipo, setLocalTipo] = useState<'pct' | 'valor'>(meta?.meta_tipo || 'pct');
