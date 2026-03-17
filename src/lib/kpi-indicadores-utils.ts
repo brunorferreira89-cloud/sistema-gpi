@@ -168,16 +168,22 @@ export function calcularIndicadores(
           if (!conta) continue;
 
           if (conta.nivel === 1) {
-            // N1: sum all N2 children
+            // N1: sum all N2 children, but list N1 in detalhe
             const children = contas.filter(c => c.conta_pai_id === cid && c.nivel === 2);
+            let n1Total = 0;
+            let n1HasAny = false;
             children.forEach(c => {
               const v = valoresMap[c.id];
               if (v != null) {
-                hasAny = true;
-                total += v;
-                detalhe.push({ nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: v, pct: faturamento ? (Math.abs(v) / Math.abs(faturamento)) * 100 : 0, contaId: c.id });
+                n1HasAny = true;
+                n1Total += v;
               }
             });
+            if (n1HasAny) {
+              hasAny = true;
+              total += n1Total;
+              detalhe.push({ nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: n1Total, pct: faturamento ? (Math.abs(n1Total) / Math.abs(faturamento)) * 100 : 0, contaId: cid });
+            }
           } else if (conta.nivel === 2) {
             // N2: sum directly
             const v = valoresMap[cid];
