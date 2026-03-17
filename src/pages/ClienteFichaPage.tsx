@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BookOpen, ArrowLeft, Calendar } from 'lucide-react';
 import { OnboardingTab } from '@/components/clientes/OnboardingTab';
+import { ApresentacaoListTab } from '@/components/clientes/ApresentacaoListTab';
 import { TreinamentoTab } from '@/components/clientes/TreinamentoTab';
 import { FinanceiroTab } from '@/components/clientes/FinanceiroTab';
 import { ImportacaoTab } from '@/components/clientes/ImportacaoTab';
@@ -309,35 +310,7 @@ export default function ClienteFichaPage() {
 
         {/* Apresentação */}
         <TabsContent value="apresentacao">
-          <div className="flex flex-col items-center justify-center py-12" style={{ background: '#F0F4FA', minHeight: 400 }}>
-            <div className="rounded-xl border border-[#DDE4F0] bg-white p-10 text-center space-y-4" style={{ maxWidth: 480, boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
-              <span className="text-5xl block">📊</span>
-              <h3 className="text-xl font-bold" style={{ color: '#0D1B35' }}>Modo Apresentação</h3>
-              <p className="text-sm leading-relaxed" style={{ color: '#4A5E80' }}>
-                Prepare e apresente o relatório financeiro mensal para o cliente em formato de slides interativos.
-              </p>
-              <button
-                onClick={() => navigate(`/apresentacao/${clienteId}`)}
-                className="inline-flex items-center gap-2 rounded-lg px-8 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
-                style={{ background: '#1A3CFF' }}
-              >
-                ▶ Preparar Apresentação
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-3 mt-6 w-full" style={{ maxWidth: 480 }}>
-              {[
-                { icon: '📝', title: 'Prepare', desc: 'Revise e edite a análise IA antes da reunião' },
-                { icon: '🎯', title: 'Apresente', desc: '6 slides interativos com dados reais do cliente' },
-                { icon: '📄', title: 'Exporte', desc: 'Gere PDF e envie por WhatsApp ao final' },
-              ].map((c) => (
-                <div key={c.title} className="rounded-lg border border-[#DDE4F0] p-4" style={{ background: '#F6F9FF' }}>
-                  <span className="text-lg block mb-1">{c.icon}</span>
-                  <p className="text-xs font-semibold" style={{ color: '#0D1B35' }}>{c.title}</p>
-                  <p className="text-[11px] mt-1" style={{ color: '#4A5E80' }}>{c.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ApresentacaoListTab clienteId={clienteId!} />
         </TabsContent>
 
         {/* Portal */}

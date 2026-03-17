@@ -239,6 +239,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .select('id')
           .eq('cliente_id', clienteId)
           .eq('competencia', competencia)
+          .eq('visivel_portal', true)
           .maybeSingle();
         setHasApresentacao(!!apresPrep);
 
