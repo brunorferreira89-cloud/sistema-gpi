@@ -1121,18 +1121,47 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
           {/* Section 2 — COMPOSIÇÃO */}
           <div style={{ marginBottom: 24 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>🔢 COMPOSIÇÃO — {fmtMonthLong(comp).toUpperCase()}</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 12 }}>
-              {(Array.isArray(composicao) ? composicao : []).map((item: any, i: number) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
-                  <span style={{ fontSize: 12, color: '#4A5E80' }}>{item.nome}</span>
-                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(item.valor ?? item.valorPrev ?? 0))}</span>
+            {widget.tipo === 'detalhamento' ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #DDE4F0' }}>
+                    <th style={{ textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0' }}>Conta</th>
+                    <th style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0' }}>Valor</th>
+                    <th style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0', minWidth: 60 }}>% do total</th>
+                    <th style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#8A9BBC', padding: '6px 0', minWidth: 60 }}>% do fat.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(composicao as any[]).map((item: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #F0F4FA' }}>
+                      <td style={{ fontSize: 12, color: '#4A5E80', padding: '6px 0' }}>{item.nome}</td>
+                      <td style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500, textAlign: 'right', padding: '6px 0' }}>{formatCurrency(item.valor)}</td>
+                      <td style={{ fontSize: 11, color: '#4A5E80', textAlign: 'right', padding: '6px 0' }}>{(item.pctTotal ?? 0).toFixed(1)}%</td>
+                      <td style={{ fontSize: 11, color: '#8A9BBC', textAlign: 'right', padding: '6px 0' }}>{item.pctFat != null ? `${item.pctFat.toFixed(1)}%` : '—'}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ borderTop: '1px solid #DDE4F0' }}>
+                    <td style={{ fontSize: 12, fontWeight: 700, color: '#0D1B35', padding: '8px 0' }}>Total</td>
+                    <td style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#0D1B35', textAlign: 'right', padding: '8px 0' }}>{formatCurrency(somaAtual)}</td>
+                    <td style={{ fontSize: 11, fontWeight: 700, color: '#0D1B35', textAlign: 'right', padding: '8px 0' }}>100%</td>
+                    <td style={{ fontSize: 11, color: '#8A9BBC', textAlign: 'right', padding: '8px 0' }}>{fat ? `${(Math.abs(somaAtual) / Math.abs(fat) * 100).toFixed(1)}%` : '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 12 }}>
+                {(Array.isArray(composicao) ? composicao : []).map((item: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
+                    <span style={{ fontSize: 12, color: '#4A5E80' }}>{item.nome}</span>
+                    <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(item.valor ?? item.valorPrev ?? 0))}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
+                  <span style={{ fontSize: 12, color: '#4A5E80' }}>Faturamento</span>
+                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(fat))}</span>
                 </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4FA' }}>
-                <span style={{ fontSize: 12, color: '#4A5E80' }}>Faturamento</span>
-                <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: '#0D1B35', fontWeight: 500 }}>{formatCurrency(Math.abs(fat))}</span>
               </div>
-            </div>
+            )}
             {/* Result highlight */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: statusCfg?.bg || 'rgba(26,60,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: '#0D1B35' }}>= {widget.titulo}</span>
