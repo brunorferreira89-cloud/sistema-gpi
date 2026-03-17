@@ -295,6 +295,7 @@ export function KpiPainelDre({ clienteId, competencia, faturamento, cmv }: Props
           onClose={() => setSelectedKpi(null)}
           kpiCalc={selectedKpi}
           competencia={competencia}
+          clienteId={clienteId}
         />
       )}
 

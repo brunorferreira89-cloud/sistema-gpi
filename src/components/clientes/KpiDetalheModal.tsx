@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +18,7 @@ interface Props {
   onClose: () => void;
   kpiCalc: IndicadorCalculado;
   competencia: string;
+  clienteId: string;
 }
 
 const STATUS_LABEL: Record<string, { text: string; bg: string; color: string }> = {
@@ -49,8 +49,7 @@ interface DrillItem {
   valor: number;
 }
 
-export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) {
-  const { clienteId } = useParams();
+export function KpiDetalheModal({ open, onClose, kpiCalc, competencia, clienteId }: Props) {
   const [analise, setAnalise] = useState<AnaliseResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasCheckedCache, setHasCheckedCache] = useState(false);
@@ -91,7 +90,7 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) 
       if (error) throw error;
       return data;
     },
-    enabled: open && todasContas.length > 0,
+    enabled: open && !!clienteId && todasContas.length > 0,
   });
 
   const getValor = (contaId: string) =>
@@ -105,60 +104,25 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) 
   const hasFilhas = (contaId: string) =>
     todasContas.some(c => c.conta_pai_id === contaId);
 
-  // Get root-level subgrupos for the COMPOSIÇÃO section
-  const getComposicaoRaiz = (): { id: string; nome: string; valor: number; temFilhas: boolean }[] => {
-    // For subgrupo KPIs, use conta_ids to find the relevant N1 entries
-    const contaIds: string[] = (ind as any).conta_ids && Array.isArray((ind as any).conta_ids) && (ind as any).conta_ids.length > 0
-      ? (ind as any).conta_ids
-      : ind.conta_id ? [ind.conta_id] : [];
-
-    if (ind.tipo_fonte === 'subgrupo' && contaIds.length > 0) {
-      // Collect N1 subgrupos that are selected or parents of selected
-      const n1Set = new Set<string>();
-      for (const cid of contaIds) {
-        const conta = todasContas.find(c => c.id === cid);
-        if (!conta) continue;
-        if (conta.nivel === 1) {
-          n1Set.add(cid);
-        } else if (conta.nivel === 2 && conta.conta_pai_id) {
-          n1Set.add(conta.conta_pai_id);
-        }
-      }
-      return Array.from(n1Set).map(id => {
-        const conta = todasContas.find(c => c.id === id)!;
-        const children = getFilhas(id);
-        const val = children.reduce((s, c) => s + getValor(c.id), 0);
-        return { id, nome: conta.nome.replace(/^\([+-]\)\s*/, ''), valor: val, temFilhas: children.length > 0 };
-      }).sort((a, b) => {
-        const ca = todasContas.find(c => c.id === a.id);
-        const cb = todasContas.find(c => c.id === b.id);
-        return ((ca?.ordem ?? 0) - (cb?.ordem ?? 0));
+  // Composição raiz: use kpiCalc.detalhe[] (already computed) + match to contas by name for drill
+  const composicaoRaiz = useMemo(() => {
+    return (kpiCalc.detalhe ?? []).map(d => {
+      // Try to find matching conta in todasContas by normalized name
+      const normalizedName = d.nome.replace(/^\([+-]\)\s*/, '').trim().toLowerCase();
+      const matchedConta = todasContas.find(c => {
+        const cName = c.nome.replace(/^\([+-]\)\s*/, '').trim().toLowerCase();
+        return cName === normalizedName;
       });
-    }
-
-    // For totalizador KPIs, show N1 subgrupos grouped by tipo
-    const TOTALIZADOR_TIPOS: Record<string, string[]> = {
-      MC: ['receita', 'custo_variavel'],
-      RO: ['receita', 'custo_variavel', 'despesa_fixa'],
-      RAI: ['receita', 'custo_variavel', 'despesa_fixa', 'investimento'],
-      GC: ['receita', 'custo_variavel', 'despesa_fixa', 'investimento', 'financeiro'],
-    };
-    const tipos = ind.totalizador_key ? TOTALIZADOR_TIPOS[ind.totalizador_key] : null;
-    if (!tipos) return [];
-
-    return todasContas
-      .filter(c => c.nivel === 1 && tipos.includes(c.tipo))
-      .map(c => {
-        const children = getFilhas(c.id);
-        const val = children.reduce((s, ch) => s + getValor(ch.id), 0);
-        return { id: c.id, nome: c.nome.replace(/^\([+-]\)\s*/, ''), valor: val, temFilhas: children.length > 0 };
-      })
-      .sort((a, b) => {
-        const ca = todasContas.find(c => c.id === a.id);
-        const cb = todasContas.find(c => c.id === b.id);
-        return ((ca?.ordem ?? 0) - (cb?.ordem ?? 0));
-      });
-  };
+      const contaId = matchedConta?.id ?? '';
+      return {
+        id: contaId,
+        nome: d.nome,
+        valor: d.valor,
+        pct: d.pct,
+        temFilhas: contaId ? hasFilhas(contaId) : false,
+      };
+    });
+  }, [kpiCalc.detalhe, todasContas]);
 
   const avancar = (conta: DrillItem) => {
     setSlideDir('in');
@@ -277,7 +241,6 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) 
 
   if (!open) return null;
 
-  const composicaoRaiz = getComposicaoRaiz();
   const totalRaiz = composicaoRaiz.reduce((s, c) => s + c.valor, 0);
 
   // Drill level 2 data
@@ -428,7 +391,7 @@ export function KpiDetalheModal({ open, onClose, kpiCalc, competencia }: Props) 
                           const pct = totalRaiz ? (Math.abs(item.valor) / Math.abs(totalRaiz)) * 100 : 0;
                           return (
                             <tr
-                              key={item.id}
+                              key={item.id || `item-${item.nome}`}
                               onClick={() => item.temFilhas ? avancar({ id: item.id, nome: item.nome, valor: item.valor }) : undefined}
                               style={{
                                 borderBottom: '1px solid #F0F4FA',
