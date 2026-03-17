@@ -498,7 +498,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* 3. TRÊS HERO CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, marginBottom: 16 }}>
           {/* FATURAMENTO */}
           <div className="rounded-xl border border-[#DDE4F0] bg-white shadow-sm overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #1A3CFF, #0099E6)' }} />
