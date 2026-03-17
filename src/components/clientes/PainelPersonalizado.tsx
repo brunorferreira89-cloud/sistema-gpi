@@ -1184,22 +1184,22 @@ function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSav
   }, [buscaConta, allContas]);
 
   const hierarquia = useMemo(() => {
-    const gruposList: { grupo: Conta; subgrupos: { sub: Conta; categorias: Conta[] }[] }[] = [];
-    let currentGrupo: typeof gruposList[number] | null = null;
-    let currentSub: { sub: Conta; categorias: Conta[] } | null = null;
-    allContas.forEach(c => {
-      if (c.nivel === 0) {
-        currentGrupo = { grupo: c, subgrupos: [] };
-        gruposList.push(currentGrupo);
-        currentSub = null;
-      } else if (c.nivel === 1) {
-        currentSub = { sub: c, categorias: [] };
-        if (currentGrupo) currentGrupo.subgrupos.push(currentSub);
-      } else if (c.nivel === 2) {
-        if (currentSub) currentSub.categorias.push(c);
-      }
-    });
-    return gruposList;
+    const grupos = allContas.filter(c => c.nivel === 0);
+    const subgrupos = allContas.filter(c => c.nivel === 1);
+    const categorias = allContas.filter(c => c.nivel === 2);
+
+    return grupos.map(grupo => ({
+      grupo,
+      subgrupos: subgrupos
+        .filter(sub => sub.conta_pai_id === grupo.id)
+        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        .map(sub => ({
+          sub,
+          categorias: categorias
+            .filter(cat => cat.conta_pai_id === sub.id)
+            .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        }))
+    }));
   }, [allContas]);
 
   // Duplicate detection
