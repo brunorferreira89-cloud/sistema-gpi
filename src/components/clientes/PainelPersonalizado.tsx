@@ -33,6 +33,8 @@ interface Widget {
   analise_ia: string | null;
   analise_gerada_em: string | null;
   analise_hash: string | null;
+  ocultar_zeros: boolean;
+  ordenacao_lista: string;
 }
 
 interface Conta {
