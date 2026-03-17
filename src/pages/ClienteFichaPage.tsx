@@ -23,6 +23,7 @@ import { fetchKpiData } from '@/lib/kpi-utils';
 import { ClientePortalEspelho } from '@/components/clientes/ClientePortalEspelho';
 import { PortalTab } from '@/components/clientes/PortalTab';
 import { PublicacaoTab } from '@/components/clientes/PublicacaoTab';
+import { PainelPersonalizado } from '@/components/clientes/PainelPersonalizado';
 
 export default function ClienteFichaPage() {
   const { clienteId } = useParams<{ clienteId: string }>();
