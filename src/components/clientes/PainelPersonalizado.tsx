@@ -65,6 +65,13 @@ function getPrevCompetencia(comp: string) {
   return d.toISOString().split('T')[0];
 }
 
+function getNextCompetencia(comp: string) {
+  const d = new Date(comp + 'T00:00:00');
+  d.setMonth(d.getMonth() + 1);
+  d.setDate(1);
+  return d.toISOString().split('T')[0];
+}
+
 function fmtComp(comp: string) {
   const d = new Date(comp + 'T00:00:00');
   return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
@@ -87,12 +94,13 @@ function SortableWidget({ id, children, disabled }: { id: string; children: Reac
 
 /* ─── MAIN COMPONENT ─── */
 export function PainelPersonalizado({ clienteId, competencia }: Props) {
-  const comp = competencia || getDefaultCompetencia();
-  const prevComp = getPrevCompetencia(comp);
+  const defaultComp = competencia || getDefaultCompetencia();
   const queryClient = useQueryClient();
   const [modoEdicao, setModoEdicao] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const [mesesWidgets, setMesesWidgets] = useState<Record<string, string>>({});
 
   /* ─── Data fetching ─── */
   const { data: widgets = [], isLoading: loadingWidgets } = useQuery({
@@ -128,53 +136,61 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
     return Array.from(ids);
   }, [widgets]);
 
-  const { data: valoresAtual = [] } = useQuery({
-    queryKey: ['valores-painel', clienteId, comp, allContaIds],
+  // Fetch ALL valores_mensais for the client's widget conta_ids (all months)
+  const { data: allValores = [] } = useQuery({
+    queryKey: ['valores-painel-all', clienteId, allContaIds],
     queryFn: async () => {
       if (!allContaIds.length) return [];
       const { data, error } = await supabase
         .from('valores_mensais')
-        .select('conta_id, valor_realizado')
-        .eq('competencia', comp)
+        .select('conta_id, valor_realizado, competencia')
         .in('conta_id', allContaIds);
       if (error) throw error;
-      return data as { conta_id: string; valor_realizado: number | null }[];
+      return data as { conta_id: string; valor_realizado: number | null; competencia: string }[];
     },
     enabled: allContaIds.length > 0,
   });
 
-  const { data: valoresPrev = [] } = useQuery({
-    queryKey: ['valores-painel-prev', clienteId, prevComp, allContaIds],
-    queryFn: async () => {
-      if (!allContaIds.length) return [];
-      const { data, error } = await supabase
-        .from('valores_mensais')
-        .select('conta_id, valor_realizado')
-        .eq('competencia', prevComp)
-        .in('conta_id', allContaIds);
-      if (error) throw error;
-      return data as { conta_id: string; valor_realizado: number | null }[];
-    },
-    enabled: allContaIds.length > 0,
-  });
+  // Available competencias sorted ASC
+  const availableComps = useMemo(() => {
+    const set = new Set<string>();
+    allValores.forEach(v => set.add(v.competencia));
+    return Array.from(set).sort();
+  }, [allValores]);
 
-  const valMapAtual = useMemo(() => {
+  // Build a map: `${conta_id}__${competencia}` → valor_realizado
+  const valMap = useMemo(() => {
     const m: Record<string, number> = {};
-    valoresAtual.forEach(v => { if (v.valor_realizado != null) m[v.conta_id] = v.valor_realizado; });
+    allValores.forEach(v => {
+      if (v.valor_realizado != null) m[`${v.conta_id}__${v.competencia}`] = v.valor_realizado;
+    });
     return m;
-  }, [valoresAtual]);
-
-  const valMapPrev = useMemo(() => {
-    const m: Record<string, number> = {};
-    valoresPrev.forEach(v => { if (v.valor_realizado != null) m[v.conta_id] = v.valor_realizado; });
-    return m;
-  }, [valoresPrev]);
+  }, [allValores]);
 
   const contaMap = useMemo(() => {
     const m: Record<string, Conta> = {};
     contas.forEach(c => { m[c.id] = c; });
     return m;
   }, [contas]);
+
+  // Helper to get value map for a specific competencia
+  const getValMapForComp = useCallback((comp: string) => {
+    const m: Record<string, number> = {};
+    allContaIds.forEach(id => {
+      const key = `${id}__${comp}`;
+      if (valMap[key] != null) m[id] = valMap[key];
+    });
+    return m;
+  }, [valMap, allContaIds]);
+
+  // Get per-widget competencia
+  const getWidgetComp = useCallback((widgetId: string) => {
+    return mesesWidgets[widgetId] || defaultComp;
+  }, [mesesWidgets, defaultComp]);
+
+  const setWidgetComp = useCallback((widgetId: string, comp: string) => {
+    setMesesWidgets(prev => ({ ...prev, [widgetId]: comp }));
+  }, []);
 
   /* ─── Mutations ─── */
   const updateWidget = useMutation({
@@ -286,25 +302,34 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <SortableContext items={widgets.map(w => w.id)} strategy={rectSortingStrategy} disabled={!modoEdicao}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-              {widgets.map(w => (
-                <SortableWidget key={w.id} id={w.id} disabled={!modoEdicao}>
-                  <div style={{ gridColumn: `span ${w.colunas}` }}>
-                    <WidgetCard
-                      widget={w}
-                      valMapAtual={valMapAtual}
-                      valMapPrev={valMapPrev}
-                      contaMap={contaMap}
-                      comp={comp}
-                      prevComp={prevComp}
-                      modoEdicao={modoEdicao}
-                      onResize={(cols) => updateWidget.mutate({ id: w.id, updates: { colunas: cols } })}
-                      onDelete={() => {
-                        if (window.confirm('Excluir este widget?')) deleteWidget.mutate(w.id);
-                      }}
-                    />
-                  </div>
-                </SortableWidget>
-              ))}
+              {widgets.map(w => {
+                const wComp = getWidgetComp(w.id);
+                const wPrev = getPrevCompetencia(wComp);
+                const valAtual = getValMapForComp(wComp);
+                const valPrev = getValMapForComp(wPrev);
+                return (
+                  <SortableWidget key={w.id} id={w.id} disabled={!modoEdicao}>
+                    <div style={{ gridColumn: `span ${w.colunas}` }}>
+                      <WidgetCard
+                        widget={w}
+                        valMapAtual={valAtual}
+                        valMapPrev={valPrev}
+                        contaMap={contaMap}
+                        comp={wComp}
+                        prevComp={wPrev}
+                        modoEdicao={modoEdicao}
+                        availableComps={availableComps}
+                        onCompChange={(c) => setWidgetComp(w.id, c)}
+                        onResize={(cols) => updateWidget.mutate({ id: w.id, updates: { colunas: cols } })}
+                        onDelete={() => {
+                          if (window.confirm('Excluir este widget?')) deleteWidget.mutate(w.id);
+                        }}
+                        onEdit={() => setEditingWidget(w)}
+                      />
+                    </div>
+                  </SortableWidget>
+                );
+              })}
             </div>
           </SortableContext>
           <DragOverlay>
@@ -319,14 +344,31 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
 
       {/* Create modal */}
       {modalOpen && (
-        <CreateWidgetModal
+        <WidgetModal
+          mode="create"
           clienteId={clienteId}
           contas={contas}
           maxOrdem={widgets.length ? Math.max(...widgets.map(w => w.ordem)) : -1}
           onClose={() => setModalOpen(false)}
-          onCreated={() => {
+          onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ['painel-widgets', clienteId] });
             setModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editingWidget && (
+        <WidgetModal
+          mode="edit"
+          widget={editingWidget}
+          clienteId={clienteId}
+          contas={contas}
+          maxOrdem={0}
+          onClose={() => setEditingWidget(null)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['painel-widgets', clienteId] });
+            setEditingWidget(null);
           }}
         />
       )}
@@ -334,9 +376,51 @@ export function PainelPersonalizado({ clienteId, competencia }: Props) {
   );
 }
 
+/* ─── Month Nav ─── */
+function MonthNav({ comp, availableComps, onChange }: { comp: string; availableComps: string[]; onChange: (c: string) => void }) {
+  const idx = availableComps.indexOf(comp);
+  const canPrev = idx > 0;
+  const canNext = idx < availableComps.length - 1 && idx >= 0;
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={(e) => { e.stopPropagation(); if (canPrev) onChange(availableComps[idx - 1]); }}
+        style={{
+          width: 18, height: 18, borderRadius: 4, border: 'none', background: 'transparent',
+          color: '#8A9BBC', fontSize: 11, cursor: canPrev ? 'pointer' : 'default',
+          opacity: canPrev ? 1 : 0.3, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'color 0.15s',
+        }}
+        onMouseEnter={e => { if (canPrev) (e.currentTarget as HTMLElement).style.color = '#1A3CFF'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#8A9BBC'; }}
+      >
+        ←
+      </button>
+      <span style={{ fontFamily: 'Courier New, monospace', fontSize: 10.5, fontWeight: 700, color: '#4A5E80', minWidth: 68, textAlign: 'center' }}>
+        {fmtComp(comp)}
+      </span>
+      <button
+        onClick={(e) => { e.stopPropagation(); if (canNext) onChange(availableComps[idx + 1]); }}
+        style={{
+          width: 18, height: 18, borderRadius: 4, border: 'none', background: 'transparent',
+          color: '#8A9BBC', fontSize: 11, cursor: canNext ? 'pointer' : 'default',
+          opacity: canNext ? 1 : 0.3, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'color 0.15s',
+        }}
+        onMouseEnter={e => { if (canNext) (e.currentTarget as HTMLElement).style.color = '#1A3CFF'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#8A9BBC'; }}
+      >
+        →
+      </button>
+    </div>
+  );
+}
+
 /* ─── Widget Card ─── */
 function WidgetCard({
-  widget, valMapAtual, valMapPrev, contaMap, comp, prevComp, modoEdicao, onResize, onDelete,
+  widget, valMapAtual, valMapPrev, contaMap, comp, prevComp, modoEdicao,
+  availableComps, onCompChange, onResize, onDelete, onEdit,
 }: {
   widget: Widget;
   valMapAtual: Record<string, number>;
@@ -345,8 +429,11 @@ function WidgetCard({
   comp: string;
   prevComp: string;
   modoEdicao: boolean;
+  availableComps: string[];
+  onCompChange: (c: string) => void;
   onResize: (n: number) => void;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
   const isImplemented = widget.tipo === 'card_resumo' || widget.tipo === 'comparativo';
 
@@ -371,6 +458,19 @@ function WidgetCard({
         <div className="flex items-center justify-between px-3 pt-2">
           <span style={{ fontSize: 14, color: '#8A9BBC', cursor: 'grab' }}>⠿</span>
           <div className="flex items-center gap-1">
+            <button
+              onClick={onEdit}
+              style={{
+                width: 20, height: 20, borderRadius: 4, fontSize: 11,
+                background: '#F0F4FF', border: '1px solid rgba(26,60,255,0.25)', color: '#1A3CFF',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.12)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F0F4FF'; }}
+            >
+              ✎
+            </button>
             {[1, 2, 3].map(n => (
               <button
                 key={n}
@@ -406,9 +506,9 @@ function WidgetCard({
             <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 6 }}>{widget.titulo}</p>
           </div>
         ) : widget.tipo === 'card_resumo' ? (
-          <CardResumoBody widget={widget} somaAtual={somaAtual} contaMap={contaMap} valMapAtual={valMapAtual} delta={delta} hasPrev={hasPrev} comp={comp} />
+          <CardResumoBody widget={widget} somaAtual={somaAtual} contaMap={contaMap} valMapAtual={valMapAtual} delta={delta} hasPrev={hasPrev} comp={comp} availableComps={availableComps} onCompChange={onCompChange} />
         ) : (
-          <ComparativoBody widget={widget} somaAtual={somaAtual} somaPrev={somaPrev} contaMap={contaMap} delta={delta} hasPrev={hasPrev} comp={comp} prevComp={prevComp} />
+          <ComparativoBody widget={widget} somaAtual={somaAtual} somaPrev={somaPrev} contaMap={contaMap} delta={delta} hasPrev={hasPrev} comp={comp} prevComp={prevComp} availableComps={availableComps} onCompChange={onCompChange} />
         )}
       </div>
     </div>
@@ -416,9 +516,10 @@ function WidgetCard({
 }
 
 /* ─── card_resumo body ─── */
-function CardResumoBody({ widget, somaAtual, contaMap, valMapAtual, delta, hasPrev, comp }: {
+function CardResumoBody({ widget, somaAtual, contaMap, valMapAtual, delta, hasPrev, comp, availableComps, onCompChange }: {
   widget: Widget; somaAtual: number; contaMap: Record<string, Conta>;
   valMapAtual: Record<string, number>; delta: number | null; hasPrev: boolean; comp: string;
+  availableComps: string[]; onCompChange: (c: string) => void;
 }) {
   const items = (widget.conta_ids || [])
     .map(id => ({ id, nome: contaMap[id]?.nome || id.slice(0, 8), valor: valMapAtual[id] || 0 }))
@@ -460,7 +561,7 @@ function CardResumoBody({ widget, somaAtual, contaMap, valMapAtual, delta, hasPr
         ))}
       </div>
       <div className="mt-3 flex items-center gap-2" style={{ fontSize: 10, color: '#8A9BBC' }}>
-        <span>{fmtComp(comp)}</span>
+        <MonthNav comp={comp} availableComps={availableComps} onChange={onCompChange} />
         {delta != null && hasPrev ? (
           <span style={{
             fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 4,
@@ -478,9 +579,10 @@ function CardResumoBody({ widget, somaAtual, contaMap, valMapAtual, delta, hasPr
 }
 
 /* ─── comparativo body ─── */
-function ComparativoBody({ widget, somaAtual, somaPrev, contaMap, delta, hasPrev, comp, prevComp }: {
+function ComparativoBody({ widget, somaAtual, somaPrev, contaMap, delta, hasPrev, comp, prevComp, availableComps, onCompChange }: {
   widget: Widget; somaAtual: number; somaPrev: number;
   contaMap: Record<string, Conta>; delta: number | null; hasPrev: boolean; comp: string; prevComp: string;
+  availableComps: string[]; onCompChange: (c: string) => void;
 }) {
   const contaTipo = contaMap[(widget.conta_ids || [])[0]]?.tipo || '';
   const isReceita = contaTipo === 'receita';
@@ -522,38 +624,46 @@ function ComparativoBody({ widget, somaAtual, somaPrev, contaMap, delta, hasPrev
           {diff >= 0 ? '+' : '−'}R$ {Math.abs(diff).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} vs. mês anterior
         </div>
       )}
+      <div className="mt-3 flex items-center gap-2">
+        <MonthNav comp={comp} availableComps={availableComps} onChange={onCompChange} />
+      </div>
     </>
   );
 }
 
-/* ─── Create Widget Modal ─── */
-function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: {
-  clienteId: string; contas: Conta[]; maxOrdem: number; onClose: () => void; onCreated: () => void;
+/* ─── Widget Modal (Create + Edit) ─── */
+function WidgetModal({ mode, widget, clienteId, contas, maxOrdem, onClose, onSaved }: {
+  mode: 'create' | 'edit';
+  widget?: Widget;
+  clienteId: string;
+  contas: Conta[];
+  maxOrdem: number;
+  onClose: () => void;
+  onSaved: () => void;
 }) {
-  const [step, setStep] = useState(1);
-  const [tipo, setTipo] = useState('');
-  const [titulo, setTitulo] = useState('');
-  const [selectedContas, setSelectedContas] = useState<string[]>([]);
-  const [colunas, setColunas] = useState(1);
-  const [corDestaque, setCorDestaque] = useState('#1A3CFF');
+  const isEdit = mode === 'edit';
+  const [step, setStep] = useState(isEdit ? 2 : 1);
+  const [tipo, setTipo] = useState(isEdit ? widget!.tipo : '');
+  const [titulo, setTitulo] = useState(isEdit ? widget!.titulo : '');
+  const [selectedContas, setSelectedContas] = useState<string[]>(isEdit ? (widget!.conta_ids || []) : []);
+  const [colunas, setColunas] = useState(isEdit ? widget!.colunas : 1);
+  const [corDestaque, setCorDestaque] = useState(isEdit ? widget!.cor_destaque : '#1A3CFF');
   const [saving, setSaving] = useState(false);
   const [buscaConta, setBuscaConta] = useState('');
 
   const TIPO_CORES: Record<string, string> = { receita: '#1A3CFF', custo_variavel: '#DC2626', despesa_fixa: '#D97706', investimento: '#0099E6', financiamento: '#00A86B' };
 
-  const allContas = contas; // includes nivel 0,1,2
+  const allContas = contas;
   const grupos = useMemo(() => allContas.filter(c => c.nivel === 0), [allContas]);
 
   const contasFiltradas = useMemo(() => {
-    if (!buscaConta.trim()) return null; // null = show hierarchy
+    if (!buscaConta.trim()) return null;
     const term = buscaConta.toLowerCase();
     return allContas.filter(c => c.nivel >= 1 && c.nome.toLowerCase().includes(term));
   }, [buscaConta, allContas]);
 
   const contasByParent = useMemo(() => {
     const map: Record<string, Conta[]> = {};
-    // contas already sorted by `ordem` from DB query
-    // assign each nivel>=1 conta to the nearest preceding nivel=0 grupo
     let currentGrupoId = '__none';
     allContas.forEach(c => {
       if (c.nivel === 0) {
@@ -567,28 +677,42 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
     return map;
   }, [allContas]);
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!titulo.trim() || !selectedContas.length) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('painel_widgets' as any).insert({
-        cliente_id: clienteId,
-        titulo: titulo.trim(),
-        tipo,
-        conta_ids: selectedContas,
-        cor_destaque: corDestaque,
-        colunas,
-        ordem: maxOrdem + 1,
-      } as any);
-      if (error) throw error;
-      toast({ title: 'Widget criado!' });
-      onCreated();
+      if (isEdit && widget) {
+        const { error } = await supabase.from('painel_widgets' as any).update({
+          titulo: titulo.trim(),
+          conta_ids: selectedContas,
+          colunas,
+          cor_destaque: corDestaque,
+          updated_at: new Date().toISOString(),
+        } as any).eq('id', widget.id);
+        if (error) throw error;
+        toast({ title: 'Widget atualizado com sucesso' });
+      } else {
+        const { error } = await supabase.from('painel_widgets' as any).insert({
+          cliente_id: clienteId,
+          titulo: titulo.trim(),
+          tipo,
+          conta_ids: selectedContas,
+          cor_destaque: corDestaque,
+          colunas,
+          ordem: maxOrdem + 1,
+        } as any);
+        if (error) throw error;
+        toast({ title: 'Widget criado!' });
+      }
+      onSaved();
     } catch {
-      toast({ title: 'Erro ao criar widget', variant: 'destructive' });
+      toast({ title: isEdit ? 'Erro ao atualizar widget' : 'Erro ao criar widget', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
+
+  const tipoLabel = TIPO_OPTIONS.find(t => t.value === tipo)?.title || tipo;
 
   return (
     <div
@@ -641,7 +765,19 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
             </>
           ) : (
             <>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0D1B35', marginBottom: 16 }}>Configurar Widget</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0D1B35', marginBottom: 4 }}>
+                {isEdit ? 'Editar Widget' : 'Configurar Widget'}
+              </h3>
+              {isEdit && (
+                <span style={{
+                  display: 'inline-block', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                  background: 'rgba(26,60,255,0.07)', color: '#1A3CFF',
+                  padding: '3px 8px', borderRadius: 4, marginBottom: 12,
+                }}>
+                  {tipoLabel}
+                </span>
+              )}
+              {!isEdit && <div style={{ marginBottom: 12 }} />}
 
               {/* Title */}
               <label style={{ fontSize: 11, fontWeight: 600, color: '#4A5E80', display: 'block', marginBottom: 4 }}>Título do widget *</label>
@@ -695,7 +831,6 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
               {/* 3. Conta list */}
               <div style={{ border: '1px solid #DDE4F0', borderRadius: 8, maxHeight: 220, overflowY: 'auto', background: '#FAFCFF', marginBottom: 14 }}>
                 {contasFiltradas !== null ? (
-                  /* Search results mode */
                   contasFiltradas.length === 0 ? (
                     <p style={{ textAlign: 'center', padding: 16, fontSize: 12, color: '#8A9BBC' }}>Nenhuma conta encontrada</p>
                   ) : contasFiltradas.map(c => {
@@ -720,17 +855,14 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
                     );
                   })
                 ) : (
-                  /* Hierarchy mode */
                   grupos.map((g, gi) => {
                     const children = contasByParent[g.id] || [];
                     return (
                       <div key={g.id}>
                         {gi > 0 && <div style={{ height: 1, background: '#DDE4F0' }} />}
-                        {/* Grupo header */}
                         <div style={{ background: '#E8EEF8', padding: '6px 12px' }}>
                           <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: '#4A5E80', letterSpacing: '0.1em' }}>{g.nome}</span>
                         </div>
-                        {/* Children */}
                         {children.map(c => {
                           const sel = selectedContas.includes(c.id);
                           const tipoCor = TIPO_CORES[c.tipo] || '#8A9BBC';
@@ -797,10 +929,14 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
 
               {/* Buttons */}
               <div className="flex justify-between">
-                <button onClick={() => setStep(1)} style={{ fontSize: 12, color: '#4A5E80', fontWeight: 600, cursor: 'pointer' }}>← Voltar</button>
+                {isEdit ? (
+                  <button onClick={onClose} style={{ fontSize: 12, color: '#4A5E80', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                ) : (
+                  <button onClick={() => setStep(1)} style={{ fontSize: 12, color: '#4A5E80', fontWeight: 600, cursor: 'pointer' }}>← Voltar</button>
+                )}
                 <button
                   disabled={!titulo.trim() || !selectedContas.length || saving}
-                  onClick={handleCreate}
+                  onClick={handleSave}
                   style={{
                     padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 600,
                     background: '#1A3CFF', color: '#fff',
@@ -808,7 +944,7 @@ function CreateWidgetModal({ clienteId, contas, maxOrdem, onClose, onCreated }: 
                     cursor: titulo.trim() && selectedContas.length ? 'pointer' : 'default',
                   }}
                 >
-                  {saving ? 'Criando...' : 'Criar widget'}
+                  {saving ? (isEdit ? 'Salvando...' : 'Criando...') : (isEdit ? 'Salvar alterações' : 'Criar widget')}
                 </button>
               </div>
             </>
