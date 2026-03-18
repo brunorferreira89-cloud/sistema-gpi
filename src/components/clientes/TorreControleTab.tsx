@@ -151,15 +151,19 @@ function StatusBadge({ status }: { status: 'ok' | 'atencao' | 'critico' | 'neutr
 }
 
 // ── Editable meta cell ──────────────────────────────────────────
+type MetaTipo = 'pct' | 'delta' | 'valor';
+
 function EditableMetaCell({
-  meta, contaId, clienteId, competencia, isTotal, onSaved, displayPct,
+  meta, contaId, clienteId, competencia, isTotal, onSaved, displayPct, contaTipo, realizado,
 }: {
   meta: TorreMeta | null; contaId: string; clienteId: string; competencia: string; isTotal: boolean;
-  onSaved: (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => void;
+  onSaved: (contaId: string, metaTipo: MetaTipo, metaValor: number | null) => void;
   displayPct?: number;
+  contaTipo?: string;
+  realizado?: number | null;
 }) {
   const [editing, setEditing] = useState(false);
-  const [localTipo, setLocalTipo] = useState<'pct' | 'valor'>(meta?.meta_tipo || 'pct');
+  const [localTipo, setLocalTipo] = useState<MetaTipo>(meta?.meta_tipo || 'pct');
   const [input, setInput] = useState('');
   const ref = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -168,7 +172,7 @@ function EditableMetaCell({
 
   if (isTotal) return <span style={{ color: C.txtMuted, fontFamily: C.mono, fontSize: 12 }}>—</span>;
 
-  const upsertAndPropagate = async (tipo: 'pct' | 'valor', valor: number | null) => {
+  const upsertAndPropagate = async (tipo: MetaTipo, valor: number | null) => {
     const { error } = await supabase.from('torre_metas').upsert(
       { cliente_id: clienteId, conta_id: contaId, competencia, meta_tipo: tipo, meta_valor: valor, updated_at: new Date().toISOString() },
       { onConflict: 'cliente_id,conta_id,competencia' }
@@ -177,7 +181,7 @@ function EditableMetaCell({
     onSaved(contaId, tipo, valor);
   };
 
-  const scheduleUpsert = (rawInput: string, tipo: 'pct' | 'valor') => {
+  const scheduleUpsert = (rawInput: string, tipo: MetaTipo) => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const cleaned = rawInput.replace(/[^\d.,-]/g, '').replace(',', '.');
@@ -202,27 +206,57 @@ function EditableMetaCell({
     scheduleUpsert(val, localTipo);
   };
 
-  const toggleTipo = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = localTipo === 'pct' ? 'valor' : 'pct';
-    setLocalTipo(next);
-    if (meta && meta.meta_valor !== null) upsertAndPropagate(next, meta.meta_valor);
+  const switchTipo = (newTipo: MetaTipo) => {
+    if (newTipo === localTipo) return;
+    setLocalTipo(newTipo);
+    if (meta && meta.meta_valor !== null) upsertAndPropagate(newTipo, meta.meta_valor);
   };
 
+  const tipoButtons: { tipo: MetaTipo; label: string }[] = [
+    { tipo: 'pct', label: '%' },
+    { tipo: 'delta', label: 'R$' },
+    { tipo: 'valor', label: '=R$' },
+  ];
+
+  const renderTipoToggle = () => (
+    <span style={{ display: 'inline-flex', gap: 1, marginRight: 4 }}>
+      {tipoButtons.map(b => (
+        <button
+          key={b.tipo}
+          onClick={(e) => { e.stopPropagation(); switchTipo(b.tipo); }}
+          style={{
+            fontSize: 8, fontWeight: 700, cursor: 'pointer', padding: '1px 4px', borderRadius: 4,
+            background: localTipo === b.tipo ? C.primary : 'rgba(26,60,255,0.08)',
+            color: localTipo === b.tipo ? '#FFFFFF' : '#4A5E80',
+            border: 'none',
+            transition: 'all 0.12s',
+          }}
+        >
+          {b.label}
+        </button>
+      ))}
+    </span>
+  );
+
   if (editing) {
+    const prefix = localTipo === 'pct' ? '' : localTipo === 'delta' ? 'R$ ' : '=R$ ';
+    const suffix = localTipo === 'pct' ? '%' : '';
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-        <button onClick={toggleTipo} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: C.pLo, border: `1px solid ${C.pMd}`, borderRadius: 4, padding: '1px 5px', cursor: 'pointer' }}>
-          {localTipo === 'pct' ? '%' : 'R$'}
-        </button>
-        <input
-          ref={ref}
-          value={input}
-          onChange={handleChange}
-          onBlur={commit}
-          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { clearTimeout(debounceRef.current); setEditing(false); } }}
-          style={{ width: 70, textAlign: 'right', fontFamily: C.mono, fontSize: 12, border: `1px solid ${C.primary}`, borderRadius: 4, padding: '2px 6px', outline: 'none', background: C.surfaceHi }}
-        />
+        {renderTipoToggle()}
+        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          {prefix && <span style={{ fontSize: 10, color: C.txtMuted, marginRight: 2 }}>{prefix}</span>}
+          <input
+            ref={ref}
+            value={input}
+            onChange={handleChange}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { clearTimeout(debounceRef.current); setEditing(false); } }}
+            placeholder="0"
+            style={{ width: 60, textAlign: 'right', fontFamily: C.mono, fontSize: 12, border: `1px solid ${C.primary}`, borderRadius: 4, padding: '2px 6px', outline: 'none', background: C.surfaceHi }}
+          />
+          {suffix && <span style={{ fontSize: 10, color: C.txtMuted, marginLeft: 2 }}>{suffix}</span>}
+        </span>
       </span>
     );
   }
@@ -240,18 +274,33 @@ function EditableMetaCell({
     );
   }
 
-  const display = displayPct !== undefined
-    ? `${displayPct >= 0 ? '+' : ''}${displayPct.toFixed(1)}%`
-    : meta.meta_tipo === 'pct'
-      ? `${meta.meta_valor! >= 0 ? '+' : ''}${meta.meta_valor}%`
-      : fmtTorre(meta.meta_valor);
+  // ── Semantic display ──
+  const isReceita = contaTipo === 'receita';
+
+  // Calculate the raw adjustment percentage for semantic display
+  let rawPct: number;
+  if (displayPct !== undefined) {
+    rawPct = displayPct;
+  } else if (meta.meta_tipo === 'pct') {
+    rawPct = meta.meta_valor!;
+  } else if (meta.meta_tipo === 'delta') {
+    // delta: variation in R$
+    rawPct = (realizado != null && realizado !== 0) ? (meta.meta_valor! / Math.abs(realizado)) * 100 : 0;
+  } else {
+    // valor: absolute target
+    rawPct = (realizado != null && realizado !== 0) ? ((meta.meta_valor! - Math.abs(realizado)) / Math.abs(realizado)) * 100 : 0;
+  }
+
+  // Semantic inversion: for costs, reduction = negative (red)
+  const ajusteSemantico = isReceita ? rawPct : -rawPct;
+  const corAjuste = ajusteSemantico > 0.05 ? '#00A86B' : ajusteSemantico < -0.05 ? '#DC2626' : '#8A9BBC';
+  const prefixo = ajusteSemantico > 0.05 ? '↑ +' : ajusteSemantico < -0.05 ? '↓ −' : '→ ';
+  const semanticLabel = `${prefixo}${Math.abs(ajusteSemantico).toFixed(1)}%`;
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEditing(true); setInput(meta.meta_valor != null ? String(meta.meta_valor) : ''); setLocalTipo(meta.meta_tipo); }}>
-      <button onClick={toggleTipo} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: C.pLo, border: `1px solid ${C.pMd}`, borderRadius: 4, padding: '1px 5px', cursor: 'pointer' }}>
-        {meta.meta_tipo === 'pct' ? '%' : 'R$'}
-      </button>
-      <span style={{ fontFamily: C.mono, fontSize: 12, color: C.txt }}>{display}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEditing(true); setInput(meta.meta_valor != null ? String(meta.meta_valor) : ''); setLocalTipo(meta.meta_tipo as MetaTipo); }}>
+      {renderTipoToggle()}
+      <span style={{ fontFamily: C.mono, fontSize: 12, color: corAjuste, fontWeight: 500 }}>{semanticLabel}</span>
     </span>
   );
 }
