@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Users, KanbanSquare, CalendarCheck, Users2, Stethoscope, ClipboardList, LogOut, UserCheck, Shield } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -8,13 +8,14 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
   { icon: Users, label: 'Clientes', to: '/clientes' },
   { icon: UserCheck, label: 'Usuários', to: '/usuarios-portal' },
+  { icon: Shield, label: 'Equipe GPI', to: '/usuarios-internos', adminOnly: true },
   { icon: KanbanSquare, label: 'Kanban', to: '/kanban' },
   { icon: CalendarCheck, label: 'Reuniões', to: '/reunioes' },
   { icon: Users2, label: 'Reunião Coletiva', to: '/reuniao-coletiva' },
   { icon: Stethoscope, label: 'Diagnósticos', to: '/diagnostico' },
   { icon: ClipboardList, label: 'Onboarding', to: '/onboarding' },
   
-];
+] as const;
 
 export function AppSidebar() {
   const { profile, signOut } = useAuth();

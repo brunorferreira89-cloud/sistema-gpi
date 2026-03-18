@@ -64,6 +64,7 @@ const App = () => (
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
                 <Route path="/usuarios-portal" element={<UsuariosPortalPage />} />
+                <Route path="/usuarios-internos" element={<UsuariosInternosPage />} />
                 
               </Route>
             </Route>
