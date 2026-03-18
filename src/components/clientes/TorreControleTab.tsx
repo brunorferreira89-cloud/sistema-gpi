@@ -1544,9 +1544,9 @@ export function TorreControleTab({ clienteId }: Props) {
                   <>
                     <td style={{ textAlign: 'right', padding: '11px 10px', color: '#8A9BBC', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35' }}>—</td>
                     <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 12, background: '#0D1B35',
-                      color: variacao >= 0 ? '#00E68A' : '#FF6B6B',
+                      color: variacao > 0.01 ? '#00E68A' : variacao < -0.01 ? '#FF6B6B' : '#8A9BBC',
                     }}>
-                      {variacao >= 0 ? '+' : '−'} {fmtTorre(Math.abs(variacao))}
+                      {variacao > 0.01 ? '↑ +' : variacao < -0.01 ? '↓ −' : '→ '}{fmtTorre(Math.abs(variacao))}
                     </td>
                     <td style={{ textAlign: 'right', padding: '11px 10px', fontFamily: 'monospace', fontSize: 13, fontWeight: 800, background: 'rgba(26,60,255,0.18)',
                       color: projVal < 0 ? '#FF6B6B' : '#00E68A',
