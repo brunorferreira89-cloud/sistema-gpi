@@ -933,13 +933,14 @@ function hexToHsl(hex: string) {
 }
 
 /* ─── Detail Modal (KpiDetalheModal style) ─── */
-function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap, getContaTipoSemantico, onClose }: {
+function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap, getContaTipoSemantico, onClose, modoPortal = false }: {
   widget: Widget; comp: string; contaMap: Record<string, Conta>;
   getSoma: (ids: string[], comp: string) => number;
   getFaturamento: (comp: string) => number;
   valMap: Record<string, number>;
   getContaTipoSemantico: (ids: string[]) => string;
   onClose: () => void;
+  modoPortal?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [gerando, setGerando] = useState(false);
