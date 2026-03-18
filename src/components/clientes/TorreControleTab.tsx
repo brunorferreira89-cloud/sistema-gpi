@@ -401,6 +401,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsedInitialized, setCollapsedInitialized] = useState(false);
   const [modoMeta, setModoMeta] = useState(false);
   const [modoAnaliseMeta, setModoAnaliseMeta] = useState(false);
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
@@ -439,6 +440,15 @@ export function TorreControleTab({ clienteId }: Props) {
       return (data || []) as ContaRow[];
     },
   });
+
+  // Collapse all N1 subgroups by default on first load
+  useEffect(() => {
+    if (contas && contas.length > 0 && !collapsedInitialized) {
+      const n1Ids = contas.filter(c => c.nivel === 1).map(c => c.id);
+      setCollapsed(new Set(n1Ids));
+      setCollapsedInitialized(true);
+    }
+  }, [contas, collapsedInitialized]);
 
   const contaIds = useMemo(() => contas?.map(c => c.id) || [], [contas]);
 

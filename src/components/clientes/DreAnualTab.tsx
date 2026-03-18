@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -133,6 +133,7 @@ export function DreAnualTab({ clienteId }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsedInitialized, setCollapsedInitialized] = useState(false);
   const [showAV, setShowAV] = useState(false);
   const [showAH, setShowAH] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -153,6 +154,15 @@ export function DreAnualTab({ clienteId }: Props) {
       return (data || []) as ContaRow[];
     },
   });
+
+  // Collapse all N1 subgroups by default on first load
+  useEffect(() => {
+    if (contas && contas.length > 0 && !collapsedInitialized) {
+      const n1Ids = contas.filter(c => c.nivel === 1).map(c => c.id);
+      setCollapsed(new Set(n1Ids));
+      setCollapsedInitialized(true);
+    }
+  }, [contas, collapsedInitialized]);
 
   const competencias = months.map((m) => m.value);
 
