@@ -4,12 +4,21 @@ export interface TorreMeta {
   meta_valor: number | null;
 }
 
-export function calcProjetado(anterior: number, meta: TorreMeta | null): number | null {
+export function calcProjetado(anterior: number, meta: TorreMeta | null, contaTipo?: string): number | null {
   if (!meta || meta.meta_valor === null) return null;
   if (meta.meta_tipo === 'pct') return anterior * (1 + meta.meta_valor / 100);
-  if (meta.meta_tipo === 'delta') return anterior + meta.meta_valor;
-  // valor absoluto: preserve sign from realized
-  const sign = anterior < 0 ? -1 : 1;
+  if (meta.meta_tipo === 'delta') {
+    const result = anterior + meta.meta_valor;
+    // When anterior=0, delta>0 for costs should be negative
+    if (anterior === 0 && result > 0 && contaTipo && contaTipo !== 'receita') {
+      return -result;
+    }
+    return result;
+  }
+  // valor absoluto: infer sign from account type when anterior is zero
+  const sign = anterior === 0
+    ? (contaTipo && contaTipo !== 'receita' ? -1 : 1)
+    : (anterior < 0 ? -1 : 1);
   return sign * Math.abs(meta.meta_valor);
 }
 

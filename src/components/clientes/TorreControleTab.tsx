@@ -123,7 +123,7 @@ function sumNodeProjetado(
     const real = valMap[node.conta.id] ?? null;
     if (real == null) return null;
     const meta = mMap[node.conta.id] || null;
-    const proj = calcProjetado(real, meta);
+    const proj = calcProjetado(real, meta, node.conta.tipo);
     return proj ?? real; // no meta → assume same as realized
   }
   let total = 0, hasAny = false;
@@ -635,7 +635,7 @@ export function TorreControleTab({ clienteId }: Props) {
           const r = realizadoMapSel[kid.id] ?? 0;
           sumReal += r;
           const m = mMap[kid.id] || null;
-          const proj = m ? calcProjetado(r, m) : null;
+          const proj = m ? calcProjetado(r, m, kid.tipo) : null;
           sumMeta += proj ?? r;
         } else {
           const grandkids = contas.filter(c => c.conta_pai_id === kid.id);
@@ -643,7 +643,7 @@ export function TorreControleTab({ clienteId }: Props) {
             const r = realizadoMapSel[gk.id] ?? 0;
             sumReal += r;
             const m = mMap[gk.id] || null;
-            const proj = m ? calcProjetado(r, m) : null;
+            const proj = m ? calcProjetado(r, m, gk.tipo) : null;
             sumMeta += proj ?? r;
           }
         }
@@ -680,7 +680,7 @@ export function TorreControleTab({ clienteId }: Props) {
         const node = findNode(tree, contaId);
         const nodeReal = node ? sumNodeLeafs(node, realizadoMapSel) : null;
         if (nodeReal && nodeReal !== 0) {
-          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: metaTipo === 'delta' ? 'delta' : 'valor', meta_valor: metaValor });
+          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: metaTipo === 'delta' ? 'delta' : 'valor', meta_valor: metaValor }, conta.tipo);
           pctToApply = proj != null ? Math.round(((proj / nodeReal) - 1) * 10000) / 100 : 0;
         } else {
           pctToApply = 0;
@@ -793,7 +793,7 @@ export function TorreControleTab({ clienteId }: Props) {
       const meta = metaMapLocal[c.id] || null;
       const base = realizadoMapSel[c.id];
       if (!meta || meta.meta_valor === null || base == null) continue;
-      const projetado = calcProjetado(base, meta);
+      const projetado = calcProjetado(base, meta, c.tipo);
       const isReceita = c.tipo === 'receita';
       const s = calcStatus(base, projetado, isReceita);
       if (s === 'ok' || s === 'atencao' || s === 'critico') counts[s]++;
@@ -811,7 +811,7 @@ export function TorreControleTab({ clienteId }: Props) {
       const base = realizadoMapSel[c.id];
       if (base == null) continue;
       const meta = metaMapLocal[c.id] || null;
-      const proj = meta ? calcProjetado(base, meta) : base;
+      const proj = meta ? calcProjetado(base, meta, c.tipo) : base;
       if (proj != null) { total += proj; hasAny = true; }
     }
     return hasAny ? total : null;
@@ -836,7 +836,7 @@ export function TorreControleTab({ clienteId }: Props) {
       const meta = metaMapLocal[conta.id] || null;
       const real = realizadoMapSel[conta.id] ?? null;
       if (!meta || meta.meta_valor === null || real == null) return null;
-      const proj = calcProjetado(real, meta);
+      const proj = calcProjetado(real, meta, conta.tipo);
       if (proj == null) return null;
       return proj - real;
     }
@@ -1033,7 +1033,7 @@ export function TorreControleTab({ clienteId }: Props) {
     const hasMeta = meta && meta.meta_valor !== null;
     const realSel = realizadoMapSel[conta.id] ?? (isCat ? null : sumNodeLeafs(node, realizadoMapSel));
     const projetado = isCat
-      ? (realSel != null ? calcProjetado(realSel, meta) : null)
+      ? (realSel != null ? calcProjetado(realSel, meta, conta.tipo) : null)
       : sumNodeProjetado(node, realizadoMapSel, metaMapLocal);
     const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
     const status = realSel != null ? calcStatus(realSel, projetado, isReceita) : 'neutro';
@@ -1340,9 +1340,9 @@ export function TorreControleTab({ clienteId }: Props) {
                   if (isCat) {
                     const prevReal = prevMap[conta.id] ?? null;
                     const mf = metaMapForMonth?.[conta.id] || null;
-                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf) : null;
+                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf, conta.tipo) : null;
                   } else {
-                    projVal = sumNodeProjetado(node, prevMap, metaMapForMonth || {});
+                     projVal = sumNodeProjetado(node, prevMap, metaMapForMonth || {});
                   }
                   return (
                     <td style={{
@@ -1371,7 +1371,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   if (isCat) {
                     const prevReal = prevMap[conta.id] ?? null;
                     const mf = metaMapForMonth?.[conta.id] || null;
-                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf) : null;
+                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf, conta.tipo) : null;
                   } else {
                     projVal = sumNodeProjetado(node, prevMap, metaMapForMonth || {});
                   }
@@ -1782,7 +1782,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (real == null) { map[c.id] = null; return; }
       const meta = metaMapLocal[c.id] || null;
       if (meta && meta.meta_valor != null) {
-        const proj = calcProjetado(real, meta);
+        const proj = calcProjetado(real, meta, c.tipo);
         map[c.id] = proj ?? real;
       } else {
         map[c.id] = real;
