@@ -362,6 +362,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [diretrizSalva, setDiretrizSalva] = useState<string | null>(null);
   const [propagatedCells, setPropagatedCells] = useState<Set<string>>(new Set());
   const [chatOpen, setChatOpen] = useState(false);
+  const [showCreationAV, setShowCreationAV] = useState(false);
+  const [showCreationAH, setShowCreationAH] = useState(false);
   const propagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const months = useMemo(() => getMonthsForYear(ano), [ano]);
@@ -443,7 +445,7 @@ export function TorreControleTab({ clienteId }: Props) {
   // ── All-year metas (for TODOS mode) ──────────────────────────
   const { data: metasAno } = useQuery({
     queryKey: ['torre-metas-ano', clienteId, ano],
-    enabled: !!clienteId && (modoMeta || modoAnaliseMeta) && mesSelecionado === null,
+    enabled: !!clienteId && (modoMeta || modoAnaliseMeta),
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
         .eq('cliente_id', clienteId)
@@ -463,6 +465,12 @@ export function TorreControleTab({ clienteId }: Props) {
   }, [metasAno]);
 
   const monthsWithMetas = useMemo(() => new Set(Object.keys(metaMapByComp)), [metaMapByComp]);
+
+  // Reference months for CRIAÇÃO DE METAS filtered mode (all months with data before selected)
+  const refMonths = useMemo(() => {
+    if (!modoMeta || !mesEfetivo || mesSelecionado === null) return [] as { value: string; shortLabel: string }[];
+    return monthsWithData.filter(m => m.value < mesEfetivo);
+  }, [modoMeta, mesEfetivo, mesSelecionado, monthsWithData]);
 
   // ── Tree ──────────────────────────────────────────────────────
   const tree = useMemo(() => contas ? buildDreTree(contas) : [], [contas]);
@@ -945,6 +953,32 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
 
+          {/* Reference month cells (CRIAÇÃO DE METAS filtered) */}
+          {refMonths.map(rm => {
+            const refMap = getMonthMap(rm.value);
+            let refVal: number | null = null;
+            if (isCat) refVal = refMap[conta.id] ?? null;
+            else refVal = sumNodeLeafs(node, refMap);
+            const refMeta = metaMapByComp[rm.value]?.[conta.id] || null;
+            return (
+              <td key={`ref-${rm.value}`} style={{
+                textAlign: 'right', fontFamily: C.mono, fontSize: 11,
+                fontWeight: isTotal ? 700 : 400,
+                color: refVal != null ? (refVal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted),
+                padding: '6px 6px',
+                background: isTotal ? '#0D1B35' : (isGrupo ? '#F0F4FA' : (isSubgrupo ? '#FFFFFF' : '#FAFCFF')),
+                minWidth: 72,
+              }}>
+                <div>{fmtTorre(refVal)}</div>
+                {refMeta && refMeta.meta_valor != null && !isTotal && (
+                  <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>
+                    meta: {refMeta.meta_tipo === 'pct' ? `${refMeta.meta_valor >= 0 ? '+' : ''}${refMeta.meta_valor}%` : `R$ ${fmtTorre(refMeta.meta_valor)}`}
+                  </div>
+                )}
+              </td>
+            );
+          })}
+
           {/* Month columns */}
           {displayMonths.map(m => {
             const monthMap = getMonthMap(m.value);
@@ -985,7 +1019,21 @@ export function TorreControleTab({ clienteId }: Props) {
                   padding: '8px 10px',
                   background: cellBg,
                 }}>
-                  {fmtTorre(val)}
+                  <div>{fmtTorre(val)}</div>
+                  {showCreationAV && modoMeta && isSel && !isTodosMode && val != null && (() => {
+                    const fat = getFatForMap(getMonthMap(m.value));
+                    if (fat === 0) return null;
+                    return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1)}% fat.</div>;
+                  })()}
+                  {showCreationAH && modoMeta && isSel && !isTodosMode && val != null && (() => {
+                    const prevComp = getPrevMonth(m.value);
+                    const prevMap = getMonthMap(prevComp);
+                    const prevVal = isCat ? (prevMap[conta.id] ?? null) : sumNodeLeafs(node, prevMap);
+                    if (prevVal == null || prevVal === 0) return null;
+                    const pct = ((val - prevVal) / Math.abs(prevVal) * 100).toFixed(1);
+                    const positive = parseFloat(pct) >= 0;
+                    return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{positive ? '+' : ''}{pct}% vs ant.</div>;
+                  })()}
                 </td>
 
                 {/* AV% after realized in TODOS mode */}
@@ -1292,6 +1340,23 @@ export function TorreControleTab({ clienteId }: Props) {
             {config.nome}
           </span>
         </td>
+        {/* Reference month cells for totalizador */}
+        {refMonths.map(rm => {
+          const rmMap = getMonthMap(rm.value);
+          const rmTotals = calcTotaisForMap(rmMap);
+          const rmVal = rmTotals[key as keyof typeof rmTotals];
+          return (
+            <td key={`ref-${rm.value}`} style={{
+              textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 700,
+              color: rmVal < 0 ? '#FF6B6B' : '#00E68A',
+              padding: '6px 6px',
+              background: '#0D1B35',
+              minWidth: 72,
+            }}>
+              {fmtTorre(rmVal)}
+            </td>
+          );
+        })}
         {displayMonths.map(m => {
           const monthMap = getMonthMap(m.value);
           const totals = calcTotaisForMap(monthMap);
@@ -1309,7 +1374,21 @@ export function TorreControleTab({ clienteId }: Props) {
                 color: val < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px',
                 background: isSel && isModoAtivo && !isTodosMode ? '#0D1B35' : undefined,
               }}>
-                {fmtTorre(val)}
+                <div>{fmtTorre(val)}</div>
+                {showCreationAV && modoMeta && isSel && !isTodosMode && (() => {
+                  const fat = totals.fat;
+                  if (fat === 0) return null;
+                  return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1)}% fat.</div>;
+                })()}
+                {showCreationAH && modoMeta && isSel && !isTodosMode && (() => {
+                  const prevComp = getPrevMonth(m.value);
+                  const prevTotals = calcTotaisForMap(getMonthMap(prevComp));
+                  const prevVal = prevTotals[key as keyof typeof prevTotals];
+                  if (prevVal === 0) return null;
+                  const pct = ((val - prevVal) / Math.abs(prevVal) * 100).toFixed(1);
+                  const positive = parseFloat(pct) >= 0;
+                  return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{positive ? '+' : ''}{pct}% vs ant.</div>;
+                })()}
               </td>
 
               {/* AV% after realized in TODOS mode (totalizador) */}
@@ -1593,7 +1672,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const avExtraForMeta = showAV && !isTodosMode && isModoAtivo ? avColW : 0; // AV% after META in filtered mode
   const ahExtraForRealizado = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after realized in CRIAÇÃO
   const ahExtraForMeta = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after META in CRIAÇÃO
-  const tableMinWidth = nameColW + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + ahExtraForRealizado + ahExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
+  const refColsWidth = refMonths.length * 72;
+  const tableMinWidth = nameColW + refColsWidth + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + ahExtraForRealizado + ahExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
 
   // ══════════════════════════════════════════════════════════════
   return (
@@ -1908,6 +1988,45 @@ export function TorreControleTab({ clienteId }: Props) {
           </div>
         </div>
 
+        {/* Secondary bar with AV%/AH% toggles — CRIAÇÃO DE METAS only */}
+        {modoMeta && hasContas && hasAnyData && !isLoading && (
+          <div style={{
+            width: '100%', borderRadius: '0 0 12px 12px', marginTop: -12,
+            background: 'linear-gradient(135deg, #0A1628 0%, #0D1B35 50%, #0A1628 100%)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            padding: '6px 16px',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
+              Indicadores
+            </span>
+            <button
+              onClick={() => setShowCreationAV(v => !v)}
+              style={{
+                padding: '3px 10px', borderRadius: 5, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                background: showCreationAV ? 'rgba(26,60,255,0.35)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${showCreationAV ? '#1A3CFF' : 'rgba(255,255,255,0.12)'}`,
+                color: showCreationAV ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
+                transition: 'all 0.15s',
+              }}
+            >
+              AV%
+            </button>
+            <button
+              onClick={() => setShowCreationAH(v => !v)}
+              style={{
+                padding: '3px 10px', borderRadius: 5, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                background: showCreationAH ? 'rgba(26,60,255,0.35)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${showCreationAH ? '#1A3CFF' : 'rgba(255,255,255,0.12)'}`,
+                color: showCreationAH ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
+                transition: 'all 0.15s',
+              }}
+            >
+              AH%
+            </button>
+          </div>
+        )}
+
         {/* Empty states */}
         {!hasContas && !isLoading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 0', textAlign: 'center' }}>
@@ -2009,6 +2128,17 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       CONTA DRE
                     </th>
+                    {/* Reference month headers (CRIAÇÃO DE METAS filtered) */}
+                    {refMonths.map(rm => (
+                      <th key={`ref-h-${rm.value}`} style={{
+                        padding: '10px 6px', textAlign: 'right', fontSize: 10,
+                        fontWeight: 500, color: '#8A9BBC', letterSpacing: '0.06em',
+                        minWidth: 72, whiteSpace: 'nowrap',
+                        background: '#F6F9FF',
+                      }}>
+                        {fmtCompetencia(rm.value)}
+                      </th>
+                    ))}
                     {displayMonths.map(m => {
                       const isSel = isSelectedMonth(m.value);
                       const selHeaderBg = isSel && isModoAtivo && !isTodosMode ? 'rgba(26,60,255,0.1)' : undefined;
