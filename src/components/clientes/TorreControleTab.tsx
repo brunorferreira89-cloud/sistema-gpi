@@ -833,7 +833,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (v != null) { total += v; hasAny = true; }
     }
     return hasAny ? total : null;
-  }, [metaMap, realizadoMapSel]);
+  }, [metaMapLocal, realizadoMapSel]);
 
   // ── Sugestão metas handler ────────────────────────────────────
   const handleSugerirMetas = async (forcarRegeneracao = false, diretriz?: string) => {
