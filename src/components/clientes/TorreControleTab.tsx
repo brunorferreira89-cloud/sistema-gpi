@@ -432,9 +432,12 @@ export function TorreControleTab({ clienteId }: Props) {
     },
   });
 
-  const invalidateMetas = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] });
-  }, [qc, clienteId, mesSeg]);
+  const invalidateMetas = useCallback(async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] }),
+      qc.invalidateQueries({ queryKey: ['torre-metas-ano', clienteId, ano] }),
+    ]);
+  }, [qc, clienteId, mesSeg, ano]);
 
   const metaMap = useMemo(() => {
     const map: Record<string, TorreMeta> = {};
@@ -571,10 +574,11 @@ export function TorreControleTab({ clienteId }: Props) {
           sumMeta += proj ?? real;
         }
         const pctParent = sumReal !== 0 ? Math.round(((sumMeta / sumReal) - 1) * 10000) / 100 : 0;
-        await supabase.from('torre_metas').upsert({
+        const { error: e1 } = await supabase.from('torre_metas').upsert({
           cliente_id: clienteId, conta_id: parent.id, competencia: mesSeg,
           meta_tipo: 'pct', meta_valor: pctParent, updated_at: new Date().toISOString(),
         }, { onConflict: 'cliente_id,conta_id,competencia' });
+        if (e1) console.error('Propagação bottom-up (parent) falhou:', e1);
         newPropagated.add(parent.id);
         updatedMetaMap[parent.id] = { conta_id: parent.id, meta_tipo: 'pct', meta_valor: pctParent };
 
@@ -593,10 +597,11 @@ export function TorreControleTab({ clienteId }: Props) {
             }
           }
           const pctGP = sumRealGP !== 0 ? Math.round(((sumMetaGP / sumRealGP) - 1) * 10000) / 100 : 0;
-          await supabase.from('torre_metas').upsert({
+          const { error: e2 } = await supabase.from('torre_metas').upsert({
             cliente_id: clienteId, conta_id: grandparent.id, competencia: mesSeg,
             meta_tipo: 'pct', meta_valor: pctGP, updated_at: new Date().toISOString(),
           }, { onConflict: 'cliente_id,conta_id,competencia' });
+          if (e2) console.error('Propagação bottom-up (grandparent) falhou:', e2);
           newPropagated.add(grandparent.id);
         }
       }
@@ -633,7 +638,8 @@ export function TorreControleTab({ clienteId }: Props) {
         }
       }
       if (upserts.length > 0) {
-        await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+        const { error: batchErr } = await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+        if (batchErr) { console.error('Propagação top-down falhou:', batchErr); toast.error('Erro ao propagar metas'); }
       }
     }
 
@@ -642,7 +648,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (propagateTimerRef.current) clearTimeout(propagateTimerRef.current);
       propagateTimerRef.current = setTimeout(() => setPropagatedCells(new Set()), 1500);
     }
-    invalidateMetas();
+    await invalidateMetas();
   }, [contas, clienteId, mesSeg, realizadoMapSel, metaMap, tree, invalidateMetas]);
 
   const calcTotaisForMap = useCallback((valMap: Record<string, number | null>) => {
