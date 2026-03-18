@@ -428,10 +428,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const kpisAtivos = indicadoresCalc.filter((c: any) => c.indicador.ativo);
 
   return (
-    <div style={{ width: '100%', padding: '24px', background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
+    <div style={{ width: '100%', background: '#F0F4FA', fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
       {/* 1. HEADER */}
-      <header className="sticky top-0 z-30 bg-white border-b border-[#DDE4F0]">
-        <div className="flex items-center justify-between px-4 py-3">
+      <header style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FFFFFF', borderBottom: '1px solid #DDE4F0', padding: '12px 24px', width: '100%' }}>
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
             <span className="text-sm font-semibold text-[#0D1B35]">
