@@ -946,7 +946,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   const somaPrev = getSoma(widget.conta_ids, prevComp);
   const fat = getFaturamento(comp);
   const hasAnalise = !!widget.analise_ia;
-  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp);
+  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp, valMap, contaMap, getSoma);
 
   // Indicador semaphore
   const indicadorData = useMemo(() => {
