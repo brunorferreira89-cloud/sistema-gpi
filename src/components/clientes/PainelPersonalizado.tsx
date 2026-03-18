@@ -50,6 +50,7 @@ interface Props {
   clienteId: string;
   competencia?: string;
   modoConfig?: boolean;
+  modoPortal?: boolean;
 }
 
 const TIPO_OPTIONS = [
