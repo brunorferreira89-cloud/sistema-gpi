@@ -21,7 +21,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    if (profile.role === 'cliente') return <Navigate to="/minha-area" replace />;
+    if (profile.role === 'cliente') return <Navigate to="/cliente" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 

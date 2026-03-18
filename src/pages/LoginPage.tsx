@@ -15,7 +15,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (session && profile) {
       if (profile.role === 'cliente') {
-        navigate('/minha-area', { replace: true });
+        navigate('/cliente', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
       }
