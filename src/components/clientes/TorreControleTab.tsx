@@ -1340,6 +1340,23 @@ export function TorreControleTab({ clienteId }: Props) {
             {config.nome}
           </span>
         </td>
+        {/* Reference month cells for totalizador */}
+        {refMonths.map(rm => {
+          const rmMap = getMonthMap(rm.value);
+          const rmTotals = calcTotaisForMap(rmMap);
+          const rmVal = rmTotals[key as keyof typeof rmTotals];
+          return (
+            <td key={`ref-${rm.value}`} style={{
+              textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 700,
+              color: rmVal < 0 ? '#FF6B6B' : '#00E68A',
+              padding: '6px 6px',
+              background: '#0D1B35',
+              minWidth: 72,
+            }}>
+              {fmtTorre(rmVal)}
+            </td>
+          );
+        })}
         {displayMonths.map(m => {
           const monthMap = getMonthMap(m.value);
           const totals = calcTotaisForMap(monthMap);
