@@ -880,8 +880,19 @@ export function TorreControleTab({ clienteId }: Props) {
     // Rule 1: Hide zeroed N2 categories in meta modes
     if (isModoAtivo && isCat && !isTotal) {
       if (!isTodosMode) {
-        const val = realizadoMapSel[conta.id];
-        if (val == null || val === 0) return null;
+        if (modoMeta) {
+          // CRIAÇÃO DE METAS: show if has value in selected month OR any month of the year
+          const val = realizadoMapSel[conta.id];
+          const hasHistorico = months.some(m => {
+            const v = valoresMap[conta.id]?.[m.value];
+            return v != null && v !== 0;
+          });
+          if ((val == null || val === 0) && !hasHistorico) return null;
+        } else {
+          // ANÁLISE META: keep original behavior
+          const val = realizadoMapSel[conta.id];
+          if (val == null || val === 0) return null;
+        }
       } else {
         const hasAnyVal = months.some(m => {
           const v = valoresMap[conta.id]?.[m.value];
