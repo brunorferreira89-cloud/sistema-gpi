@@ -319,8 +319,9 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     { label: CHECKLIST_LABELS[0], checked: checklistState.dreImportada },
     { label: CHECKLIST_LABELS[1], checked: checklistState.metasDefinidas },
     { label: CHECKLIST_LABELS[2], checked: checklistState.analiseGerada },
-    { label: CHECKLIST_LABELS[3], checked: checklistState.slidesRevisados },
-    { label: CHECKLIST_LABELS[4], checked: checklistState.reuniaoAgendada },
+    { label: CHECKLIST_LABELS[3], checked: checklistState.painelConfigurado },
+    { label: CHECKLIST_LABELS[4], checked: checklistState.slidesRevisados },
+    { label: CHECKLIST_LABELS[5], checked: checklistState.reuniaoAgendada },
   ];
 
   if (loading) {
