@@ -2230,7 +2230,7 @@ export function TorreControleTab({ clienteId }: Props) {
             {modoAnaliseMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
 
             {/* Table */}
-            <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
+            <div className="rounded-xl border overflow-x-auto overflow-y-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF', maxHeight: 'calc(100vh - 320px)' }}>
               <table style={{ borderCollapse: 'collapse', minWidth: tableMinWidth }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 20 }}>
                   <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
