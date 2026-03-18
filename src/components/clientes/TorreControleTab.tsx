@@ -2427,7 +2427,7 @@ export function TorreControleTab({ clienteId }: Props) {
           clienteSegmento={cliente.segmento}
           contas={contas || []}
           realizadoMap={realizadoMapSel}
-          metaMap={metaMap}
+          metaMap={metaMapLocal}
           mesBase={mesEfetivo}
           mesProximo={mesSeg}
           onMetaAtualizada={invalidateMetas}
