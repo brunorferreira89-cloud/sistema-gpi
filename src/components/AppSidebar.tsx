@@ -35,7 +35,9 @@ export function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5 px-3">
-        {navItems.map((item) => {
+        {navItems
+          .filter((item) => !('adminOnly' in item && item.adminOnly) || profile?.role === 'admin')
+          .map((item) => {
           const active = location.pathname === item.to;
           return (
             <NavLink
