@@ -2250,7 +2250,7 @@ export function TorreControleTab({ clienteId }: Props) {
                         padding: '10px 6px', textAlign: 'right', fontSize: 10,
                         fontWeight: 500, color: '#8A9BBC', letterSpacing: '0.06em',
                         minWidth: 72, whiteSpace: 'nowrap',
-                        background: '#F6F9FF',
+                        background: '#F0F4FA',
                       }}>
                         {fmtCompetencia(rm.value)}
                       </th>
