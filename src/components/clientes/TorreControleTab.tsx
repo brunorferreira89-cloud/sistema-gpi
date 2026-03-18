@@ -793,7 +793,7 @@ export function TorreControleTab({ clienteId }: Props) {
       const meta = metaMapLocal[c.id] || null;
       const base = realizadoMapSel[c.id];
       if (!meta || meta.meta_valor === null || base == null) continue;
-      const projetado = calcProjetado(base, meta);
+      const projetado = calcProjetado(base, meta, c.tipo);
       const isReceita = c.tipo === 'receita';
       const s = calcStatus(base, projetado, isReceita);
       if (s === 'ok' || s === 'atencao' || s === 'critico') counts[s]++;
