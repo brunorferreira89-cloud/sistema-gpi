@@ -134,10 +134,21 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         const { count: reuniaoCount } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
           .eq('cliente_id', clienteId).gte('data_reuniao', hoje);
 
+        // Auto-check painel widgets
+        const { data: widgetsData } = await supabase.from('painel_widgets')
+          .select('*')
+          .eq('cliente_id', clienteId)
+          .eq('ativo', true)
+          .order('ordem', { ascending: true })
+          .limit(4);
+        const hasWidgets = (widgetsData || []).length > 0;
+        setPainelWidgets(widgetsData || []);
+
         setChecklistState({
           dreImportada: hasDre,
           metasDefinidas: (metasCount || 0) > 0,
           analiseGerada: !!prepRes.data?.gerado_em,
+          painelConfigurado: hasWidgets,
           slidesRevisados: false, // manual
           reuniaoAgendada: (reuniaoCount || 0) > 0,
         });
