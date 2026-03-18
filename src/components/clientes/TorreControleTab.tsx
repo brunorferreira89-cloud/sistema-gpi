@@ -1775,7 +1775,7 @@ export function TorreControleTab({ clienteId }: Props) {
       }
     });
     return map;
-  }, [showMetaAnualCol, contas, realizadoMapSel, metaMap]);
+  }, [showMetaAnualCol, contas, realizadoMapSel, metaMapLocal]);
 
   // ── Table min width calculation ───────────────────────────────
   const todosMetaColsCount = isTodosMode && isModoAtivo ? monthsWithMetas.size : 0;
