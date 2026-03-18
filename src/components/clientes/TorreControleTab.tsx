@@ -432,9 +432,12 @@ export function TorreControleTab({ clienteId }: Props) {
     },
   });
 
-  const invalidateMetas = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] });
-  }, [qc, clienteId, mesSeg]);
+  const invalidateMetas = useCallback(async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['torre-metas', clienteId, mesSeg] }),
+      qc.invalidateQueries({ queryKey: ['torre-metas-ano', clienteId, ano] }),
+    ]);
+  }, [qc, clienteId, mesSeg, ano]);
 
   const metaMap = useMemo(() => {
     const map: Record<string, TorreMeta> = {};
