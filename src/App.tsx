@@ -34,7 +34,7 @@ function RootRedirect() {
   const { session, profile, loading } = useAuth();
   if (loading) return null;
   if (!session) return <Navigate to="/login" replace />;
-  if (profile?.role === 'cliente') return <Navigate to="/minha-area" replace />;
+  if (profile?.role === 'cliente') return <Navigate to="/cliente" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
