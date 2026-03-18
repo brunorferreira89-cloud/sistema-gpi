@@ -939,14 +939,21 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   getContaTipoSemantico: (ids: string[]) => string;
   onClose: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const [gerando, setGerando] = useState(false);
+  const [analiseLocal, setAnaliseLocal] = useState<string | null>(null);
+
   const tipoOpt = TIPO_OPTIONS.find(t => t.value === widget.tipo);
   const eyebrow = `${(tipoOpt?.title || widget.tipo).toUpperCase()} · IA`;
   const prevComp = getPrevCompetencia(comp);
   const somaAtual = getSoma(widget.conta_ids, comp);
   const somaPrev = getSoma(widget.conta_ids, prevComp);
   const fat = getFaturamento(comp);
-  const hasAnalise = !!widget.analise_ia;
-  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp, valMap, contaMap, getSoma);
+
+  const analiseTexto = analiseLocal || widget.analise_ia;
+  const hasAnalise = !!analiseTexto;
+  const hashAtual = computeHash(widget, comp, valMap, contaMap, getSoma);
+  const hashChanged = !!widget.analise_hash && widget.analise_hash !== hashAtual;
 
   // Indicador semaphore
   const indicadorData = useMemo(() => {
