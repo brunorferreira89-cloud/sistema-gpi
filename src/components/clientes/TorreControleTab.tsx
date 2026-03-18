@@ -494,6 +494,10 @@ export function TorreControleTab({ clienteId }: Props) {
     return map;
   }, [metas]);
 
+  // ── Optimistic local meta map ─────────────────────────────────
+  const [metaMapLocal, setMetaMapLocal] = useState<Record<string, TorreMeta>>({});
+  useEffect(() => { setMetaMapLocal(metaMap); }, [metaMap]);
+
   // ── All-year metas (for TODOS mode) ──────────────────────────
   const { data: metasAno } = useQuery({
     queryKey: ['torre-metas-ano', clienteId, ano],
