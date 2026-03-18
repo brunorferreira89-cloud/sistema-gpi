@@ -401,6 +401,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsedInitialized, setCollapsedInitialized] = useState(false);
   const [modoMeta, setModoMeta] = useState(false);
   const [modoAnaliseMeta, setModoAnaliseMeta] = useState(false);
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);

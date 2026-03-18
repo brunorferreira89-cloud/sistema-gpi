@@ -133,6 +133,7 @@ export function DreAnualTab({ clienteId }: Props) {
   const years = getYearOptions();
   const [ano, setAno] = useState(years[0]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsedInitialized, setCollapsedInitialized] = useState(false);
   const [showAV, setShowAV] = useState(false);
   const [showAH, setShowAH] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
