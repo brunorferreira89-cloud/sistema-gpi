@@ -43,6 +43,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
+    console.log("criar-usuario body:", JSON.stringify(body));
     const { action } = body;
 
     // ─── DELETE ───
@@ -164,6 +165,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
+    console.error("criar-usuario ERROR:", error.message);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
