@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchKpiData } from '@/lib/kpi-utils';
@@ -6,6 +7,7 @@ import { fetchMergedIndicadores, calcularIndicadores, calcScore } from '@/lib/kp
 import { TrendingUp, TrendingDown, Calendar, MessageCircle, Bell, CheckCircle, AlertTriangle, Info, ArrowRight, RefreshCw, LogOut, ChevronDown, ChevronUp, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import gpiLogo from '@/assets/gpi-logo-dark.png';
+import { PainelPersonalizado } from '@/components/clientes/PainelPersonalizado';
 
 function getCompetenciaAtual() {
   const d = new Date();
