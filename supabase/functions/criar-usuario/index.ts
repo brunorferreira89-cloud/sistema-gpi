@@ -142,7 +142,7 @@ serve(async (req) => {
       nome,
       role: finalRole,
       email,
-      portal_ativo: finalRole === "cliente" ? false : true,
+      portal_ativo: true,
     };
     if (cliente_id) {
       profileUpdate.cliente_id = cliente_id;
