@@ -776,7 +776,7 @@ export function TorreControleTab({ clienteId }: Props) {
     if (!contas || !(modoMeta || modoAnaliseMeta)) return counts;
     for (const c of contas) {
       if (c.nivel !== 2 || c.is_total) continue;
-      const meta = metaMap[c.id] || null;
+      const meta = metaMapLocal[c.id] || null;
       const base = realizadoMapSel[c.id];
       if (!meta || meta.meta_valor === null || base == null) continue;
       const projetado = calcProjetado(base, meta);
