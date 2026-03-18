@@ -819,7 +819,7 @@ export function TorreControleTab({ clienteId }: Props) {
   const calcVariacao = useCallback((node: DreNode): number | null => {
     const conta = node.conta;
     if (conta.nivel === 2) {
-      const meta = metaMap[conta.id] || null;
+      const meta = metaMapLocal[conta.id] || null;
       const real = realizadoMapSel[conta.id] ?? null;
       if (!meta || meta.meta_valor === null || real == null) return null;
       const proj = calcProjetado(real, meta);
