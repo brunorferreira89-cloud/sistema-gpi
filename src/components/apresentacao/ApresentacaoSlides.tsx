@@ -1257,7 +1257,7 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
         </button>
 
         <div className="flex gap-2 items-center">
-          {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
+          {Array.from({ length: totalSlides }).map((_, i) => (
             <button key={i} onClick={() => goTo(i + 1)} className="w-2.5 h-2.5 rounded-full transition-all"
               style={{
                 background: i + 1 === slide ? C.blue : 'rgba(255,255,255,0.2)',
@@ -1267,9 +1267,9 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
           ))}
         </div>
 
-        <span className="text-[10px] mx-2" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{slide} / {TOTAL_SLIDES}</span>
+        <span className="text-[10px] mx-2" style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>{slide} / {totalSlides}</span>
 
-        <button onClick={() => goTo(slide + 1)} disabled={slide === TOTAL_SLIDES}
+        <button onClick={() => goTo(slide + 1)} disabled={slide === totalSlides}
           className="flex items-center gap-1 px-3 py-1.5 rounded text-[11px] disabled:opacity-30 transition-colors hover:bg-white/8"
           style={{ color: C.txtSec, fontFamily: "'JetBrains Mono',monospace" }}>
           Próximo <ChevronRight className="h-3.5 w-3.5" />
