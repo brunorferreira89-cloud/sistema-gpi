@@ -811,7 +811,7 @@ export function TorreControleTab({ clienteId }: Props) {
       const base = realizadoMapSel[c.id];
       if (base == null) continue;
       const meta = metaMapLocal[c.id] || null;
-      const proj = meta ? calcProjetado(base, meta) : base;
+      const proj = meta ? calcProjetado(base, meta, c.tipo) : base;
       if (proj != null) { total += proj; hasAny = true; }
     }
     return hasAny ? total : null;
