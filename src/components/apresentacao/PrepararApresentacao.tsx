@@ -571,6 +571,24 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
               </div>
             </div>
 
+            {/* Prévia do Painel Personalizado */}
+            {painelWidgets.length > 0 && (
+              <div className="rounded-xl border border-[#DDE4F0] p-4" style={{ background: '#F6F9FF', boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+                <h3 className="text-sm font-semibold text-[#0D1B35] mb-3">📊 Painel Personalizado — prévia do slide</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {painelWidgets.slice(0, 4).map((w: any) => (
+                    <div key={w.id} className="rounded-lg border border-[#DDE4F0] bg-white p-3">
+                      <span className="text-[10px] font-bold uppercase" style={{ color: w.cor_destaque || '#1A3CFF', letterSpacing: '0.05em' }}>
+                        {w.tipo}
+                      </span>
+                      <p className="text-xs font-semibold text-[#0D1B35] mt-0.5 truncate">{w.titulo}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[#8A9BBC] mt-2">Até 4 widgets serão exibidos no slide</p>
+              </div>
+            )}
+
             {/* Dados usados pela IA */}
             <div className="rounded-xl border border-[#DDE4F0] bg-white p-4" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
               <h3 className="text-sm font-semibold text-[#0D1B35] mb-3">Dados usados pela IA</h3>
