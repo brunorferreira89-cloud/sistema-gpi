@@ -82,8 +82,17 @@ const modalBoxStyle: React.CSSProperties = {
 /*  MAIN PAGE                              */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function UsuariosInternosPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Admin-only guard
+  useEffect(() => {
+    if (profile && profile.role !== 'admin') {
+      toast({ title: 'Acesso restrito a administradores.', variant: 'destructive' });
+      navigate('/dashboard', { replace: true });
+    }
+  }, [profile, navigate]);
   const [search, setSearch] = useState('');
   const [modalCreate, setModalCreate] = useState(false);
   const [editUser, setEditUser] = useState<InternalUser | null>(null);
