@@ -1033,7 +1033,7 @@ export function TorreControleTab({ clienteId }: Props) {
     const hasMeta = meta && meta.meta_valor !== null;
     const realSel = realizadoMapSel[conta.id] ?? (isCat ? null : sumNodeLeafs(node, realizadoMapSel));
     const projetado = isCat
-      ? (realSel != null ? calcProjetado(realSel, meta) : null)
+      ? (realSel != null ? calcProjetado(realSel, meta, conta.tipo) : null)
       : sumNodeProjetado(node, realizadoMapSel, metaMapLocal);
     const isReceita = conta.tipo === 'receita' || conta.nome.trim().startsWith('(+)');
     const status = realSel != null ? calcStatus(realSel, projetado, isReceita) : 'neutro';
