@@ -25,6 +25,7 @@ import ClientePortalPage from "./pages/ClientePortalPage";
 import ApresentacaoPage from "./pages/ApresentacaoPage";
 
 import UsuariosPortalPage from "./pages/UsuariosPortalPage";
+import UsuariosInternosPage from "./pages/UsuariosInternosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
