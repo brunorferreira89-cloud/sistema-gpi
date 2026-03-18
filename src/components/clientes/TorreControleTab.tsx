@@ -2406,7 +2406,7 @@ export function TorreControleTab({ clienteId }: Props) {
         cliente={cliente || null}
         competencia={mesEfetivo || ''}
         sugestoes={sugestoes}
-        metasExistentes={metaMap}
+        metasExistentes={metaMapLocal}
         onAplicar={handleAplicarSugestoes}
         loading={loadingSugestao}
         onRegenerar={(dir?: string) => handleSugerirMetas(true, dir)}
