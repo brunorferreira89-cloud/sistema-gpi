@@ -2057,6 +2057,17 @@ export function TorreControleTab({ clienteId }: Props) {
                     }}>
                       CONTA DRE
                     </th>
+                    {/* Reference month headers (CRIAÇÃO DE METAS filtered) */}
+                    {refMonths.map(rm => (
+                      <th key={`ref-h-${rm.value}`} style={{
+                        padding: '10px 6px', textAlign: 'right', fontSize: 10,
+                        fontWeight: 500, color: '#8A9BBC', letterSpacing: '0.06em',
+                        minWidth: 72, whiteSpace: 'nowrap',
+                        background: '#F6F9FF',
+                      }}>
+                        {fmtCompetencia(rm.value)}
+                      </th>
+                    ))}
                     {displayMonths.map(m => {
                       const isSel = isSelectedMonth(m.value);
                       const selHeaderBg = isSel && isModoAtivo && !isTodosMode ? 'rgba(26,60,255,0.1)' : undefined;
