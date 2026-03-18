@@ -1015,7 +1015,7 @@ export function TorreControleTab({ clienteId }: Props) {
     }
 
     // Meta info for selected month
-    const meta = metaMap[conta.id] || null;
+    const meta = metaMapLocal[conta.id] || null;
     const hasMeta = meta && meta.meta_valor !== null;
     const realSel = realizadoMapSel[conta.id] ?? (isCat ? null : sumNodeLeafs(node, realizadoMapSel));
     const projetado = isCat
