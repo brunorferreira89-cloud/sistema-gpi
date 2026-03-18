@@ -1190,11 +1190,6 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     );
   };
 
-  const contaMap: Record<string, string> = useMemo(() => {
-    const m: Record<string, string> = {};
-    contas.forEach(c => { m[c.id] = c.nome; });
-    return m;
-  }, [contas]);
 
   const slides = [
     renderSlide1, renderSlide2, renderSlide3, renderSlide4,
