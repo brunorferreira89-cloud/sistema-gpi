@@ -50,6 +50,7 @@ interface Props {
   clienteId: string;
   competencia?: string;
   modoConfig?: boolean;
+  modoPortal?: boolean;
 }
 
 const TIPO_OPTIONS = [
@@ -114,7 +115,7 @@ function SortableWidget({ id, children, disabled }: { id: string; children: Reac
 }
 
 /* ─── MAIN COMPONENT ─── */
-export function PainelPersonalizado({ clienteId, competencia, modoConfig = false }: Props) {
+export function PainelPersonalizado({ clienteId, competencia, modoConfig = false, modoPortal = false }: Props) {
   const defaultComp = competencia || getDefaultCompetencia();
   const queryClient = useQueryClient();
   const [modoEdicao, setModoEdicao] = useState(false);
@@ -439,6 +440,7 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
           valMap={valMap}
           getContaTipoSemantico={getContaTipoSemantico}
           onClose={() => setDetalheWidget(null)}
+          modoPortal={modoPortal || !modoConfig}
         />
       )}
     </div>
@@ -931,13 +933,14 @@ function hexToHsl(hex: string) {
 }
 
 /* ─── Detail Modal (KpiDetalheModal style) ─── */
-function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap, getContaTipoSemantico, onClose }: {
+function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap, getContaTipoSemantico, onClose, modoPortal = false }: {
   widget: Widget; comp: string; contaMap: Record<string, Conta>;
   getSoma: (ids: string[], comp: string) => number;
   getFaturamento: (comp: string) => number;
   valMap: Record<string, number>;
   getContaTipoSemantico: (ids: string[]) => string;
   onClose: () => void;
+  modoPortal?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [gerando, setGerando] = useState(false);
@@ -1296,10 +1299,11 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
           </div>
 
           {/* Section 4 — ANÁLISE GPI */}
+          {(!modoPortal || hasAnalise) && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: '#8A9BBC', letterSpacing: '0.1em', textTransform: 'uppercase' }}>ANÁLISE GPI</span>
-              {hasAnalise && !gerando && (
+              {hasAnalise && !gerando && !modoPortal && (
                 <span style={{
                   fontSize: 10, fontWeight: 600,
                   color: hashChanged ? '#D97706' : '#00A86B',
@@ -1317,7 +1321,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
               </span>
             )}
 
-            {gerando ? (
+            {gerando && !modoPortal ? (
               <div style={{ background: '#F0F4FA', border: '1px solid #DDE4F0', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ height: 14, background: '#E8EEF8', borderRadius: 6, width: '75%', margin: '0 auto', animation: 'pulse 1.5s ease-in-out infinite' }} />
@@ -1344,7 +1348,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
                   );
                 })()}
               </div>
-            ) : (
+            ) : !modoPortal ? (
               <div style={{ background: '#F0F4FA', border: '1px solid #DDE4F0', borderRadius: 12, padding: '32px 24px', textAlign: 'center' }}>
                 <span style={{ fontSize: 24, color: '#C4CFEA', display: 'block', marginBottom: 8 }}>✦</span>
                 <p style={{ fontSize: 12, color: '#8A9BBC', margin: '0 0 12px' }}>Análise não gerada ainda</p>
@@ -1355,14 +1359,16 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
                   ✨ Gerar análise
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
+          )}
         </div>
 
         {/* Footer */}
         <div style={{ borderTop: '1px solid #DDE4F0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: '#8A9BBC' }}>{fmtMonthLong(comp)}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!modoPortal && (
             <button
               onClick={gerarAnalise}
               disabled={!hasAnalise || gerando}
@@ -1377,6 +1383,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
             >
               🔄 Regenerar
             </button>
+            )}
             <button onClick={onClose} style={{ padding: '6px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: '#1A3CFF', color: '#fff', border: 'none', cursor: 'pointer' }}>✕ Fechar</button>
           </div>
         </div>
