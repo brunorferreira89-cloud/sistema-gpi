@@ -1,12 +1,13 @@
 export interface TorreMeta {
   conta_id: string;
-  meta_tipo: 'pct' | 'valor';
+  meta_tipo: 'pct' | 'valor' | 'delta';
   meta_valor: number | null;
 }
 
 export function calcProjetado(anterior: number, meta: TorreMeta | null): number | null {
   if (!meta || meta.meta_valor === null) return null;
   if (meta.meta_tipo === 'pct') return anterior * (1 + meta.meta_valor / 100);
+  if (meta.meta_tipo === 'delta') return anterior + meta.meta_valor;
   // valor absoluto: preserve sign from realized
   const sign = anterior < 0 ? -1 : 1;
   return sign * Math.abs(meta.meta_valor);
