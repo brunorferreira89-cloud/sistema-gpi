@@ -1,8 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { AppTopbar } from '@/components/AppTopbar';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 
 export default function AppLayout() {
+  useRealtimeSync();
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <AppSidebar />
