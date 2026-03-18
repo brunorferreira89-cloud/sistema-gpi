@@ -550,9 +550,9 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
                     <Checkbox
                       checked={item.checked}
                       onCheckedChange={(v) => {
-                        if (i === 3) {
+                        if (i === 4) {
                           setChecklistState(prev => ({ ...prev, slidesRevisados: !!v }));
-                        } else if (i === 4) {
+                        } else if (i === 5) {
                           if (v) {
                             setReuniaoDialogOpen(true);
                           } else {
@@ -560,7 +560,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
                           }
                         }
                       }}
-                      disabled={i !== 3 && i !== 4}
+                      disabled={i !== 4 && i !== 5}
                       className={item.checked ? '' : 'opacity-50'}
                     />
                     <span style={{ color: item.checked ? '#00A86B' : '#4A5E80', fontWeight: item.checked ? 600 : 400 }}>
