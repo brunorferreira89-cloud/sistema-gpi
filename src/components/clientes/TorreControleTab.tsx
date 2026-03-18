@@ -2232,12 +2232,13 @@ export function TorreControleTab({ clienteId }: Props) {
             {/* Table */}
             <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
               <table style={{ borderCollapse: 'collapse', minWidth: tableMinWidth }}>
-                <thead>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 20 }}>
                   <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                     <th style={{
                       ...stickyTd('#F0F4FA', {
                         padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
                         color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                        position: 'sticky', top: 0, zIndex: 30, background: '#F0F4FA',
                       }),
                       width: nameColW,
                     }}>

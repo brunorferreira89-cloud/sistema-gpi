@@ -1125,7 +1125,7 @@ export function DreAnualTab({ clienteId }: Props) {
                     <th key={`${m.value}_ah`} style={{
                       padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
                       color: '#8A9BBC', fontStyle: 'italic', width: ahColW, minWidth: ahColW,
-                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : '#F0F4FA',
                     }}>
                       AH%
                     </th>
