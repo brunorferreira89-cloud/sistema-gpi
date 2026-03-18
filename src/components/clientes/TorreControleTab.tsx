@@ -1019,7 +1019,21 @@ export function TorreControleTab({ clienteId }: Props) {
                   padding: '8px 10px',
                   background: cellBg,
                 }}>
-                  {fmtTorre(val)}
+                  <div>{fmtTorre(val)}</div>
+                  {showCreationAV && modoMeta && isSel && !isTodosMode && val != null && (() => {
+                    const fat = getFatForMap(getMonthMap(m.value));
+                    if (fat === 0) return null;
+                    return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1)}% fat.</div>;
+                  })()}
+                  {showCreationAH && modoMeta && isSel && !isTodosMode && val != null && (() => {
+                    const prevComp = getPrevMonth(m.value);
+                    const prevMap = getMonthMap(prevComp);
+                    const prevVal = isCat ? (prevMap[conta.id] ?? null) : sumNodeLeafs(node, prevMap);
+                    if (prevVal == null || prevVal === 0) return null;
+                    const pct = ((val - prevVal) / Math.abs(prevVal) * 100).toFixed(1);
+                    const positive = parseFloat(pct) >= 0;
+                    return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{positive ? '+' : ''}{pct}% vs ant.</div>;
+                  })()}
                 </td>
 
                 {/* AV% after realized in TODOS mode */}
