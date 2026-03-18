@@ -810,10 +810,10 @@ export function TorreControleTab({ clienteId }: Props) {
       return n.children.reduce((acc, c) => acc + sumReal(c), 0);
     };
     const real = sumReal(node);
-    const proj = sumNodeProjetado(node, realizadoMapSel, metaMap);
+    const proj = sumNodeProjetado(node, realizadoMapSel, metaMapLocal);
     if (real === 0 || proj == null) return 0;
     return ((proj - real) / Math.abs(real)) * 100;
-  }, [realizadoMapSel, metaMap]);
+  }, [realizadoMapSel, metaMapLocal]);
 
   // ── Variation (R$) helper ─────────────────────────────────────
   const calcVariacao = useCallback((node: DreNode): number | null => {
