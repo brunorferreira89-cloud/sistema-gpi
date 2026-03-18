@@ -1108,7 +1108,7 @@ export function DreAnualTab({ clienteId }: Props) {
                     padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: isCurrentMonth(m.value) ? 700 : 600,
                     color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
                     width: 80, minWidth: 80, whiteSpace: 'nowrap',
-                    background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                    background: isCurrentMonth(m.value) ? '#1A3CFF1A' : '#F0F4FA',
                   }}>
                     {m.shortLabel}
                   </th>,
