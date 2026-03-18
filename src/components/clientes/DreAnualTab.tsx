@@ -1089,14 +1089,15 @@ export function DreAnualTab({ clienteId }: Props) {
 
       {/* DRE Table */}
       {hasContas && hasAnyData && (
-        <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
+        <div className="rounded-xl border overflow-x-auto overflow-y-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF', maxHeight: 'calc(100vh - 280px)' }}>
           <table style={{ borderCollapse: 'collapse', minWidth: tableMinWidth }}>
-            <thead>
+             <thead style={{ position: 'sticky', top: 0, zIndex: 20 }}>
               <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                 <th style={{
                   ...stickyTd('#F0F4FA', {
                     padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
                     color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                    position: 'sticky', top: 0, zIndex: 30, background: '#F0F4FA',
                   }),
                   width: 280,
                 }}>
@@ -1107,7 +1108,7 @@ export function DreAnualTab({ clienteId }: Props) {
                     padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: isCurrentMonth(m.value) ? 700 : 600,
                     color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
                     width: 80, minWidth: 80, whiteSpace: 'nowrap',
-                    background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                    background: isCurrentMonth(m.value) ? '#1A3CFF1A' : '#F0F4FA',
                   }}>
                     {m.shortLabel}
                   </th>,
@@ -1115,7 +1116,7 @@ export function DreAnualTab({ clienteId }: Props) {
                     <th key={`${m.value}_av`} style={{
                       padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
                       color: '#8A9BBC', fontStyle: 'italic', width: avColW, minWidth: avColW,
-                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : '#F0F4FA',
                     }}>
                       AV%
                     </th>
@@ -1124,7 +1125,7 @@ export function DreAnualTab({ clienteId }: Props) {
                     <th key={`${m.value}_ah`} style={{
                       padding: '10px 6px', textAlign: 'right', fontSize: 10, fontWeight: 400,
                       color: '#8A9BBC', fontStyle: 'italic', width: ahColW, minWidth: ahColW,
-                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : undefined,
+                      background: isCurrentMonth(m.value) ? '#1A3CFF1A' : '#F0F4FA',
                     }}>
                       AH%
                     </th>

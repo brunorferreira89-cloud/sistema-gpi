@@ -2230,14 +2230,15 @@ export function TorreControleTab({ clienteId }: Props) {
             {modoAnaliseMeta && <SummaryCards counts={statusCounts} gcProjetado={gcProjetado} />}
 
             {/* Table */}
-            <div className="rounded-xl border overflow-x-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF' }}>
+            <div className="rounded-xl border overflow-x-auto overflow-y-auto" style={{ borderColor: '#DDE4F0', background: '#FAFCFF', maxHeight: 'calc(100vh - 320px)' }}>
               <table style={{ borderCollapse: 'collapse', minWidth: tableMinWidth }}>
-                <thead>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 20 }}>
                   <tr style={{ background: '#F0F4FA', borderBottom: '2px solid #DDE4F0' }}>
                     <th style={{
                       ...stickyTd('#F0F4FA', {
                         padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600,
                         color: '#4A5E80', textTransform: 'uppercase', letterSpacing: '0.06em',
+                        position: 'sticky', top: 0, zIndex: 30, background: '#F0F4FA',
                       }),
                       width: nameColW,
                     }}>
@@ -2249,7 +2250,7 @@ export function TorreControleTab({ clienteId }: Props) {
                         padding: '10px 6px', textAlign: 'right', fontSize: 10,
                         fontWeight: 500, color: '#8A9BBC', letterSpacing: '0.06em',
                         minWidth: 72, whiteSpace: 'nowrap',
-                        background: '#F6F9FF',
+                        background: '#F0F4FA',
                       }}>
                         {fmtCompetencia(rm.value)}
                       </th>
