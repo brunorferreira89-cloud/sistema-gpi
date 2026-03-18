@@ -155,6 +155,15 @@ export function DreAnualTab({ clienteId }: Props) {
     },
   });
 
+  // Collapse all N1 subgroups by default on first load
+  useEffect(() => {
+    if (contas && contas.length > 0 && !collapsedInitialized) {
+      const n1Ids = contas.filter(c => c.nivel === 1).map(c => c.id);
+      setCollapsed(new Set(n1Ids));
+      setCollapsedInitialized(true);
+    }
+  }, [contas, collapsedInitialized]);
+
   const competencias = months.map((m) => m.value);
 
   const { data: valoresAnuais } = useQuery({

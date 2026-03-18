@@ -441,6 +441,15 @@ export function TorreControleTab({ clienteId }: Props) {
     },
   });
 
+  // Collapse all N1 subgroups by default on first load
+  useEffect(() => {
+    if (contas && contas.length > 0 && !collapsedInitialized) {
+      const n1Ids = contas.filter(c => c.nivel === 1).map(c => c.id);
+      setCollapsed(new Set(n1Ids));
+      setCollapsedInitialized(true);
+    }
+  }, [contas, collapsedInitialized]);
+
   const contaIds = useMemo(() => contas?.map(c => c.id) || [], [contas]);
 
   // Fetch ALL months of the year (like DRE)
