@@ -468,7 +468,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
       </header>
 
-      <main className="space-y-6" style={{ paddingTop: 24 }}>
+      <main className="space-y-6" style={{ padding: '24px' }}>
         {/* 2. SAUDAÇÃO */}
         <div>
           <p className="text-sm text-[#4A5E80]">Olá, {profile?.nome || 'Cliente'} 👋</p>
