@@ -291,11 +291,15 @@ function EditableMetaCell({
     rawPct = (realizado != null && realizado !== 0) ? ((meta.meta_valor! - Math.abs(realizado)) / Math.abs(realizado)) * 100 : 0;
   }
 
-  // Semantic inversion: for costs, reduction = negative (red)
-  const ajusteSemantico = isReceita ? rawPct : -rawPct;
-  const corAjuste = ajusteSemantico > 0.05 ? '#00A86B' : ajusteSemantico < -0.05 ? '#DC2626' : '#8A9BBC';
-  const prefixo = ajusteSemantico > 0.05 ? '↑ +' : ajusteSemantico < -0.05 ? '↓ −' : '→ ';
-  const semanticLabel = `${prefixo}${Math.abs(ajusteSemantico).toFixed(1)}%`;
+  // Directional sign: NEVER inverted — positive means meta > realizado
+  // Color: semantic per account type — for costs, increase = bad (red)
+  const corAjuste =
+    Math.abs(rawPct) < 0.05 ? '#8A9BBC' :
+    isReceita
+      ? (rawPct > 0 ? '#00A86B' : '#DC2626')
+      : (rawPct > 0 ? '#DC2626' : '#00A86B');
+  const prefixo = rawPct > 0.05 ? '↑ +' : rawPct < -0.05 ? '↓ −' : '→ ';
+  const semanticLabel = `${prefixo}${Math.abs(rawPct).toFixed(1)}%`;
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEditing(true); setInput(meta.meta_valor != null ? String(meta.meta_valor) : ''); setLocalTipo(meta.meta_tipo as MetaTipo); }}>
