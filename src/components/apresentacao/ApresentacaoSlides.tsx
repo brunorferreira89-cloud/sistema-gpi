@@ -1030,7 +1030,177 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     );
   }
 
-  const slides = [renderSlide1, renderSlide2, renderSlide3, renderSlide4, renderSlide5, renderSlide6];
+  /* ═══════════════════════════ SLIDE 4.5 — PAINEL PERSONALIZADO ═══════════════════════════ */
+  const renderSlide4_5 = () => {
+    const gridCols = slideWidgets.length === 1 ? '1fr' : '1fr 1fr';
+    return (
+      <div className="h-full flex flex-col overflow-hidden px-10 pt-4 pb-6">
+        <SlideHeader num={4.5} eyebrow="PAINEL PERSONALIZADO" title={cliente?.razao_social || cliente?.nome_empresa || ''} right={
+          <span className="text-[11px]" style={{ color: C.txtSec }}>Indicadores exclusivos · {mesShort}</span>
+        } />
+
+        <div className="flex-1 flex items-center justify-center overflow-hidden" style={{ padding: '16px 0' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: gridCols,
+            gap: 16,
+            width: '100%',
+            maxWidth: slideWidgets.length === 1 ? 400 : '100%',
+          }}>
+            {slideWidgets.map((w: any, wi: number) => {
+              const color = w.cor_destaque || C.blue;
+              const soma = w.conta_ids?.reduce((s: number, id: string) => s + (valMap[id] || 0), 0) ?? 0;
+              const prevSoma = w.conta_ids?.reduce((s: number, id: string) => s + (prevValMap[id] || 0), 0) ?? 0;
+              const varPct = prevSoma ? ((soma - prevSoma) / Math.abs(prevSoma)) * 100 : 0;
+
+              // For indicador type
+              let indicadorVal: number | null = null;
+              if (w.tipo === 'indicador' && fat) {
+                indicadorVal = (Math.abs(soma) / Math.abs(fat)) * 100;
+              }
+
+              // For cruzamento type
+              let cruzamentoVal: number | null = null;
+              if (w.tipo === 'cruzamento') {
+                const somaB = w.conta_ids_b?.reduce((s: number, id: string) => s + (valMap[id] || 0), 0) ?? 0;
+                cruzamentoVal = somaB !== 0 ? (soma / Math.abs(somaB)) * 100 : null;
+              }
+
+              // Get top 3 contas for composition display
+              const topContas = (w.conta_ids || [])
+                .map((id: string) => ({ nome: contaMap[id], valor: valMap[id] || 0 }))
+                .filter((c: any) => c.valor !== 0)
+                .sort((a: any, b: any) => Math.abs(b.valor) - Math.abs(a.valor))
+                .slice(0, 3);
+
+              // Extract action phrase from analysis
+              let actionPhrase: string | null = null;
+              if (w.analise_ia) {
+                const arrowIdx = w.analise_ia.lastIndexOf('→');
+                if (arrowIdx !== -1) actionPhrase = w.analise_ia.slice(arrowIdx).trim();
+              }
+
+              const tipoOpt = [
+                { value: 'card_resumo', badge: 'CARD' }, { value: 'comparativo', badge: 'COMP.' },
+                { value: 'grafico_barras', badge: 'BARRAS' }, { value: 'grafico_pizza', badge: 'PIZZA' },
+                { value: 'indicador', badge: 'INDIC.' }, { value: 'cruzamento', badge: 'CRUZAM.' },
+                { value: 'detalhamento', badge: 'DETALHE' },
+              ].find(t => t.value === w.tipo);
+
+              // Main display value
+              let mainValue = '';
+              if (w.tipo === 'indicador' && indicadorVal !== null) {
+                mainValue = `${indicadorVal.toFixed(1)}%`;
+              } else if (w.tipo === 'cruzamento' && cruzamentoVal !== null) {
+                mainValue = `${cruzamentoVal.toFixed(1)}%`;
+              } else {
+                mainValue = formatCurrency(soma);
+              }
+
+              return (
+                <div key={w.id} style={{
+                  background: C.cardBg, border: `1px solid ${C.cardBorder}`,
+                  borderRadius: 12, padding: 20, position: 'relative', overflow: 'hidden',
+                  ...(slideWidgets.length === 3 && wi === 2 ? { gridColumn: '1 / -1' } : {}),
+                }}>
+                  {/* Color bar */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color }} />
+
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', color, opacity: 0.8, letterSpacing: '0.1em' }}>
+                      {tipoOpt?.badge || w.tipo}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{w.titulo}</span>
+                  </div>
+
+                  {/* Main value */}
+                  <div style={{ fontSize: 28, fontWeight: 700, color, fontFamily: "'Courier New', monospace", marginBottom: 12 }}>
+                    {mainValue}
+                  </div>
+
+                  {/* Composition (top 3) */}
+                  {(w.tipo === 'card_resumo' || w.tipo === 'detalhamento' || w.tipo === 'grafico_pizza') && topContas.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                      {topContas.map((c: any, ci: number) => (
+                        <div key={ci} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{c.nome || '—'}</span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontFamily: "'Courier New', monospace" }}>{formatCurrency(c.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Indicador meta */}
+                  {w.tipo === 'indicador' && w.meta_valor !== null && (
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                      meta {w.meta_valor}% · {w.meta_direcao === 'menor_melhor' ? 'quanto menor melhor' : 'quanto maior melhor'}
+                    </div>
+                  )}
+
+                  {/* Comparativo */}
+                  {w.tipo === 'comparativo' && (
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>ATUAL</span>
+                        <div style={{ fontSize: 14, color: '#fff', fontFamily: "'Courier New', monospace" }}>{formatCurrency(soma)}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>ANTERIOR</span>
+                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', fontFamily: "'Courier New', monospace" }}>{formatCurrency(prevSoma)}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Footer: competência + variação */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{mesShort}</span>
+                    {prevSoma !== 0 && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
+                        color: varPct >= 0 ? C.green : C.red,
+                        background: varPct >= 0 ? 'rgba(0,201,122,0.15)' : 'rgba(255,59,59,0.15)',
+                      }}>
+                        {varPct >= 0 ? '▲' : '▼'} {Math.abs(varPct).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Analysis action phrase */}
+                  {actionPhrase && (
+                    <>
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 0' }} />
+                      <p style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5 }}>
+                        {actionPhrase}
+                      </p>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Slide footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
+          <span style={{ fontSize: 10, color: C.txtSec }}>Configurado pela equipe GPI</span>
+          <img src={gpiLogo} alt="GPI" style={{ height: 20, opacity: 0.6 }} />
+        </div>
+      </div>
+    );
+  };
+
+  const contaMap: Record<string, string> = useMemo(() => {
+    const m: Record<string, string> = {};
+    contas.forEach(c => { m[c.id] = c.nome; });
+    return m;
+  }, [contas]);
+
+  const slides = [
+    renderSlide1, renderSlide2, renderSlide3, renderSlide4,
+    ...(temPainel ? [renderSlide4_5] : []),
+    renderSlide5, renderSlide6,
+  ];
 
   return (
     <div className="fixed inset-0 z-[9999]" style={{ background: SLIDE_BG, fontFamily: "'JetBrains Mono', 'DM Sans', monospace" }}>
