@@ -836,7 +836,7 @@ export function TorreControleTab({ clienteId }: Props) {
       const meta = metaMapLocal[conta.id] || null;
       const real = realizadoMapSel[conta.id] ?? null;
       if (!meta || meta.meta_valor === null || real == null) return null;
-      const proj = calcProjetado(real, meta);
+      const proj = calcProjetado(real, meta, conta.tipo);
       if (proj == null) return null;
       return proj - real;
     }
