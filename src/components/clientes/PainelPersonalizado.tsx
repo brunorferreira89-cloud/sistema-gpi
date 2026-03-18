@@ -548,8 +548,21 @@ function WidgetCard({
   );
 }
 
-function computeHash(w: Widget, comp: string) {
-  return `${w.id}_${comp}_${w.conta_ids.join(',')}_${w.conta_ids_b?.join(',') || ''}`;
+function computeHashFromValues(valores: { nome: string; valor: number }[], resultado: number) {
+  const hashInput = valores
+    .map(v => `${v.nome}:${v.valor}`)
+    .sort()
+    .join('|') + `|resultado:${resultado}`;
+  return btoa(hashInput).slice(0, 32);
+}
+
+function computeHash(w: Widget, comp: string, valMap: Record<string, number>, contaMap: Record<string, Conta>, getSoma: (ids: string[], comp: string) => number) {
+  const valores = w.conta_ids.map(id => ({
+    nome: contaMap[id]?.nome || id.slice(0, 8),
+    valor: valMap[`${id}__${comp}`] || 0,
+  }));
+  const resultado = getSoma(w.conta_ids, comp);
+  return computeHashFromValues(valores, resultado);
 }
 
 /* ─── card_resumo body ─── */
