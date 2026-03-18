@@ -445,7 +445,7 @@ export function TorreControleTab({ clienteId }: Props) {
   // ── All-year metas (for TODOS mode) ──────────────────────────
   const { data: metasAno } = useQuery({
     queryKey: ['torre-metas-ano', clienteId, ano],
-    enabled: !!clienteId && (modoMeta || modoAnaliseMeta) && mesSelecionado === null,
+    enabled: !!clienteId && (modoMeta || modoAnaliseMeta),
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
         .eq('cliente_id', clienteId)
