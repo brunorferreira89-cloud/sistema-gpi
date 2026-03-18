@@ -1079,6 +1079,79 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   const sparkMax = Math.max(...histValues);
   const sparkRange = sparkMax - sparkMin || 1;
 
+  // Build valores for edge function
+  const valoresParaAnalise = useMemo(() => {
+    return widget.conta_ids.map(id => {
+      const v = valMap[`${id}__${comp}`] || 0;
+      const total = Math.abs(widget.conta_ids.reduce((s, cid) => s + (valMap[`${cid}__${comp}`] || 0), 0));
+      return {
+        nome: contaMap[id]?.nome || id.slice(0, 8),
+        valor: v,
+        av_pct: fat ? (Math.abs(v) / Math.abs(fat) * 100) : undefined,
+        pct_total: total > 0 ? (Math.abs(v) / total * 100) : undefined,
+      };
+    });
+  }, [widget.conta_ids, valMap, comp, contaMap, fat]);
+
+  const resultadoPrincipal = useMemo(() => {
+    if (widget.tipo === 'indicador' && indicadorData) return indicadorData.num;
+    if (widget.tipo === 'cruzamento') {
+      const a = getSoma(widget.conta_ids, comp);
+      const b = getSoma(widget.conta_ids_b || [], comp);
+      return b !== 0 ? a / b : 0;
+    }
+    return somaAtual;
+  }, [widget, indicadorData, somaAtual, getSoma, comp]);
+
+  const resultadoPct = useMemo(() => {
+    if (widget.tipo === 'indicador' && indicadorData) return indicadorData.resultado;
+    if (widget.tipo === 'cruzamento') {
+      const a = getSoma(widget.conta_ids, comp);
+      const b = getSoma(widget.conta_ids_b || [], comp);
+      return b !== 0 && widget.formato_resultado === 'percentual' ? (a / b) * 100 : undefined;
+    }
+    return fat ? (Math.abs(somaAtual) / Math.abs(fat) * 100) : undefined;
+  }, [widget, indicadorData, somaAtual, fat, getSoma, comp]);
+
+  const variacaoMesAnterior = useMemo(() => {
+    return somaPrev !== 0 ? ((somaAtual - somaPrev) / Math.abs(somaPrev)) * 100 : undefined;
+  }, [somaAtual, somaPrev]);
+
+  const gerarAnalise = async () => {
+    setGerando(true);
+    try {
+      const fmtCompLong = (c: string) => {
+        const d = new Date(c + 'T12:00:00');
+        return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      };
+
+      const { data, error } = await supabase.functions.invoke('analisar-widget', {
+        body: {
+          widget_id: widget.id,
+          cliente_id: widget.cliente_id,
+          tipo: widget.tipo,
+          titulo: widget.titulo,
+          competencia: comp,
+          valores: valoresParaAnalise,
+          resultado: resultadoPrincipal,
+          resultado_pct: resultadoPct,
+          variacao_mes_anterior: variacaoMesAnterior,
+          meta: widget.meta_valor,
+          meta_direcao: widget.meta_direcao,
+          contexto_cliente: `${widget.titulo} · ${fmtCompLong(comp)}`,
+        },
+      });
+      if (error) throw error;
+      setAnaliseLocal(data.analise);
+      queryClient.invalidateQueries({ queryKey: ['painel-widgets', widget.cliente_id] });
+      toast({ title: 'Análise gerada com sucesso ✓' });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar análise. Tente novamente.', variant: 'destructive' });
+    } finally {
+      setGerando(false);
+    }
+  };
+
   // ESC to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
