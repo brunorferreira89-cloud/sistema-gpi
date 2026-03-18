@@ -1917,6 +1917,45 @@ export function TorreControleTab({ clienteId }: Props) {
           </div>
         </div>
 
+        {/* Secondary bar with AV%/AH% toggles — CRIAÇÃO DE METAS only */}
+        {modoMeta && hasContas && hasAnyData && !isLoading && (
+          <div style={{
+            width: '100%', borderRadius: '0 0 12px 12px', marginTop: -12,
+            background: 'linear-gradient(135deg, #0A1628 0%, #0D1B35 50%, #0A1628 100%)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            padding: '6px 16px',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
+              Indicadores
+            </span>
+            <button
+              onClick={() => setShowCreationAV(v => !v)}
+              style={{
+                padding: '3px 10px', borderRadius: 5, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                background: showCreationAV ? 'rgba(26,60,255,0.35)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${showCreationAV ? '#1A3CFF' : 'rgba(255,255,255,0.12)'}`,
+                color: showCreationAV ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
+                transition: 'all 0.15s',
+              }}
+            >
+              AV%
+            </button>
+            <button
+              onClick={() => setShowCreationAH(v => !v)}
+              style={{
+                padding: '3px 10px', borderRadius: 5, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                background: showCreationAH ? 'rgba(26,60,255,0.35)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${showCreationAH ? '#1A3CFF' : 'rgba(255,255,255,0.12)'}`,
+                color: showCreationAH ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
+                transition: 'all 0.15s',
+              }}
+            >
+              AH%
+            </button>
+          </div>
+        )}
+
         {/* Empty states */}
         {!hasContas && !isLoading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '40px 0', textAlign: 'center' }}>
