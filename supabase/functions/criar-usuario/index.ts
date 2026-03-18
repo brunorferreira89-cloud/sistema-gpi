@@ -43,6 +43,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
+    console.log("criar-usuario body:", JSON.stringify(body));
     const { action } = body;
 
     // ─── DELETE ───
