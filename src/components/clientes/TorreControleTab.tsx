@@ -758,17 +758,17 @@ export function TorreControleTab({ clienteId }: Props) {
 
   // ── Totalizador projetado calc ────────────────────────────────
   const calcTotaisProjetado = useCallback(() => {
-    const fat = sumGruposProjetado(gruposPorTipo['receita'] || [], realizadoMapSel, metaMap);
-    const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], realizadoMapSel, metaMap);
+    const fat = sumGruposProjetado(gruposPorTipo['receita'] || [], realizadoMapSel, metaMapLocal);
+    const custos = sumGruposProjetado(gruposPorTipo['custo_variavel'] || [], realizadoMapSel, metaMapLocal);
     const mc = fat + custos;
-    const despesas = sumGruposProjetado(gruposPorTipo['despesa_fixa'] || [], realizadoMapSel, metaMap);
+    const despesas = sumGruposProjetado(gruposPorTipo['despesa_fixa'] || [], realizadoMapSel, metaMapLocal);
     const ro = mc + despesas;
-    const invest = sumGruposProjetado(gruposPorTipo['investimento'] || [], realizadoMapSel, metaMap);
+    const invest = sumGruposProjetado(gruposPorTipo['investimento'] || [], realizadoMapSel, metaMapLocal);
     const rai = ro + invest;
-    const financ = sumGruposProjetado(gruposPorTipo['financeiro'] || [], realizadoMapSel, metaMap);
+    const financ = sumGruposProjetado(gruposPorTipo['financeiro'] || [], realizadoMapSel, metaMapLocal);
     const gc = rai + financ;
     return { fat, MC: mc, RO: ro, RAI: rai, GC: gc };
-  }, [gruposPorTipo, realizadoMapSel, metaMap]);
+  }, [gruposPorTipo, realizadoMapSel, metaMapLocal]);
 
   // ── Status counts (based on selected month) ──────────────────
   const statusCounts = useMemo(() => {
