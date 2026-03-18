@@ -115,7 +115,7 @@ function SortableWidget({ id, children, disabled }: { id: string; children: Reac
 }
 
 /* ─── MAIN COMPONENT ─── */
-export function PainelPersonalizado({ clienteId, competencia, modoConfig = false }: Props) {
+export function PainelPersonalizado({ clienteId, competencia, modoConfig = false, modoPortal = false }: Props) {
   const defaultComp = competencia || getDefaultCompetencia();
   const queryClient = useQueryClient();
   const [modoEdicao, setModoEdicao] = useState(false);
