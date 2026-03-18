@@ -481,7 +481,7 @@ function WidgetCard({
 
   // Análise IA status
   const hasAnalise = !!widget.analise_ia;
-  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp);
+  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp, valMap, contaMap, getSoma);
 
   return (
     <div
