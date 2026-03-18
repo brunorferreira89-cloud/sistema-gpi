@@ -953,6 +953,32 @@ export function TorreControleTab({ clienteId }: Props) {
             </span>
           </td>
 
+          {/* Reference month cells (CRIAÇÃO DE METAS filtered) */}
+          {refMonths.map(rm => {
+            const refMap = getMonthMap(rm.value);
+            let refVal: number | null = null;
+            if (isCat) refVal = refMap[conta.id] ?? null;
+            else refVal = sumNodeLeafs(node, refMap);
+            const refMeta = metaMapByComp[rm.value]?.[conta.id] || null;
+            return (
+              <td key={`ref-${rm.value}`} style={{
+                textAlign: 'right', fontFamily: C.mono, fontSize: 11,
+                fontWeight: isTotal ? 700 : 400,
+                color: refVal != null ? (refVal < 0 ? '#DC2626' : (isTotal ? '#FFFFFF' : '#0D1B35')) : (isTotal ? '#8A9BBC' : C.txtMuted),
+                padding: '6px 6px',
+                background: isTotal ? '#0D1B35' : (isGrupo ? '#F0F4FA' : (isSubgrupo ? '#FFFFFF' : '#FAFCFF')),
+                minWidth: 72,
+              }}>
+                <div>{fmtTorre(refVal)}</div>
+                {refMeta && refMeta.meta_valor != null && !isTotal && (
+                  <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>
+                    meta: {refMeta.meta_tipo === 'pct' ? `${refMeta.meta_valor >= 0 ? '+' : ''}${refMeta.meta_valor}%` : `R$ ${fmtTorre(refMeta.meta_valor)}`}
+                  </div>
+                )}
+              </td>
+            );
+          })}
+
           {/* Month columns */}
           {displayMonths.map(m => {
             const monthMap = getMonthMap(m.value);
