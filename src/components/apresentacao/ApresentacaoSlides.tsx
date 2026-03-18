@@ -17,7 +17,7 @@ interface Props {
   onExit: () => void;
 }
 
-const TOTAL_SLIDES = 6;
+// TOTAL_SLIDES is now dynamic — see `slideEntries` below
 
 /* ── Design tokens ── */
 const C = {
