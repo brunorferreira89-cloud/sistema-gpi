@@ -601,7 +601,7 @@ export function TorreControleTab({ clienteId }: Props) {
   };
 
   // ── Propagation handler ───────────────────────────────────────
-  const handleMetaSaved = useCallback(async (contaId: string, metaTipo: 'pct' | 'valor', metaValor: number | null) => {
+  const handleMetaSaved = useCallback(async (contaId: string, metaTipo: MetaTipo, metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
     const conta = contas.find(c => c.id === contaId);
     if (!conta || metaValor === null) { invalidateMetas(); return; }
