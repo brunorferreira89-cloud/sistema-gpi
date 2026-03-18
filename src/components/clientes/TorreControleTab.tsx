@@ -123,7 +123,7 @@ function sumNodeProjetado(
     const real = valMap[node.conta.id] ?? null;
     if (real == null) return null;
     const meta = mMap[node.conta.id] || null;
-    const proj = calcProjetado(real, meta);
+    const proj = calcProjetado(real, meta, node.conta.tipo);
     return proj ?? real; // no meta → assume same as realized
   }
   let total = 0, hasAny = false;
