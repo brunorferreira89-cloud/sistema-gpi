@@ -1782,7 +1782,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (real == null) { map[c.id] = null; return; }
       const meta = metaMapLocal[c.id] || null;
       if (meta && meta.meta_valor != null) {
-        const proj = calcProjetado(real, meta);
+        const proj = calcProjetado(real, meta, c.tipo);
         map[c.id] = proj ?? real;
       } else {
         map[c.id] = real;
