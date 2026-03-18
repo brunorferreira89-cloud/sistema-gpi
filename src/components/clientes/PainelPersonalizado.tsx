@@ -440,6 +440,7 @@ export function PainelPersonalizado({ clienteId, competencia, modoConfig = false
           valMap={valMap}
           getContaTipoSemantico={getContaTipoSemantico}
           onClose={() => setDetalheWidget(null)}
+          modoPortal={modoPortal || !modoConfig}
         />
       )}
     </div>
