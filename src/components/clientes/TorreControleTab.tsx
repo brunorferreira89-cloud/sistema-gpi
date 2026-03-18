@@ -636,7 +636,8 @@ export function TorreControleTab({ clienteId }: Props) {
         }
       }
       if (upserts.length > 0) {
-        await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+        const { error: batchErr } = await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+        if (batchErr) { console.error('Propagação top-down falhou:', batchErr); toast.error('Erro ao propagar metas'); }
       }
     }
 
@@ -645,7 +646,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (propagateTimerRef.current) clearTimeout(propagateTimerRef.current);
       propagateTimerRef.current = setTimeout(() => setPropagatedCells(new Set()), 1500);
     }
-    invalidateMetas();
+    await invalidateMetas();
   }, [contas, clienteId, mesSeg, realizadoMapSel, metaMap, tree, invalidateMetas]);
 
   const calcTotaisForMap = useCallback((valMap: Record<string, number | null>) => {
