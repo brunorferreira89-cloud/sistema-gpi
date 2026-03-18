@@ -1601,7 +1601,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const avExtraForMeta = showAV && !isTodosMode && isModoAtivo ? avColW : 0; // AV% after META in filtered mode
   const ahExtraForRealizado = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after realized in CRIAÇÃO
   const ahExtraForMeta = showAH && !isTodosMode && modoMeta ? avColW : 0; // AH% after META in CRIAÇÃO
-  const tableMinWidth = nameColW + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + ahExtraForRealizado + ahExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
+  const refColsWidth = refMonths.length * 72;
+  const tableMinWidth = nameColW + refColsWidth + displayMonths.length * (valColW + (showAV && isTodosMode ? avColW : 0)) + (showYearCol ? valColW : 0) + extraColsWidth + avExtraForMeta + ahExtraForRealizado + ahExtraForMeta + todosMetaColsCount * (metaProjetadoColW + (showAV && isTodosMode ? avColW : 0)) + (showMetaAnualCol ? metaAnualColW : 0);
 
   // ══════════════════════════════════════════════════════════════
   return (
