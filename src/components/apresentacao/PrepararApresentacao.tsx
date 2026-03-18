@@ -31,6 +31,7 @@ const CHECKLIST_LABELS = [
   'DRE do mês importada',
   'Metas definidas na Torre',
   'Análises IA geradas',
+  '📊 Painel personalizado configurado',
   'Slides revisados',
   'Reunião agendada no sistema',
 ];
