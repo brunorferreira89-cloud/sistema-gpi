@@ -25,6 +25,7 @@ import ClientePortalPage from "./pages/ClientePortalPage";
 import ApresentacaoPage from "./pages/ApresentacaoPage";
 
 import UsuariosPortalPage from "./pages/UsuariosPortalPage";
+import UsuariosInternosPage from "./pages/UsuariosInternosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="/onboarding" element={<OnboardingPage />} />
                 <Route path="/apresentacao/:clienteId" element={<ApresentacaoPage />} />
                 <Route path="/usuarios-portal" element={<UsuariosPortalPage />} />
+                <Route path="/usuarios-internos" element={<UsuariosInternosPage />} />
                 
               </Route>
             </Route>

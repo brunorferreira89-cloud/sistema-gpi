@@ -79,14 +79,24 @@ serve(async (req) => {
     }
 
     // ─── CREATE ───
-    const { email, password, nome, cliente_id, usar_convite } = body;
+    const { email, password, nome, cliente_id, usar_convite, role: requestedRole } = body;
 
-    if (!email || !nome || !cliente_id) {
+    if (!email || !nome) {
+      throw new Error("Campos obrigatórios: email, nome");
+    }
+    // cliente_id is required for portal users but optional for internal users
+    if (!requestedRole && !cliente_id) {
       throw new Error("Campos obrigatórios: email, nome, cliente_id");
     }
     if (!usar_convite && !password) {
       throw new Error("Senha é obrigatória quando não usar convite");
     }
+
+    // Determine the role to assign
+    const validInternalRoles = ["admin", "consultor"];
+    const finalRole = (requestedRole && validInternalRoles.includes(requestedRole))
+      ? requestedRole
+      : "cliente";
 
     let newUserId: string;
 
@@ -127,9 +137,19 @@ serve(async (req) => {
     // Small delay to let trigger fire
     await new Promise((r) => setTimeout(r, 500));
 
+    const profileUpdate: Record<string, any> = {
+      nome,
+      role: finalRole,
+      email,
+      portal_ativo: finalRole === "cliente" ? false : true,
+    };
+    if (cliente_id) {
+      profileUpdate.cliente_id = cliente_id;
+    }
+
     const { error: profileError } = await adminClient
       .from("profiles")
-      .update({ nome, role: "cliente", cliente_id, portal_ativo: false, email })
+      .update(profileUpdate)
       .eq("id", newUserId);
 
     if (profileError) {
