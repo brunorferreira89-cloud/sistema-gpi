@@ -1374,7 +1374,21 @@ export function TorreControleTab({ clienteId }: Props) {
                 color: val < 0 ? '#FF6B6B' : '#00E68A', padding: '11px 10px',
                 background: isSel && isModoAtivo && !isTodosMode ? '#0D1B35' : undefined,
               }}>
-                {fmtTorre(val)}
+                <div>{fmtTorre(val)}</div>
+                {showCreationAV && modoMeta && isSel && !isTodosMode && (() => {
+                  const fat = totals.fat;
+                  if (fat === 0) return null;
+                  return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{((Math.abs(val) / Math.abs(fat)) * 100).toFixed(1)}% fat.</div>;
+                })()}
+                {showCreationAH && modoMeta && isSel && !isTodosMode && (() => {
+                  const prevComp = getPrevMonth(m.value);
+                  const prevTotals = calcTotaisForMap(getMonthMap(prevComp));
+                  const prevVal = prevTotals[key as keyof typeof prevTotals];
+                  if (prevVal === 0) return null;
+                  const pct = ((val - prevVal) / Math.abs(prevVal) * 100).toFixed(1);
+                  const positive = parseFloat(pct) >= 0;
+                  return <div style={{ fontSize: 9, color: '#8A9BBC', fontStyle: 'italic', marginTop: 2 }}>{positive ? '+' : ''}{pct}% vs ant.</div>;
+                })()}
               </td>
 
               {/* AV% after realized in TODOS mode (totalizador) */}
