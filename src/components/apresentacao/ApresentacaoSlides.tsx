@@ -131,9 +131,13 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     load();
   }, [clienteId, competencia, user?.id]);
 
+  /* ── Dynamic slide count ── */
+  const temPainel = slideWidgets.length > 0;
+  const totalSlides = temPainel ? 7 : 6;
+
   /* ── Navigation ── */
   const goTo = useCallback((n: number) => {
-    if (n < 1 || n > TOTAL_SLIDES || n === slide) return;
+    if (n < 1 || n > totalSlides || n === slide) return;
     setFlash(true);
     setTimeout(() => setFlash(false), 180);
     setEntering(false);
@@ -144,7 +148,7 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     if (apresentacaoId) {
       supabase.from('apresentacoes').update({ slide_atual: n }).eq('id', apresentacaoId);
     }
-  }, [slide, apresentacaoId]);
+  }, [slide, apresentacaoId, totalSlides]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
