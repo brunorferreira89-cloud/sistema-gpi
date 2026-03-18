@@ -635,7 +635,7 @@ export function TorreControleTab({ clienteId }: Props) {
           const r = realizadoMapSel[kid.id] ?? 0;
           sumReal += r;
           const m = mMap[kid.id] || null;
-          const proj = m ? calcProjetado(r, m) : null;
+          const proj = m ? calcProjetado(r, m, kid.tipo) : null;
           sumMeta += proj ?? r;
         } else {
           const grandkids = contas.filter(c => c.conta_pai_id === kid.id);
@@ -643,7 +643,7 @@ export function TorreControleTab({ clienteId }: Props) {
             const r = realizadoMapSel[gk.id] ?? 0;
             sumReal += r;
             const m = mMap[gk.id] || null;
-            const proj = m ? calcProjetado(r, m) : null;
+            const proj = m ? calcProjetado(r, m, gk.tipo) : null;
             sumMeta += proj ?? r;
           }
         }
