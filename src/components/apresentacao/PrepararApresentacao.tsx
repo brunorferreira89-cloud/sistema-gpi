@@ -68,9 +68,11 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     dreImportada: false,
     metasDefinidas: false,
     analiseGerada: false,
+    painelConfigurado: false,
     slidesRevisados: false,
     reuniaoAgendada: false,
   });
+  const [painelWidgets, setPainelWidgets] = useState<any[]>([]);
   const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
 
   // Fetch prep data
