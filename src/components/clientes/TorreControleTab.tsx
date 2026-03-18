@@ -680,7 +680,7 @@ export function TorreControleTab({ clienteId }: Props) {
         const node = findNode(tree, contaId);
         const nodeReal = node ? sumNodeLeafs(node, realizadoMapSel) : null;
         if (nodeReal && nodeReal !== 0) {
-          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: metaTipo === 'delta' ? 'delta' : 'valor', meta_valor: metaValor });
+          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: metaTipo === 'delta' ? 'delta' : 'valor', meta_valor: metaValor }, conta.tipo);
           pctToApply = proj != null ? Math.round(((proj / nodeReal) - 1) * 10000) / 100 : 0;
         } else {
           pctToApply = 0;
