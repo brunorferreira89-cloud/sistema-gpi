@@ -1172,6 +1172,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes modalEnter { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
       <div
         onClick={e => e.stopPropagation()}
