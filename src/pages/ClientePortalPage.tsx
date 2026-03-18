@@ -668,6 +668,44 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
         )}
 
+        {/* 4.5 MEU PAINEL — widgets personalizados */}
+        {portalWidgets.length > 0 && resolvedClienteId && (
+          <section style={{ marginBottom: 24 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 16,
+              paddingBottom: 10,
+              borderBottom: '1px solid #DDE4F0',
+            }}>
+              <span style={{ fontSize: 16 }}>📊</span>
+              <h2 style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#0D1B35',
+                margin: 0,
+              }}>
+                Meu Painel
+              </h2>
+              <span style={{
+                fontSize: 10,
+                color: '#8A9BBC',
+                fontWeight: 500,
+                marginLeft: 4,
+              }}>
+                Indicadores personalizados pela GPI
+              </span>
+            </div>
+            <PainelPersonalizado
+              clienteId={resolvedClienteId}
+              competencia={competencia}
+              modoConfig={false}
+              modoPortal={true}
+            />
+          </section>
+        )}
+
         {/* 5. PRÓXIMA REUNIÃO */}
         <div className="rounded-xl border border-[#DDE4F0] bg-white p-5 shadow-sm" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
           <span className="inline-block rounded-full bg-[#EBF0FF] px-2.5 py-0.5 text-[10px] font-bold text-[#1A3CFF] uppercase tracking-wider mb-3">
