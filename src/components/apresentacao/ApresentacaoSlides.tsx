@@ -106,6 +106,16 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
       const { data: metasData } = await supabase.from('torre_metas').select('*').eq('cliente_id', clienteId).eq('competencia', nextComp);
       setTorreMetas(metasData || []);
 
+      // Fetch widgets for optional slide 4.5
+      const { data: widgetsData } = await supabase
+        .from('painel_widgets')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .eq('ativo', true)
+        .order('ordem', { ascending: true })
+        .limit(4);
+      setSlideWidgets(widgetsData || []);
+
       // Upsert apresentacao
       const { data: existing } = await supabase.from('apresentacoes').select('id').eq('cliente_id', clienteId).eq('competencia', competencia).maybeSingle();
       if (existing) {
