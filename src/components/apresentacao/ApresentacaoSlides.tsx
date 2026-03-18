@@ -1021,6 +1021,12 @@ export default function ApresentacaoSlides({ clienteId, competencia, onExit }: P
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const contaMap: Record<string, string> = useMemo(() => {
+    const m: Record<string, string> = {};
+    contas.forEach(c => { m[c.id] = c.nome; });
+    return m;
+  }, [contas]);
+
   /* ── Loading state ── */
   if (loading) {
     return (
