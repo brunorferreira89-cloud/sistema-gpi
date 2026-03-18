@@ -801,7 +801,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (proj != null) { total += proj; hasAny = true; }
     }
     return hasAny ? total : null;
-  }, [contas, metaMap, realizadoMapSel, modoMeta, modoAnaliseMeta]);
+  }, [contas, metaMapLocal, realizadoMapSel, modoMeta, modoAnaliseMeta]);
 
 // ── Ajuste% dinâmico para N0/N1 ─────────────────────────────
   const calcAjustePctNode = useCallback((node: DreNode): number => {
