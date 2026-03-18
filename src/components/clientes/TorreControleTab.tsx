@@ -1199,6 +1199,8 @@ export function TorreControleTab({ clienteId }: Props) {
                         isTotal={isTotal}
                         onSaved={handleMetaSaved}
                         displayPct={(isGrupo || isSubgrupo) && !isTotal ? calcAjustePctNode(node) : undefined}
+                        contaTipo={conta.tipo}
+                        realizado={realSel}
                       />
                     </td>
                     {/* R$ */}
@@ -1206,10 +1208,14 @@ export function TorreControleTab({ clienteId }: Props) {
                       {(() => {
                         const variacao = calcVariacao(node);
                         if (variacao == null) return <span style={{ color: C.txtMuted }}>—</span>;
-                        const positive = variacao >= 0;
+                        // Semantic sign for R$: for receitas, positive variation = green; for costs, negative variation (reduction) = green
+                        const isRec = conta.tipo === 'receita';
+                        const semanticVar = isRec ? variacao : -variacao;
                         const abs = Math.abs(variacao);
                         const formatted = abs >= 1000 ? abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) : abs.toFixed(0);
-                        return <span style={{ color: positive ? '#00A86B' : '#DC2626', fontWeight: isTotal ? 800 : 400 }}>{positive ? '+' : '−'} {formatted}</span>;
+                        const color = semanticVar > 0.01 ? '#00A86B' : semanticVar < -0.01 ? '#DC2626' : '#8A9BBC';
+                        const prefix = semanticVar > 0.01 ? '↑ +' : semanticVar < -0.01 ? '↓ −' : '→ ';
+                        return <span style={{ color, fontWeight: isTotal ? 800 : 400 }}>{prefix}{formatted}</span>;
                       })()}
                     </td>
                     {/* META (projetado) */}
