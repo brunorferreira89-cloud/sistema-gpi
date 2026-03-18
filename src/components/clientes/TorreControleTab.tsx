@@ -1421,7 +1421,7 @@ export function TorreControleTab({ clienteId }: Props) {
             // Add projected value for next month (mesSeg)
             const projVal = isCat
               ? (metaAnualProjMap[conta.id] ?? null)
-              : sumNodeProjetado(node, realizadoMapSel, metaMap);
+              : sumNodeProjetado(node, realizadoMapSel, metaMapLocal);
             const metaAnual = (has ? yearRealized : 0) + (projVal ?? 0);
             const hasValue = has || projVal != null;
             return (
