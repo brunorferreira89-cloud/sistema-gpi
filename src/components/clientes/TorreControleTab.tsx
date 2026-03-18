@@ -1766,7 +1766,7 @@ export function TorreControleTab({ clienteId }: Props) {
     contas.forEach(c => {
       const real = realizadoMapSel[c.id] ?? null;
       if (real == null) { map[c.id] = null; return; }
-      const meta = metaMap[c.id] || null;
+      const meta = metaMapLocal[c.id] || null;
       if (meta && meta.meta_valor != null) {
         const proj = calcProjetado(real, meta);
         map[c.id] = proj ?? real;
