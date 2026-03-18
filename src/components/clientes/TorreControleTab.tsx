@@ -466,6 +466,12 @@ export function TorreControleTab({ clienteId }: Props) {
 
   const monthsWithMetas = useMemo(() => new Set(Object.keys(metaMapByComp)), [metaMapByComp]);
 
+  // Reference months for CRIAÇÃO DE METAS filtered mode (all months with data before selected)
+  const refMonths = useMemo(() => {
+    if (!modoMeta || !mesEfetivo || mesSelecionado === null) return [] as { value: string; shortLabel: string }[];
+    return monthsWithData.filter(m => m.value < mesEfetivo);
+  }, [modoMeta, mesEfetivo, mesSelecionado, monthsWithData]);
+
   // ── Tree ──────────────────────────────────────────────────────
   const tree = useMemo(() => contas ? buildDreTree(contas) : [], [contas]);
 
