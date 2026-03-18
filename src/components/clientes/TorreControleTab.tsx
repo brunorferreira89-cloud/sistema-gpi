@@ -604,62 +604,58 @@ export function TorreControleTab({ clienteId }: Props) {
     return metaVal > realVal ? { arrow: '↑', color: '#00A86B' } : { arrow: '↓', color: '#DC2626' };
   };
 
-  // ── Propagation handler ───────────────────────────────────────
+  // ── Propagation handler (optimistic) ────────────────────────────
   const handleMetaSaved = useCallback(async (contaId: string, metaTipo: MetaTipo, metaValor: number | null) => {
     if (!contas || !clienteId || !mesSeg) { invalidateMetas(); return; }
     const conta = contas.find(c => c.id === contaId);
     if (!conta || metaValor === null) { invalidateMetas(); return; }
 
+    // ── CAMADA 1: Optimistic update (immediate) ──
+    const optimisticMap: Record<string, TorreMeta> = { ...metaMapLocal, [contaId]: { conta_id: contaId, meta_tipo: metaTipo, meta_valor: metaValor } };
+
+    const calcPctFromChildren = (parentId: string, mMap: Record<string, TorreMeta>): number => {
+      const kids = contas.filter(c => c.conta_pai_id === parentId);
+      let sumMeta = 0, sumReal = 0;
+      for (const kid of kids) {
+        if (kid.nivel === 2) {
+          const r = realizadoMapSel[kid.id] ?? 0;
+          sumReal += r;
+          const m = mMap[kid.id] || null;
+          const proj = m ? calcProjetado(r, m) : null;
+          sumMeta += proj ?? r;
+        } else {
+          const grandkids = contas.filter(c => c.conta_pai_id === kid.id);
+          for (const gk of grandkids) {
+            const r = realizadoMapSel[gk.id] ?? 0;
+            sumReal += r;
+            const m = mMap[gk.id] || null;
+            const proj = m ? calcProjetado(r, m) : null;
+            sumMeta += proj ?? r;
+          }
+        }
+      }
+      return sumReal !== 0 ? Math.round(((sumMeta / sumReal) - 1) * 10000) / 100 : 0;
+    };
+
     const newPropagated = new Set<string>();
-    const updatedMetaMap: Record<string, TorreMeta> = { ...metaMap, [contaId]: { conta_id: contaId, meta_tipo: metaTipo, meta_valor: metaValor } };
 
     if (conta.nivel === 2) {
-      // ── BOTTOM-UP: category → subgroup → group ──
+      // Bottom-up: update parent + grandparent in optimistic map
       const parent = contas.find(c => c.id === conta.conta_pai_id);
       if (parent) {
-        const siblings = contas.filter(c => c.conta_pai_id === parent.id);
-        let sumMeta = 0, sumReal = 0;
-        for (const sib of siblings) {
-          const real = realizadoMapSel[sib.id] ?? 0;
-          sumReal += real;
-          const m = updatedMetaMap[sib.id] || null;
-          const proj = m ? calcProjetado(real, m) : null;
-          sumMeta += proj ?? real;
-        }
-        const pctParent = sumReal !== 0 ? Math.round(((sumMeta / sumReal) - 1) * 10000) / 100 : 0;
-        const { error: e1 } = await supabase.from('torre_metas').upsert({
-          cliente_id: clienteId, conta_id: parent.id, competencia: mesSeg,
-          meta_tipo: 'pct', meta_valor: pctParent, updated_at: new Date().toISOString(),
-        }, { onConflict: 'cliente_id,conta_id,competencia' });
-        if (e1) console.error('Propagação bottom-up (parent) falhou:', e1);
+        const pctParent = calcPctFromChildren(parent.id, optimisticMap);
+        optimisticMap[parent.id] = { conta_id: parent.id, meta_tipo: 'pct', meta_valor: pctParent };
         newPropagated.add(parent.id);
-        updatedMetaMap[parent.id] = { conta_id: parent.id, meta_tipo: 'pct', meta_valor: pctParent };
 
         const grandparent = contas.find(c => c.id === parent.conta_pai_id);
         if (grandparent) {
-          const uncles = contas.filter(c => c.conta_pai_id === grandparent.id);
-          let sumMetaGP = 0, sumRealGP = 0;
-          for (const uncle of uncles) {
-            const nephews = contas.filter(c => c.conta_pai_id === uncle.id);
-            for (const neph of nephews) {
-              const r = realizadoMapSel[neph.id] ?? 0;
-              sumRealGP += r;
-              const m = updatedMetaMap[neph.id] || null;
-              const proj = m ? calcProjetado(r, m) : null;
-              sumMetaGP += proj ?? r;
-            }
-          }
-          const pctGP = sumRealGP !== 0 ? Math.round(((sumMetaGP / sumRealGP) - 1) * 10000) / 100 : 0;
-          const { error: e2 } = await supabase.from('torre_metas').upsert({
-            cliente_id: clienteId, conta_id: grandparent.id, competencia: mesSeg,
-            meta_tipo: 'pct', meta_valor: pctGP, updated_at: new Date().toISOString(),
-          }, { onConflict: 'cliente_id,conta_id,competencia' });
-          if (e2) console.error('Propagação bottom-up (grandparent) falhou:', e2);
+          const pctGP = calcPctFromChildren(grandparent.id, optimisticMap);
+          optimisticMap[grandparent.id] = { conta_id: grandparent.id, meta_tipo: 'pct', meta_valor: pctGP };
           newPropagated.add(grandparent.id);
         }
       }
     } else {
-      // ── TOP-DOWN: group/subgroup → children (+ grandchildren if grupo) ──
+      // Top-down: propagate to children
       let pctToApply: number;
       if (metaTipo === 'pct') {
         pctToApply = metaValor;
@@ -670,39 +666,82 @@ export function TorreControleTab({ clienteId }: Props) {
         const node = findNode(tree, contaId);
         const nodeReal = node ? sumNodeLeafs(node, realizadoMapSel) : null;
         if (nodeReal && nodeReal !== 0) {
-          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: 'valor', meta_valor: metaValor });
+          const proj = calcProjetado(nodeReal, { conta_id: contaId, meta_tipo: metaTipo === 'delta' ? 'delta' : 'valor', meta_valor: metaValor });
           pctToApply = proj != null ? Math.round(((proj / nodeReal) - 1) * 10000) / 100 : 0;
         } else {
           pctToApply = 0;
         }
       }
-
       const children = contas.filter(c => c.conta_pai_id === contaId);
-      const upserts: { cliente_id: string; conta_id: string; competencia: string; meta_tipo: string; meta_valor: number; updated_at: string }[] = [];
       for (const child of children) {
-        upserts.push({ cliente_id: clienteId, conta_id: child.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctToApply, updated_at: new Date().toISOString() });
+        optimisticMap[child.id] = { conta_id: child.id, meta_tipo: 'pct', meta_valor: pctToApply };
         newPropagated.add(child.id);
         if (conta.nivel === 0) {
           const grandchildren = contas.filter(c => c.conta_pai_id === child.id);
           for (const gc of grandchildren) {
-            upserts.push({ cliente_id: clienteId, conta_id: gc.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctToApply, updated_at: new Date().toISOString() });
+            optimisticMap[gc.id] = { conta_id: gc.id, meta_tipo: 'pct', meta_valor: pctToApply };
             newPropagated.add(gc.id);
           }
         }
       }
-      if (upserts.length > 0) {
-        const { error: batchErr } = await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
-        if (batchErr) { console.error('Propagação top-down falhou:', batchErr); toast.error('Erro ao propagar metas'); }
-      }
     }
+
+    // Apply optimistic state IMMEDIATELY
+    setMetaMapLocal(optimisticMap);
 
     if (newPropagated.size > 0) {
       setPropagatedCells(newPropagated);
       if (propagateTimerRef.current) clearTimeout(propagateTimerRef.current);
       propagateTimerRef.current = setTimeout(() => setPropagatedCells(new Set()), 1500);
     }
-    await invalidateMetas();
-  }, [contas, clienteId, mesSeg, realizadoMapSel, metaMap, tree, invalidateMetas]);
+
+    // ── CAMADA 2: Persist to DB in background ──
+    try {
+      const { error: mainErr } = await supabase.from('torre_metas').upsert(
+        { cliente_id: clienteId, conta_id: contaId, competencia: mesSeg, meta_tipo: metaTipo, meta_valor: metaValor, updated_at: new Date().toISOString() },
+        { onConflict: 'cliente_id,conta_id,competencia' }
+      );
+      if (mainErr) throw mainErr;
+
+      // Propagate to DB
+      if (conta.nivel === 2) {
+        const parent = contas.find(c => c.id === conta.conta_pai_id);
+        if (parent) {
+          const pctP = optimisticMap[parent.id]?.meta_valor ?? 0;
+          await supabase.from('torre_metas').upsert(
+            { cliente_id: clienteId, conta_id: parent.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctP, updated_at: new Date().toISOString() },
+            { onConflict: 'cliente_id,conta_id,competencia' }
+          );
+          const grandparent = contas.find(c => c.id === parent.conta_pai_id);
+          if (grandparent) {
+            const pctGP = optimisticMap[grandparent.id]?.meta_valor ?? 0;
+            await supabase.from('torre_metas').upsert(
+              { cliente_id: clienteId, conta_id: grandparent.id, competencia: mesSeg, meta_tipo: 'pct', meta_valor: pctGP, updated_at: new Date().toISOString() },
+              { onConflict: 'cliente_id,conta_id,competencia' }
+            );
+          }
+        }
+      } else {
+        const upserts: { cliente_id: string; conta_id: string; competencia: string; meta_tipo: string; meta_valor: number; updated_at: string }[] = [];
+        for (const id of newPropagated) {
+          const m = optimisticMap[id];
+          if (m) upserts.push({ cliente_id: clienteId, conta_id: id, competencia: mesSeg, meta_tipo: m.meta_tipo, meta_valor: m.meta_valor ?? 0, updated_at: new Date().toISOString() });
+        }
+        if (upserts.length > 0) {
+          const { error: batchErr } = await supabase.from('torre_metas').upsert(upserts, { onConflict: 'cliente_id,conta_id,competencia' });
+          if (batchErr) console.error('Propagação top-down falhou:', batchErr);
+        }
+      }
+
+      // Sync queries in background (silent)
+      invalidateMetas();
+    } catch (err) {
+      console.error('Erro ao salvar meta:', err);
+      // Revert to server state
+      setMetaMapLocal(metaMap);
+      toast.error('Erro ao salvar meta. Valor revertido.');
+    }
+  }, [contas, clienteId, mesSeg, realizadoMapSel, metaMapLocal, metaMap, tree, invalidateMetas]);
 
   const calcTotaisForMap = useCallback((valMap: Record<string, number | null>) => {
     const fat = sumGrupos(gruposPorTipo['receita'] || [], valMap);
