@@ -1371,7 +1371,7 @@ export function TorreControleTab({ clienteId }: Props) {
                   if (isCat) {
                     const prevReal = prevMap[conta.id] ?? null;
                     const mf = metaMapForMonth?.[conta.id] || null;
-                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf) : null;
+                    projVal = prevReal != null && mf ? calcProjetado(prevReal, mf, conta.tipo) : null;
                   } else {
                     projVal = sumNodeProjetado(node, prevMap, metaMapForMonth || {});
                   }
