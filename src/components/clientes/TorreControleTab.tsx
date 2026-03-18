@@ -574,10 +574,11 @@ export function TorreControleTab({ clienteId }: Props) {
           sumMeta += proj ?? real;
         }
         const pctParent = sumReal !== 0 ? Math.round(((sumMeta / sumReal) - 1) * 10000) / 100 : 0;
-        await supabase.from('torre_metas').upsert({
+        const { error: e1 } = await supabase.from('torre_metas').upsert({
           cliente_id: clienteId, conta_id: parent.id, competencia: mesSeg,
           meta_tipo: 'pct', meta_valor: pctParent, updated_at: new Date().toISOString(),
         }, { onConflict: 'cliente_id,conta_id,competencia' });
+        if (e1) console.error('Propagação bottom-up (parent) falhou:', e1);
         newPropagated.add(parent.id);
         updatedMetaMap[parent.id] = { conta_id: parent.id, meta_tipo: 'pct', meta_valor: pctParent };
 
@@ -596,10 +597,11 @@ export function TorreControleTab({ clienteId }: Props) {
             }
           }
           const pctGP = sumRealGP !== 0 ? Math.round(((sumMetaGP / sumRealGP) - 1) * 10000) / 100 : 0;
-          await supabase.from('torre_metas').upsert({
+          const { error: e2 } = await supabase.from('torre_metas').upsert({
             cliente_id: clienteId, conta_id: grandparent.id, competencia: mesSeg,
             meta_tipo: 'pct', meta_valor: pctGP, updated_at: new Date().toISOString(),
           }, { onConflict: 'cliente_id,conta_id,competencia' });
+          if (e2) console.error('Propagação bottom-up (grandparent) falhou:', e2);
           newPropagated.add(grandparent.id);
         }
       }
