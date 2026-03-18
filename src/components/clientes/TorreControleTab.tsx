@@ -796,7 +796,7 @@ export function TorreControleTab({ clienteId }: Props) {
       if (c.nivel !== 2 || c.is_total) continue;
       const base = realizadoMapSel[c.id];
       if (base == null) continue;
-      const meta = metaMap[c.id] || null;
+      const meta = metaMapLocal[c.id] || null;
       const proj = meta ? calcProjetado(base, meta) : base;
       if (proj != null) { total += proj; hasAny = true; }
     }
