@@ -16,7 +16,5 @@ export function PortalRoute() {
 
   if (profile?.role !== 'cliente') return <Navigate to="/dashboard" replace />;
 
-  if (!profile?.portal_ativo) return <Navigate to="/minha-area" replace />;
-
   return <Outlet />;
 }
