@@ -362,6 +362,8 @@ export function TorreControleTab({ clienteId }: Props) {
   const [diretrizSalva, setDiretrizSalva] = useState<string | null>(null);
   const [propagatedCells, setPropagatedCells] = useState<Set<string>>(new Set());
   const [chatOpen, setChatOpen] = useState(false);
+  const [showCreationAV, setShowCreationAV] = useState(false);
+  const [showCreationAH, setShowCreationAH] = useState(false);
   const propagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const months = useMemo(() => getMonthsForYear(ano), [ano]);
