@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.criar-usuario]
 verify_jwt = false
+
+[functions.analisar-widget]
+verify_jwt = false

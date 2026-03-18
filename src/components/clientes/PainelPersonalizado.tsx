@@ -481,7 +481,7 @@ function WidgetCard({
 
   // Análise IA status
   const hasAnalise = !!widget.analise_ia;
-  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp);
+  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp, valMap, contaMap, getSoma);
 
   return (
     <div
@@ -548,8 +548,21 @@ function WidgetCard({
   );
 }
 
-function computeHash(w: Widget, comp: string) {
-  return `${w.id}_${comp}_${w.conta_ids.join(',')}_${w.conta_ids_b?.join(',') || ''}`;
+function computeHashFromValues(valores: { nome: string; valor: number }[], resultado: number) {
+  const hashInput = valores
+    .map(v => `${v.nome}:${v.valor}`)
+    .sort()
+    .join('|') + `|resultado:${resultado}`;
+  return btoa(hashInput).slice(0, 32);
+}
+
+function computeHash(w: Widget, comp: string, valMap: Record<string, number>, contaMap: Record<string, Conta>, getSoma: (ids: string[], comp: string) => number) {
+  const valores = w.conta_ids.map(id => ({
+    nome: contaMap[id]?.nome || id.slice(0, 8),
+    valor: valMap[`${id}__${comp}`] || 0,
+  }));
+  const resultado = getSoma(w.conta_ids, comp);
+  return computeHashFromValues(valores, resultado);
 }
 
 /* ─── card_resumo body ─── */
@@ -926,14 +939,21 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   getContaTipoSemantico: (ids: string[]) => string;
   onClose: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const [gerando, setGerando] = useState(false);
+  const [analiseLocal, setAnaliseLocal] = useState<string | null>(null);
+
   const tipoOpt = TIPO_OPTIONS.find(t => t.value === widget.tipo);
   const eyebrow = `${(tipoOpt?.title || widget.tipo).toUpperCase()} · IA`;
   const prevComp = getPrevCompetencia(comp);
   const somaAtual = getSoma(widget.conta_ids, comp);
   const somaPrev = getSoma(widget.conta_ids, prevComp);
   const fat = getFaturamento(comp);
-  const hasAnalise = !!widget.analise_ia;
-  const hashChanged = hasAnalise && widget.analise_hash !== computeHash(widget, comp);
+
+  const analiseTexto = analiseLocal || widget.analise_ia;
+  const hasAnalise = !!analiseTexto;
+  const hashAtual = computeHash(widget, comp, valMap, contaMap, getSoma);
+  const hashChanged = !!widget.analise_hash && widget.analise_hash !== hashAtual;
 
   // Indicador semaphore
   const indicadorData = useMemo(() => {
@@ -1059,6 +1079,79 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
   const sparkMax = Math.max(...histValues);
   const sparkRange = sparkMax - sparkMin || 1;
 
+  // Build valores for edge function
+  const valoresParaAnalise = useMemo(() => {
+    return widget.conta_ids.map(id => {
+      const v = valMap[`${id}__${comp}`] || 0;
+      const total = Math.abs(widget.conta_ids.reduce((s, cid) => s + (valMap[`${cid}__${comp}`] || 0), 0));
+      return {
+        nome: contaMap[id]?.nome || id.slice(0, 8),
+        valor: v,
+        av_pct: fat ? (Math.abs(v) / Math.abs(fat) * 100) : undefined,
+        pct_total: total > 0 ? (Math.abs(v) / total * 100) : undefined,
+      };
+    });
+  }, [widget.conta_ids, valMap, comp, contaMap, fat]);
+
+  const resultadoPrincipal = useMemo(() => {
+    if (widget.tipo === 'indicador' && indicadorData) return indicadorData.num;
+    if (widget.tipo === 'cruzamento') {
+      const a = getSoma(widget.conta_ids, comp);
+      const b = getSoma(widget.conta_ids_b || [], comp);
+      return b !== 0 ? a / b : 0;
+    }
+    return somaAtual;
+  }, [widget, indicadorData, somaAtual, getSoma, comp]);
+
+  const resultadoPct = useMemo(() => {
+    if (widget.tipo === 'indicador' && indicadorData) return indicadorData.resultado;
+    if (widget.tipo === 'cruzamento') {
+      const a = getSoma(widget.conta_ids, comp);
+      const b = getSoma(widget.conta_ids_b || [], comp);
+      return b !== 0 && widget.formato_resultado === 'percentual' ? (a / b) * 100 : undefined;
+    }
+    return fat ? (Math.abs(somaAtual) / Math.abs(fat) * 100) : undefined;
+  }, [widget, indicadorData, somaAtual, fat, getSoma, comp]);
+
+  const variacaoMesAnterior = useMemo(() => {
+    return somaPrev !== 0 ? ((somaAtual - somaPrev) / Math.abs(somaPrev)) * 100 : undefined;
+  }, [somaAtual, somaPrev]);
+
+  const gerarAnalise = async () => {
+    setGerando(true);
+    try {
+      const fmtCompLong = (c: string) => {
+        const d = new Date(c + 'T12:00:00');
+        return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      };
+
+      const { data, error } = await supabase.functions.invoke('analisar-widget', {
+        body: {
+          widget_id: widget.id,
+          cliente_id: widget.cliente_id,
+          tipo: widget.tipo,
+          titulo: widget.titulo,
+          competencia: comp,
+          valores: valoresParaAnalise,
+          resultado: resultadoPrincipal,
+          resultado_pct: resultadoPct,
+          variacao_mes_anterior: variacaoMesAnterior,
+          meta: widget.meta_valor,
+          meta_direcao: widget.meta_direcao,
+          contexto_cliente: `${widget.titulo} · ${fmtCompLong(comp)}`,
+        },
+      });
+      if (error) throw error;
+      setAnaliseLocal(data.analise);
+      queryClient.invalidateQueries({ queryKey: ['painel-widgets', widget.cliente_id] });
+      toast({ title: 'Análise gerada com sucesso ✓' });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar análise. Tente novamente.', variant: 'destructive' });
+    } finally {
+      setGerando(false);
+    }
+  };
+
   // ESC to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1079,6 +1172,7 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes modalEnter { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
       <div
         onClick={e => e.stopPropagation()}
@@ -1203,54 +1297,86 @@ function DetalheModal({ widget, comp, contaMap, getSoma, getFaturamento, valMap,
 
           {/* Section 4 — ANÁLISE GPI */}
           <div>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#0099E6', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>✨ ANÁLISE DO CONSULTOR GPI</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#8A9BBC', letterSpacing: '0.1em', textTransform: 'uppercase' }}>ANÁLISE GPI</span>
+              {hasAnalise && !gerando && (
+                <span style={{
+                  fontSize: 10, fontWeight: 600,
+                  color: hashChanged ? '#D97706' : '#00A86B',
+                  background: hashChanged ? 'rgba(217,119,6,0.1)' : 'rgba(0,168,107,0.1)',
+                  padding: '2px 6px', borderRadius: 4,
+                }}>
+                  {hashChanged ? '⚠ DESATUALIZADA' : '✓ CACHE'}
+                </span>
+              )}
+            </div>
 
-            {hasAnalise && !hashChanged && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: '#00A86B', background: 'rgba(0,168,107,0.1)', padding: '2px 6px', borderRadius: 4 }}>✓ CACHE</span>
-                {widget.analise_gerada_em && (
-                  <span style={{ fontSize: 11, color: '#8A9BBC' }}>
-                    {new Date(widget.analise_gerada_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-            )}
-            {hasAnalise && hashChanged && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, color: '#D97706', background: 'rgba(217,119,6,0.1)', padding: '2px 6px', borderRadius: 4 }}>⚠ DESATUALIZADA</span>
-              </div>
+            {hasAnalise && !gerando && widget.analise_gerada_em && (
+              <span style={{ fontSize: 10, color: '#8A9BBC', display: 'block', marginBottom: 6 }}>
+                {new Date(widget.analise_gerada_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
             )}
 
-            {hasAnalise ? (
-              <p style={{ fontSize: 13, color: '#0D1B35', margin: 0, lineHeight: 1.7 }}>{widget.analise_ia}</p>
-            ) : (
+            {gerando ? (
               <div style={{ background: '#F0F4FA', border: '1px solid #DDE4F0', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
-                <Skeleton className="h-4 w-3/4 mb-3 mx-auto" />
-                <Skeleton className="h-4 w-full mb-3" />
-                <Skeleton className="h-4 w-5/6 mb-3 mx-auto" />
-                <Skeleton className="h-4 w-2/3 mx-auto" />
-                <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 12 }}>Analisando indicadores...</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ height: 14, background: '#E8EEF8', borderRadius: 6, width: '75%', margin: '0 auto', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: 14, background: '#E8EEF8', borderRadius: 6, width: '100%', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: 14, background: '#E8EEF8', borderRadius: 6, width: '85%', margin: '0 auto', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                </div>
+                <p style={{ fontSize: 11, color: '#8A9BBC', marginTop: 12, fontStyle: 'italic' }}>Analisando indicadores...</p>
+              </div>
+            ) : hasAnalise ? (
+              <div style={{ padding: '8px 0' }}>
+                {(() => {
+                  const texto = analiseTexto!;
+                  const arrowIdx = texto.lastIndexOf('→');
+                  if (arrowIdx === -1) {
+                    return <p style={{ fontSize: 12.5, color: '#0D1B35', margin: 0, lineHeight: 1.7 }}>{texto}</p>;
+                  }
+                  const antes = texto.slice(0, arrowIdx).trim();
+                  const acao = texto.slice(arrowIdx).trim();
+                  return (
+                    <>
+                      <p style={{ fontSize: 12.5, color: '#0D1B35', margin: '0 0 10px', lineHeight: 1.7 }}>{antes}</p>
+                      <p style={{ fontSize: 12.5, color: '#1A3CFF', fontWeight: 600, margin: 0, lineHeight: 1.7, borderLeft: '2px solid #1A3CFF', paddingLeft: 8 }}>{acao}</p>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div style={{ background: '#F0F4FA', border: '1px solid #DDE4F0', borderRadius: 12, padding: '32px 24px', textAlign: 'center' }}>
+                <span style={{ fontSize: 24, color: '#C4CFEA', display: 'block', marginBottom: 8 }}>✦</span>
+                <p style={{ fontSize: 12, color: '#8A9BBC', margin: '0 0 12px' }}>Análise não gerada ainda</p>
+                <button
+                  onClick={gerarAnalise}
+                  style={{ padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: '#1A3CFF', color: '#fff', border: 'none', cursor: 'pointer' }}
+                >
+                  ✨ Gerar análise
+                </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Footer — matching KpiDetalheModal pattern */}
+        {/* Footer */}
         <div style={{ borderTop: '1px solid #DDE4F0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: '#8A9BBC' }}>{fmtMonthLong(comp)}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
-              onClick={() => toast({ title: 'Em breve' })}
-              style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, background: '#F0F4FA', border: '1px solid #DDE4F0', color: '#4A5E80', cursor: 'pointer', opacity: hasAnalise ? 1 : 0.4 }}
-              disabled={!hasAnalise}
+              onClick={gerarAnalise}
+              disabled={!hasAnalise || gerando}
+              title={hashChanged ? 'Os valores mudaram desde a última análise. Clique para atualizar.' : 'Regenerar análise'}
+              style={{
+                padding: '6px 12px', borderRadius: 6, fontSize: 11, cursor: hasAnalise && !gerando ? 'pointer' : 'default',
+                background: hashChanged ? '#fef2f2' : '#F0F4FA',
+                border: `1px solid ${hashChanged ? '#fca5a5' : '#DDE4F0'}`,
+                color: hashChanged ? '#DC2626' : '#4A5E80',
+                opacity: hasAnalise && !gerando ? 1 : 0.4,
+              }}
             >
               🔄 Regenerar
             </button>
-            {!hasAnalise && (
-              <button onClick={() => toast({ title: 'Em breve' })} style={{ padding: '6px 12px', borderRadius: 6, fontSize: 11, background: '#F6F9FF', border: '1px solid #DDE4F0', color: '#1A3CFF', cursor: 'pointer', fontWeight: 600 }}>
-                ✨ Gerar análise
-              </button>
-            )}
             <button onClick={onClose} style={{ padding: '6px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: '#1A3CFF', color: '#fff', border: 'none', cursor: 'pointer' }}>✕ Fechar</button>
           </div>
         </div>
