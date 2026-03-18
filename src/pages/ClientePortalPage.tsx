@@ -87,6 +87,22 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // If prop clienteId (espelho mode), skip empresa selection
   const resolvedClienteId = propClienteId || clienteIdSelecionado;
 
+  // Query widgets for "Meu Painel" section
+  const { data: portalWidgets = [] } = useQuery({
+    queryKey: ['painel-widgets', resolvedClienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('painel_widgets')
+        .select('*')
+        .eq('cliente_id', resolvedClienteId!)
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!resolvedClienteId,
+  });
+
   // Load empresas for the logged-in user
   useEffect(() => {
     if (propClienteId) return;
