@@ -31,6 +31,7 @@ const CHECKLIST_LABELS = [
   'DRE do mês importada',
   'Metas definidas na Torre',
   'Análises IA geradas',
+  '📊 Painel personalizado configurado',
   'Slides revisados',
   'Reunião agendada no sistema',
 ];
@@ -67,9 +68,11 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     dreImportada: false,
     metasDefinidas: false,
     analiseGerada: false,
+    painelConfigurado: false,
     slidesRevisados: false,
     reuniaoAgendada: false,
   });
+  const [painelWidgets, setPainelWidgets] = useState<any[]>([]);
   const [reuniaoDialogOpen, setReuniaoDialogOpen] = useState(false);
 
   // Fetch prep data
@@ -131,10 +134,21 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
         const { count: reuniaoCount } = await supabase.from('reunioes').select('id', { count: 'exact', head: true })
           .eq('cliente_id', clienteId).gte('data_reuniao', hoje);
 
+        // Auto-check painel widgets
+        const { data: widgetsData } = await supabase.from('painel_widgets')
+          .select('*')
+          .eq('cliente_id', clienteId)
+          .eq('ativo', true)
+          .order('ordem', { ascending: true })
+          .limit(4);
+        const hasWidgets = (widgetsData || []).length > 0;
+        setPainelWidgets(widgetsData || []);
+
         setChecklistState({
           dreImportada: hasDre,
           metasDefinidas: (metasCount || 0) > 0,
           analiseGerada: !!prepRes.data?.gerado_em,
+          painelConfigurado: hasWidgets,
           slidesRevisados: false, // manual
           reuniaoAgendada: (reuniaoCount || 0) > 0,
         });
@@ -305,8 +319,9 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
     { label: CHECKLIST_LABELS[0], checked: checklistState.dreImportada },
     { label: CHECKLIST_LABELS[1], checked: checklistState.metasDefinidas },
     { label: CHECKLIST_LABELS[2], checked: checklistState.analiseGerada },
-    { label: CHECKLIST_LABELS[3], checked: checklistState.slidesRevisados },
-    { label: CHECKLIST_LABELS[4], checked: checklistState.reuniaoAgendada },
+    { label: CHECKLIST_LABELS[3], checked: checklistState.painelConfigurado },
+    { label: CHECKLIST_LABELS[4], checked: checklistState.slidesRevisados },
+    { label: CHECKLIST_LABELS[5], checked: checklistState.reuniaoAgendada },
   ];
 
   if (loading) {
@@ -535,9 +550,9 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
                     <Checkbox
                       checked={item.checked}
                       onCheckedChange={(v) => {
-                        if (i === 3) {
+                        if (i === 4) {
                           setChecklistState(prev => ({ ...prev, slidesRevisados: !!v }));
-                        } else if (i === 4) {
+                        } else if (i === 5) {
                           if (v) {
                             setReuniaoDialogOpen(true);
                           } else {
@@ -545,7 +560,7 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
                           }
                         }
                       }}
-                      disabled={i !== 3 && i !== 4}
+                      disabled={i !== 4 && i !== 5}
                       className={item.checked ? '' : 'opacity-50'}
                     />
                     <span style={{ color: item.checked ? '#00A86B' : '#4A5E80', fontWeight: item.checked ? 600 : 400 }}>
@@ -555,6 +570,24 @@ export default function PrepararApresentacao({ clienteId, competencia, onStartPr
                 ))}
               </div>
             </div>
+
+            {/* Prévia do Painel Personalizado */}
+            {painelWidgets.length > 0 && (
+              <div className="rounded-xl border border-[#DDE4F0] p-4" style={{ background: '#F6F9FF', boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
+                <h3 className="text-sm font-semibold text-[#0D1B35] mb-3">📊 Painel Personalizado — prévia do slide</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {painelWidgets.slice(0, 4).map((w: any) => (
+                    <div key={w.id} className="rounded-lg border border-[#DDE4F0] bg-white p-3">
+                      <span className="text-[10px] font-bold uppercase" style={{ color: w.cor_destaque || '#1A3CFF', letterSpacing: '0.05em' }}>
+                        {w.tipo}
+                      </span>
+                      <p className="text-xs font-semibold text-[#0D1B35] mt-0.5 truncate">{w.titulo}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[#8A9BBC] mt-2">Até 4 widgets serão exibidos no slide</p>
+              </div>
+            )}
 
             {/* Dados usados pela IA */}
             <div className="rounded-xl border border-[#DDE4F0] bg-white p-4" style={{ boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
