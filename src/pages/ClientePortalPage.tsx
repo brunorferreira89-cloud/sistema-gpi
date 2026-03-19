@@ -547,7 +547,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
   const { data: torreMetas } = useQuery({
     queryKey: ['portal-torre-metas', resolvedClienteId, mesProximo],
-    enabled: !!resolvedClienteId && !!mesProximo && torreVisible,
+    enabled: !!resolvedClienteId && !!mesProximo,
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor')
         .eq('cliente_id', resolvedClienteId!)
