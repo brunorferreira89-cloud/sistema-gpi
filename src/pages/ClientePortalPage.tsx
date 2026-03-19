@@ -1464,19 +1464,34 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: realSel != null ? (realSel < 0 ? C.red : (isTotal ? '#FFF' : C.txt)) : C.txtMuted, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(realSel)}</td>
                             {torreShowAV && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: isTotal ? '#00E68A' : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{avVal != null ? `${avVal.toFixed(1)}%` : '—'}</td>}
                             {torreShowAH && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: ahVal != null ? (ahVal >= 0 ? C.green : C.red) : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{ahVal != null ? `${ahVal >= 0 ? '+' : ''}${ahVal.toFixed(1)}%` : '—'}</td>}
-                            {/* AJUSTE — editable for sim categories */}
-                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getAjusteColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined, cursor: editable && isCat && !isTotal ? 'pointer' : undefined, position: 'relative' }}
-                              onClick={() => { if (editable && isCat && !isTotal && editingSimId !== conta.id) { setEditingSimId(conta.id); setEditingSimVal(simLocalMap[conta.id]?.meta_valor?.toString() ?? '0'); } }}
-                              onMouseEnter={e => { if (editable && isCat && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
-                              onMouseLeave={e => { if (editable && isCat && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = ''; }}
+                            {/* AJUSTE — editable for sim categories and subgrupos */}
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getAjusteColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined, cursor: editable && (isCat || isSubgrupo) && !isTotal ? 'pointer' : undefined, position: 'relative' }}
+                              onClick={() => { if (editable && (isCat || isSubgrupo) && !isTotal && editingSimId !== conta.id) { setEditingSimId(conta.id); setEditingSimVal(simLocalMap[conta.id]?.meta_valor?.toString() ?? '0'); } }}
+                              onMouseEnter={e => { if (editable && (isCat || isSubgrupo) && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
+                              onMouseLeave={e => { if (editable && (isCat || isSubgrupo) && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = ''; }}
                             >
-                              {editable && isCat && !isTotal && editingSimId === conta.id ? (
+                              {editable && (isCat || isSubgrupo) && !isTotal && editingSimId === conta.id ? (
                                 <span className="inline-flex items-center gap-0.5">
                                   <input
                                     type="number"
                                     value={editingSimVal}
                                     onChange={e => setEditingSimVal(e.target.value)}
-                                    onBlur={() => { const pct = parseFloat(editingSimVal) || 0; setSimLocalMap(prev => ({ ...prev, [conta.id]: { meta_tipo: 'pct', meta_valor: pct } })); setSimDirty(true); setEditingSimId(null); }}
+                                    onBlur={() => {
+                                      const pct = parseFloat(editingSimVal) || 0;
+                                      const updates: Record<string, { meta_tipo: string; meta_valor: number }> = { [conta.id]: { meta_tipo: 'pct', meta_valor: pct } };
+                                      if (isSubgrupo && hasChildren) {
+                                        const propagate = (n: DreNode) => {
+                                          for (const child of n.children) {
+                                            updates[child.conta.id] = { meta_tipo: 'pct', meta_valor: pct };
+                                            if (child.children.length > 0) propagate(child);
+                                          }
+                                        };
+                                        propagate(node);
+                                      }
+                                      setSimLocalMap(prev => ({ ...prev, ...updates }));
+                                      setSimDirty(true);
+                                      setEditingSimId(null);
+                                    }}
                                     onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingSimId(null); }}
                                     autoFocus
                                     style={{ width: 70, padding: '3px 6px', border: '1.5px solid #1A3CFF', borderRadius: 6, fontFamily: 'Courier New', fontSize: 11, textAlign: 'center', color: '#0D1B35', background: '#F6F9FF', outline: 'none' }}
@@ -1486,7 +1501,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                               ) : (
                                 <span className="inline-flex items-center gap-1">
                                   {isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}
-                                  {editable && isCat && !isTotal && <span style={{ fontSize: 9, color: '#C4CFEA', marginLeft: 2 }}>✎</span>}
+                                  {editable && (isCat || isSubgrupo) && !isTotal && <span style={{ fontSize: 9, color: '#C4CFEA', marginLeft: 2 }}>✎</span>}
                                 </span>
                               )}
                             </td>
