@@ -1464,15 +1464,37 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: realSel != null ? (realSel < 0 ? C.red : (isTotal ? '#FFF' : C.txt)) : C.txtMuted, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(realSel)}</td>
                             {torreShowAV && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: isTotal ? '#00E68A' : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{avVal != null ? `${avVal.toFixed(1)}%` : '—'}</td>}
                             {torreShowAH && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: ahVal != null ? (ahVal >= 0 ? C.green : C.red) : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{ahVal != null ? `${ahVal >= 0 ? '+' : ''}${ahVal.toFixed(1)}%` : '—'}</td>}
-                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getAjusteColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}</td>
+                            {/* AJUSTE — editable for sim categories */}
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getAjusteColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined, cursor: editable && isCat && !isTotal ? 'pointer' : undefined, position: 'relative' }}
+                              onClick={() => { if (editable && isCat && !isTotal && editingSimId !== conta.id) { setEditingSimId(conta.id); setEditingSimVal(simLocalMap[conta.id]?.meta_valor?.toString() ?? '0'); } }}
+                              onMouseEnter={e => { if (editable && isCat && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
+                              onMouseLeave={e => { if (editable && isCat && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = ''; }}
+                            >
+                              {editable && isCat && !isTotal && editingSimId === conta.id ? (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <input
+                                    type="number"
+                                    value={editingSimVal}
+                                    onChange={e => setEditingSimVal(e.target.value)}
+                                    onBlur={() => { const pct = parseFloat(editingSimVal) || 0; setSimLocalMap(prev => ({ ...prev, [conta.id]: { meta_tipo: 'pct', meta_valor: pct } })); setSimDirty(true); setEditingSimId(null); }}
+                                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingSimId(null); }}
+                                    autoFocus
+                                    style={{ width: 70, padding: '3px 6px', border: '1.5px solid #1A3CFF', borderRadius: 6, fontFamily: 'Courier New', fontSize: 11, textAlign: 'center', color: '#0D1B35', background: '#F6F9FF', outline: 'none' }}
+                                  />
+                                  <span style={{ fontSize: 10, color: '#4A5E80' }}>%</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1">
+                                  {isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}
+                                  {editable && isCat && !isTotal && <span style={{ fontSize: 9, color: '#C4CFEA', marginLeft: 2 }}>✎</span>}
+                                </span>
+                              )}
+                            </td>
+                            {/* R$ — static */}
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
+                            {/* META — static calculated */}
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: projetado != null ? (isTotal ? '#FFF' : C.primary) : C.txtMuted, padding: '8px 10px', background: isTotal ? 'rgba(26,60,255,0.18)' : C.pLo }}>
-                              {editable && isCat && !isTotal ? (
-                                <input type="text" defaultValue={projetado != null ? Math.abs(projetado).toFixed(0) : ''}
-                                  onChange={(e) => { const val = parseFloat(e.target.value.replace(/[^\d.,-]/g, '').replace(',', '.')); if (!isNaN(val)) { const sign = conta.tipo !== 'receita' ? -1 : 1; const pctVal = realSel && realSel !== 0 ? Math.round(((sign * val / realSel) - 1) * 10000) / 100 : 0; setSimLocalMap(prev => ({ ...prev, [conta.id]: { meta_tipo: 'pct', meta_valor: pctVal } })); setSimDirty(true); } }}
-                                  style={{ width: 80, textAlign: 'right', fontFamily: C.mono, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', outline: 'none', background: C.surfaceHi, color: C.primary }}
-                                />
-                              ) : fmtTorre(projetado)}
+                              {fmtTorre(projetado)}
                             </td>
                           </tr>
                           {hasChildren && !isCollapsedItem && node.children.map(child => renderRow(child))}
