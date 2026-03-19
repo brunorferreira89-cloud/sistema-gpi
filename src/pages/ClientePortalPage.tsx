@@ -1087,6 +1087,13 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .portal-cards-wrapper > div { margin-bottom: 8px; }
           .portal-swipe-hint { display: block !important; }
           .portal-gauges-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .portal-gauges-grid > div { width: 100% !important; padding: 12px 10px !important; }
+          .portal-gauges-grid svg { width: 100% !important; max-width: 140px !important; height: auto !important; margin: 0 auto !important; display: block !important; }
+          .portal-gauges-grid .gauge-value { font-size: 15px !important; }
+          .portal-gauges-grid .gauge-label { font-size: 10px !important; text-overflow: ellipsis !important; overflow: hidden !important; white-space: nowrap !important; }
+          .portal-gauges-grid .gauge-badge { font-size: 9px !important; padding: 2px 7px !important; }
+          .portal-emp-dropdown { position: fixed !important; left: 12px !important; right: 12px !important; top: auto !important; bottom: 20vh !important; max-height: 50vh !important; overflow-y: auto !important; z-index: 100 !important; border: 1.5px solid #1A3CFF !important; border-radius: 12px !important; box-shadow: 0 8px 32px rgba(13,27,53,0.15) !important; padding: 8px !important; margin-top: 0 !important; }
+          .portal-emp-dropdown button { padding: 10px 12px !important; font-size: 13px !important; border-radius: 8px !important; min-height: 44px !important; }
           .portal-dre-desktop { display: none !important; }
           .portal-mobile-btn { display: flex !important; }
           .portal-torre-desktop { display: none !important; }
