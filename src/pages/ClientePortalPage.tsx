@@ -1263,6 +1263,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                         <button
                           key={e.cliente_id}
                           onClick={() => {
+                            sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id);
                             setClienteIdSelecionado(e.cliente_id);
                             setEmpresaDropdownOpen(false);
                             setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
