@@ -273,6 +273,16 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     loadEmpresas();
   }, [propClienteId, profile?.id, profile?.cliente_id]);
 
+  // ── Restore empresa from sessionStorage on refresh ────────────
+  useEffect(() => {
+    if (propClienteId) return;
+    const savedId = sessionStorage.getItem('gpi_portal_cliente_id');
+    if (savedId && empresas.length > 0 && !clienteIdSelecionado) {
+      const found = empresas.find(e => e.cliente_id === savedId);
+      if (found) setClienteIdSelecionado(found.cliente_id);
+    }
+  }, [empresas, propClienteId]);
+
   // ── Load competencias & dashboard data ────────────────────────
   useEffect(() => {
     if (!resolvedClienteId) return;
@@ -835,7 +845,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <button
                 key={e.cliente_id}
                 className="sel-card-empresa"
-                onClick={() => setClienteIdSelecionado(e.cliente_id)}
+                onClick={() => { sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id); setClienteIdSelecionado(e.cliente_id); }}
                 style={{ background: '#FFFFFF', border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 18, cursor: 'pointer', textAlign: 'left', position: 'relative' }}
               >
                 {/* Top row */}
@@ -889,7 +899,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
               <span className="text-sm font-semibold" style={{ color: C.txt }}>{cliente?.razao_social || cliente?.nome_empresa || ''}</span>
             </div>
-            {!espelho && <button onClick={signOut} className="rounded-md p-1.5 transition-colors" style={{ color: C.txtSec }}><LogOut className="h-4 w-4" /></button>}
+            {!espelho && <button onClick={() => { sessionStorage.removeItem('gpi_portal_cliente_id'); signOut(); }} className="rounded-md p-1.5 transition-colors" style={{ color: C.txtSec }}><LogOut className="h-4 w-4" /></button>}
           </div>
         </header>
         <div className="max-w-[600px] mx-auto py-16 px-4">
@@ -1174,7 +1184,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </button>
             {/* Logout */}
             {!espelho && (
-              <button onClick={signOut} className="rounded-md p-1.5 transition-colors hover:text-[#DC2626]" style={{ color: C.txtSec }}>
+              <button onClick={() => { sessionStorage.removeItem('gpi_portal_cliente_id'); signOut(); }} className="rounded-md p-1.5 transition-colors hover:text-[#DC2626]" style={{ color: C.txtSec }}>
                 <LogOut className="h-4 w-4" />
               </button>
             )}
@@ -1263,6 +1273,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                         <button
                           key={e.cliente_id}
                           onClick={() => {
+                            sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id);
                             setClienteIdSelecionado(e.cliente_id);
                             setEmpresaDropdownOpen(false);
                             setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
