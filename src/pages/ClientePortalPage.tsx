@@ -835,7 +835,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <button
                 key={e.cliente_id}
                 className="sel-card-empresa"
-                onClick={() => setClienteIdSelecionado(e.cliente_id)}
+                onClick={() => { sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id); setClienteIdSelecionado(e.cliente_id); }}
                 style={{ background: '#FFFFFF', border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 18, cursor: 'pointer', textAlign: 'left', position: 'relative' }}
               >
                 {/* Top row */}
