@@ -982,7 +982,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* ── LINHA 1: TOP BAR ── */}
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px 0' }}>
+        <div className="portal-topbar" style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={gpiLogo} alt="GPI" style={{ height: 32 }} />
             <div>
