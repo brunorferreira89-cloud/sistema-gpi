@@ -291,14 +291,17 @@ function EditableMetaCell({
     rawPct = (realizado != null && realizado !== 0) ? ((meta.meta_valor! - Math.abs(realizado)) / Math.abs(realizado)) * 100 : 0;
   }
 
-  // Directional sign: NEVER inverted — positive means meta > realizado
-  // Color: semantic per account type — for costs, increase = bad (red)
+  // Same magnitude logic as R$ column: green if |META|>|REAL|, red otherwise
+  const projetadoVal = meta.meta_tipo === 'pct'
+    ? (realizado != null ? realizado * (1 + meta.meta_valor! / 100) : null)
+    : meta.meta_tipo === 'delta'
+      ? (realizado != null ? realizado + meta.meta_valor! : null)
+      : meta.meta_valor;
+  const metaAbsUp = projetadoVal != null && realizado != null && Math.abs(projetadoVal) > Math.abs(realizado);
   const corAjuste =
     Math.abs(rawPct) < 0.05 ? '#8A9BBC' :
-    isReceita
-      ? (rawPct > 0 ? '#00A86B' : '#DC2626')
-      : (rawPct > 0 ? '#DC2626' : '#00A86B');
-  const prefixo = rawPct > 0.05 ? '↑ +' : rawPct < -0.05 ? '↓ −' : '→ ';
+    metaAbsUp ? '#00A86B' : '#DC2626';
+  const prefixo = metaAbsUp ? '↑ +' : (Math.abs(rawPct) < 0.05 ? '→ ' : '↓ −');
   const semanticLabel = `${prefixo}${Math.abs(rawPct).toFixed(1)}%`;
 
   return (
