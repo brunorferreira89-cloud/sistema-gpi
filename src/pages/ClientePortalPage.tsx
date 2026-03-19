@@ -1127,6 +1127,9 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .portal-client-name { font-size: 20px !important; }
           .portal-pills { gap: 5px !important; }
           .portal-pills > span { font-size: 9px !important; padding: 2px 8px !important; }
+          .portal-info-pills { gap: 6px !important; }
+          .portal-info-pills > span { font-size: 10px !important; padding: 4px 10px !important; flex-basis: calc(50% - 3px) !important; box-sizing: border-box !important; }
+          .portal-pill-alerta { max-width: calc(50% - 3px) !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
           .portal-gc-card { display: none !important; }
           .portal-right-block { flex-direction: column !important; width: 100% !important; }
           .portal-empresa-sel { width: 100% !important; min-width: unset !important; }
@@ -1284,6 +1287,99 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                 <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(217,119,6,0.07)', color: '#D97706' }}>⚠ {alertas.length} alerta{alertas.length > 1 ? 's' : ''} ativo{alertas.length > 1 ? 's' : ''}</span>
               )}
             </div>
+            {/* ── Pills informativos ── */}
+            <div className="portal-info-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              {/* Pill 1 — Próxima Reunião */}
+              {proximaReuniao && (() => {
+                const reuniaoDate = new Date(`${proximaReuniao.data_reuniao}T${proximaReuniao.horario || '09:00:00'}`);
+                const diasRestantes = Math.ceil((reuniaoDate.getTime() - Date.now()) / 86400000);
+                const hora = proximaReuniao.horario?.substring(0, 5) || '09:00';
+                const isProximo = diasRestantes <= 7;
+                const pillStyle = {
+                  display: 'flex' as const, alignItems: 'center' as const, gap: 6,
+                  padding: '5px 12px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'default' as const,
+                  background: isProximo ? 'rgba(26,60,255,0.08)' : '#F0F4FA',
+                  border: `1px solid ${isProximo ? 'rgba(26,60,255,0.2)' : '#DDE4F0'}`,
+                  color: isProximo ? '#1A3CFF' : '#4A5E80',
+                };
+                let label = '';
+                if (diasRestantes <= 0) label = `📅 Hoje · ${hora}`;
+                else if (diasRestantes === 1) label = `📅 Reunião amanhã · ${hora}`;
+                else if (diasRestantes <= 7) label = `📅 Reunião em ${diasRestantes} dias`;
+                else label = `📅 ${reuniaoDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} · ${hora}`;
+                return <span style={pillStyle}>{label}</span>;
+              })()}
+
+              {/* Pill 2 — Último Alerta */}
+              {alertas.length > 0 && (() => {
+                const ultimo = alertas[0];
+                const titulo = (ultimo.conteudo as any)?.titulo || 'Alerta recente';
+                const truncated = titulo.length > 30 ? titulo.substring(0, 30) + '…' : titulo;
+                return (
+                  <span
+                    className="portal-pill-alerta"
+                    onClick={() => {
+                      const el = document.getElementById('portal-alertas-section');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '5px 12px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
+                      background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.2)', color: '#DC2626',
+                    }}
+                  >🔔 {truncated}</span>
+                );
+              })()}
+
+              {/* Pill 3 — Status da Competência */}
+              {(() => {
+                const isLiberado = competenciasLiberadas.includes(competencia);
+                const mesLabel = fmtMesAnoLong(competencia).toUpperCase();
+                return (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '5px 12px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'default',
+                    background: isLiberado ? 'rgba(0,168,107,0.08)' : 'rgba(217,119,6,0.08)',
+                    border: `1px solid ${isLiberado ? 'rgba(0,168,107,0.2)' : 'rgba(217,119,6,0.2)'}`,
+                    color: isLiberado ? '#00A86B' : '#D97706',
+                  }}>
+                    {isLiberado ? '✅' : '⏳'} {mesLabel} · {isLiberado ? 'Fechamento disponível' : 'Em preparação'}
+                  </span>
+                );
+              })()}
+
+              {/* Pill 4 — Meta do Mês */}
+              {(() => {
+                if (!dreContas || !torreMetas || torreMetas.length === 0) return null;
+                const receitaN1 = dreContas.filter(c => c.nivel === 1 && c.tipo === 'receita');
+                let metaTotal = 0, realTotal = 0, hasMeta = false;
+                for (const n1 of receitaN1) {
+                  const meta = torreMetaMap[n1.id];
+                  if (!meta || meta.meta_valor === null) continue;
+                  hasMeta = true;
+                  const children = dreContas.filter(c => c.conta_pai_id === n1.id && c.nivel === 2);
+                  let realSum = 0;
+                  for (const ch of children) { realSum += torreRealMap[ch.id] ?? 0; }
+                  const proj = calcProjetado(realSum, meta, n1.tipo);
+                  metaTotal += Math.abs(proj ?? 0);
+                  realTotal += Math.abs(realSum);
+                }
+                if (!hasMeta || metaTotal === 0) return null;
+                const pct = (realTotal / metaTotal) * 100;
+                const fmtMeta = metaTotal >= 1000000 ? `R$${(metaTotal / 1000000).toFixed(1)}M` : metaTotal >= 1000 ? `R$${(metaTotal / 1000).toFixed(0)}k` : `R$${metaTotal.toFixed(0)}`;
+                const pillColor = pct >= 100 ? '#00A86B' : pct >= 70 ? '#D97706' : '#DC2626';
+                const pillBg = pct >= 100 ? 'rgba(0,168,107,0.08)' : pct >= 70 ? 'rgba(217,119,6,0.08)' : 'rgba(220,38,38,0.07)';
+                return (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '5px 12px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, cursor: 'default',
+                    background: pillBg, border: `1px solid ${pillColor}33`, color: pillColor,
+                  }}>
+                    🎯 Meta: {fmtMeta} · {pct.toFixed(0)}% atingido
+                  </span>
+                );
+              })()}
+            </div>
           </div>
           {/* Bloco direito */}
           <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -1408,7 +1504,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── SEÇÃO 3: ALERTAS DE META (SPEEDOMETER GAUGES) ── */}
         {gaugeData.length > 0 && (
-          <div>
+          <div id="portal-alertas-section">
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, marginBottom: 10 }}>Alertas de Meta</p>
             <div className="portal-gauges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {gaugeData.map((g, i) => (
