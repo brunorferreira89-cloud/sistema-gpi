@@ -1223,6 +1223,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               </table>
             </div>
           </div>
+          </div>
         )}
 
         {/* ── SEÇÃO 5: APRESENTAÇÃO DO MÊS ───────────────────── */}
