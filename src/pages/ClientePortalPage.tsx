@@ -1029,7 +1029,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
             {/* Nome do cliente */}
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: 8 }}>
-              <h1 style={{ fontSize: 27, fontWeight: 800, color: C.txt, margin: 0, lineHeight: 1.2 }}>
+              <h1 className="portal-client-name" style={{ fontSize: 27, fontWeight: 800, color: C.txt, margin: 0, lineHeight: 1.2 }}>
                 {cliente?.razao_social || cliente?.nome_empresa || ''}
               </h1>
               <div style={{ width: '40%', height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, #1A3CFF, transparent)', marginTop: 4 }} />
