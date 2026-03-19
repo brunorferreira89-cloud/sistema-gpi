@@ -1079,7 +1079,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             )}
             {/* Seletor empresa */}
             {showTrocarEmpresa && (
-              <div style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
+              <div className="portal-empresa-sel" style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
                 <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, display: 'block', marginBottom: 6 }}>🏢 Empresa ativa</span>
                 <div className="relative">
                   <button
