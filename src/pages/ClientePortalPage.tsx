@@ -1194,7 +1194,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         {gaugeData.length > 0 && (
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, marginBottom: 10 }}>Alertas de Meta</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div className="portal-gauges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {gaugeData.map((g, i) => (
                 <SpeedometerGauge
                   key={i}
