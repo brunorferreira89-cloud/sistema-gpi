@@ -1275,7 +1275,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                     <ChevronDown style={{ width: 14, height: 14, color: C.txtMuted }} />
                   </button>
                   {empresaDropdownOpen && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: `1px solid ${C.border}`, boxShadow: '0 4px 16px rgba(13,27,53,0.12)', zIndex: 50 }}>
+                    <>
+                      <div className="portal-emp-overlay" onClick={() => setEmpresaDropdownOpen(false)} style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 99 }} />
+                      <style>{`.portal-emp-overlay { display: none; } @media(max-width:768px) { .portal-emp-overlay { display: block !important; } }`}</style>
+                      <div className="portal-emp-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: `1px solid ${C.border}`, boxShadow: '0 4px 16px rgba(13,27,53,0.12)', zIndex: 100 }}>
                       {empresas.map(e => (
                         <button
                           key={e.cliente_id}
@@ -1303,6 +1306,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                         </button>
                       ))}
                     </div>
+                    </>
+
                   )}
                 </div>
               </div>
