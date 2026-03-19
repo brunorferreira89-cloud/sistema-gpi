@@ -1130,7 +1130,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── LINHA 4: CHIPS DE COMPETÊNCIA ── */}
         {competenciasLiberadas.length > 1 && (
-          <div style={{ position: 'relative', zIndex: 1, padding: '0 32px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="portal-chips-row" style={{ position: 'relative', zIndex: 1, padding: '0 32px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, marginRight: 4 }}>📆 Competência</span>
             {competenciasLiberadas.map(m => {
               const isAtivo = m === competencia;
