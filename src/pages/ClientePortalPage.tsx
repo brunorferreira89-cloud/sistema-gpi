@@ -205,6 +205,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
   // ── Countdown ─────────────────────────────────────────────────
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, min: 0, sec: 0 });
+  const [showDreMobile, setShowDreMobile] = useState(false);
+  const [showTorreMobile, setShowTorreMobile] = useState(false);
 
   const resolvedClienteId = propClienteId || clienteIdSelecionado;
 
@@ -887,6 +889,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         @keyframes hdr-slide-right { from { transform: translateX(-100%) } to { transform: translateX(200%) } }
         @keyframes hdr-radar-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
         @keyframes hdr-glow-pulse { 0%,100%{ opacity:.5 } 50%{ opacity:1 } }
+        @keyframes portal-modal-in { from { transform: translateY(100%) } to { transform: translateY(0) } }
+        @media (max-width: 768px) {
+          .portal-topbar { padding: 10px 16px 0 !important; }
+          .portal-badge-online { display: none !important; }
+          .portal-hero { flex-direction: column !important; gap: 12px !important; padding: 12px 16px 16px !important; }
+          .portal-client-name { font-size: 20px !important; }
+          .portal-pills { gap: 5px !important; }
+          .portal-pills > span { font-size: 9px !important; padding: 2px 8px !important; }
+          .portal-gc-card { display: none !important; }
+          .portal-right-block { flex-direction: column !important; width: 100% !important; }
+          .portal-empresa-sel { width: 100% !important; min-width: unset !important; }
+          .portal-chips-row { overflow-x: auto !important; flex-wrap: nowrap !important; padding: 0 16px 8px !important; -ms-overflow-style: none; scrollbar-width: none; }
+          .portal-chips-row::-webkit-scrollbar { display: none; }
+          .portal-footer { padding: 6px 16px !important; }
+          .portal-footer-extra { display: none !important; }
+          .portal-main { padding: 12px !important; }
+          .portal-main > * + * { margin-top: 12px; }
+          .portal-cards-wrapper .dre-header-grid { display: flex !important; overflow-x: auto !important; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 10px !important; padding: 4px 0 8px; }
+          .portal-cards-wrapper .dre-header-grid::-webkit-scrollbar { display: none; }
+          .portal-cards-wrapper .dre-header-grid > div { min-width: 220px !important; flex-shrink: 0 !important; scroll-snap-align: start; }
+          .portal-cards-wrapper > div { margin-bottom: 8px; }
+          .portal-swipe-hint { display: block !important; }
+          .portal-gauges-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .portal-dre-desktop { display: none !important; }
+          .portal-mobile-btn { display: flex !important; }
+          .portal-torre-desktop { display: none !important; }
+          .portal-apresentacao { flex-direction: column !important; align-items: stretch !important; padding: 14px 16px !important; }
+          .portal-apresentacao-btn { width: 100% !important; margin-top: 10px !important; }
+          .portal-reuniao .cd-num { font-size: 18px !important; }
+          .portal-reuniao .cd-box { padding: 8px 10px !important; min-width: 50px !important; }
+          .portal-fullscreen-modal { animation: portal-modal-in 0.25s ease-out; }
+        }
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FFFFFF', borderBottom: '1.5px solid #DDE4F0', boxShadow: '0 4px 32px rgba(13,27,53,0.08)', overflow: 'hidden' }}>
 
@@ -948,7 +982,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* ── LINHA 1: TOP BAR ── */}
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px 0' }}>
+        <div className="portal-topbar" style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={gpiLogo} alt="GPI" style={{ height: 32 }} />
             <div>
@@ -957,7 +991,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, color: C.green, background: 'rgba(0,168,107,0.12)', border: '1px solid rgba(0,168,107,0.25)', borderRadius: 6, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span className="portal-badge-online" style={{ fontSize: 9, fontWeight: 600, color: C.green, background: 'rgba(0,168,107,0.12)', border: '1px solid rgba(0,168,107,0.25)', borderRadius: 6, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, animation: 'pulse 2s infinite', boxShadow: '0 0 6px rgba(0,168,107,0.8)' }} />
               Sistemas online
             </span>
@@ -983,7 +1017,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* ── LINHA 2: HERO CONTENT ── */}
-        <div style={{ position: 'relative', zIndex: 1, padding: '16px 32px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
+        <div className="portal-hero" style={{ position: 'relative', zIndex: 1, padding: '16px 32px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
           {/* Bloco esquerdo */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Saudação */}
@@ -995,13 +1029,13 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
             {/* Nome do cliente */}
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: 8 }}>
-              <h1 style={{ fontSize: 27, fontWeight: 800, color: C.txt, margin: 0, lineHeight: 1.2 }}>
+              <h1 className="portal-client-name" style={{ fontSize: 27, fontWeight: 800, color: C.txt, margin: 0, lineHeight: 1.2 }}>
                 {cliente?.razao_social || cliente?.nome_empresa || ''}
               </h1>
               <div style={{ width: '40%', height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, #1A3CFF, transparent)', marginTop: 4 }} />
             </div>
             {/* Pills */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            <div className="portal-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {cliente?.segmento && (
                 <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(0,153,230,0.08)', color: '#0099E6' }}>🏥 {cliente.segmento}</span>
               )}
@@ -1015,10 +1049,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           {/* Bloco direito */}
-          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
             {/* Card Score GC */}
             {cardData && (
-              <div style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="portal-gc-card" style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 {/* Mini gauge SVG */}
                 <svg width="52" height="52" viewBox="0 0 52 52">
                   <circle cx="26" cy="26" r="22" fill="none" stroke="#F0F4FA" strokeWidth="4" />
@@ -1045,7 +1079,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             )}
             {/* Seletor empresa */}
             {showTrocarEmpresa && (
-              <div style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
+              <div className="portal-empresa-sel" style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
                 <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, display: 'block', marginBottom: 6 }}>🏢 Empresa ativa</span>
                 <div className="relative">
                   <button
@@ -1096,7 +1130,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── LINHA 4: CHIPS DE COMPETÊNCIA ── */}
         {competenciasLiberadas.length > 1 && (
-          <div style={{ position: 'relative', zIndex: 1, padding: '0 32px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="portal-chips-row" style={{ position: 'relative', zIndex: 1, padding: '0 32px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, marginRight: 4 }}>📆 Competência</span>
             {competenciasLiberadas.map(m => {
               const isAtivo = m === competencia;
@@ -1121,43 +1155,46 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── LINHA 5: FOOTER DO HEADER ── */}
-        <div style={{ position: 'relative', zIndex: 1, background: '#F6F9FF', borderTop: `1px solid ${C.border}`, padding: '6px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="portal-footer" style={{ position: 'relative', zIndex: 1, background: '#F6F9FF', borderTop: `1px solid ${C.border}`, padding: '6px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: C.txtMuted }}>
             <span>🕐 Atualizado em {new Date().toLocaleDateString('pt-BR')}</span>
-            <span style={{ width: 1, height: 12, background: C.border }} />
+            <span className="portal-footer-extra" style={{ width: 1, height: 12, background: C.border }} />
             {proximaReuniao && (
-              <>
+              <span className="portal-footer-extra" style={{ display: 'contents' }}>
                 <span>📅 Próxima reunião: {new Date(proximaReuniao.data_reuniao + 'T12:00:00').toLocaleDateString('pt-BR')} às {proximaReuniao.horario?.substring(0, 5) || '09:00'}</span>
                 <span style={{ width: 1, height: 12, background: C.border }} />
-              </>
+              </span>
             )}
-            <span>📊 {dreMonthsAll.length} meses disponíveis</span>
+            <span className="portal-footer-extra">📊 {dreMonthsAll.length} meses disponíveis</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, color: C.primary, background: 'rgba(26,60,255,0.06)', padding: '2px 8px', borderRadius: 4 }}>GPI Inteligência Financeira</span>
+            <span className="portal-footer-extra" style={{ fontSize: 9, fontWeight: 600, color: C.primary, background: 'rgba(26,60,255,0.06)', padding: '2px 8px', borderRadius: 4 }}>GPI Inteligência Financeira</span>
             <span style={{ fontSize: 9, color: C.txtMuted }}>🔒 Confidencial</span>
           </div>
         </div>
       </header>
 
-      <main className="space-y-6" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+      <main className="space-y-6 portal-main" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
 
         {/* ── SEÇÃO 2: CARDS DE RESUMO (DreIndicadoresHeader) ── */}
         {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
-          <DreIndicadoresHeader
-            contas={dreContas}
-            valoresAnuais={dreValoresAnuais}
-            months={dreIndicadorMonths}
-            mesSelecionado={competencia}
-            clienteId={resolvedClienteId || undefined}
-          />
+          <div className="portal-cards-wrapper">
+            <DreIndicadoresHeader
+              contas={dreContas}
+              valoresAnuais={dreValoresAnuais}
+              months={dreIndicadorMonths}
+              mesSelecionado={competencia}
+              clienteId={resolvedClienteId || undefined}
+            />
+            <p className="portal-swipe-hint" style={{ display: 'none', fontSize: 9, color: C.txtMuted, textAlign: 'center', marginTop: 4 }}>← deslize para ver mais →</p>
+          </div>
         )}
 
         {/* ── SEÇÃO 3: ALERTAS DE META (SPEEDOMETER GAUGES) ── */}
         {gaugeData.length > 0 && (
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, marginBottom: 10 }}>Alertas de Meta</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div className="portal-gauges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {gaugeData.map((g, i) => (
                 <SpeedometerGauge
                   key={i}
@@ -1175,7 +1212,18 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── SEÇÃO 4: DRE FINANCEIRA ────────────────────────── */}
         {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
-          <div>
+          <>
+          <button className="portal-mobile-btn" onClick={() => setShowDreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>📊</span>
+              <div style={{ textAlign: 'left' }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.txt, margin: 0 }}>DRE Financeira</p>
+                <p style={{ fontSize: 11, color: C.txtMuted, margin: 0 }}>Demonstrativo completo</p>
+              </div>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.primary }}>Ver análise →</span>
+          </button>
+          <div className="portal-dre-desktop">
             {/* DRE Banner */}
             <div style={{ marginBottom: 12 }}>
               <DreBanner
@@ -1408,11 +1456,12 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           </div>
+          </>
         )}
 
         {/* ── SEÇÃO 5: APRESENTAÇÃO DO MÊS ───────────────────── */}
         {competencia && (
-          <div className="rounded-[14px] bg-white flex items-center justify-between" style={{ border: `1px solid ${C.border}`, padding: '18px 24px' }}>
+          <div className="portal-apresentacao rounded-[14px] bg-white flex items-center justify-between" style={{ border: `1px solid ${C.border}`, padding: '18px 24px' }}>
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center rounded-lg" style={{ width: 44, height: 44, background: 'rgba(26,60,255,0.08)', border: '1px solid rgba(26,60,255,0.2)' }}>
                 <span className="text-xl">📊</span>
@@ -1434,7 +1483,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <button
                 onClick={() => hasApresentacao ? navigate(`/apresentacao/${resolvedClienteId}`) : undefined}
                 disabled={!hasApresentacao}
-                className="inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-all"
+                className="portal-apresentacao-btn inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-all"
                 style={{ background: C.primary, boxShadow: '0 2px 8px rgba(26,60,255,0.18)', opacity: hasApresentacao ? 1 : 0.5, cursor: hasApresentacao ? 'pointer' : 'not-allowed' }}
               >
                 <Play className="h-4 w-4" /> Iniciar Apresentação
@@ -1445,7 +1494,18 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── SEÇÃO 6: TORRE DE CONTROLE ──────────────────────── */}
         {dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 && (
-          <div>
+          <>
+          <button className="portal-mobile-btn" onClick={() => setShowTorreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>🎯</span>
+              <div style={{ textAlign: 'left' }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.txt, margin: 0 }}>Torre de Controle</p>
+                <p style={{ fontSize: 11, color: C.txtMuted, margin: 0 }}>Metas e simulações</p>
+              </div>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.primary }}>Ver metas →</span>
+          </button>
+          <div className="portal-torre-desktop">
             {/* Torre Banner */}
             <div style={{ marginBottom: 12 }}>
               <TorreBanner />
@@ -1836,6 +1896,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             )}
           </div>
           </div>
+          </>
         )}
 
         {/* ── MEU PAINEL (widgets) ────────────────────────────── */}
@@ -1851,7 +1912,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 7: PRÓXIMA REUNIÃO ───────────────────────── */}
-        <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+        <div className="portal-reuniao rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-3" style={{ padding: '14px 20px', background: C.surfaceHi, borderBottom: `1px solid ${C.border}` }}>
             <div className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: 'rgba(0,153,230,0.1)' }}>
               <Calendar className="h-5 w-5" style={{ color: C.cyan }} />
@@ -1873,8 +1934,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                     { value: countdown.min, label: 'MIN' },
                     { value: countdown.sec, label: 'SEG' },
                   ].map((block, i) => (
-                    <div key={i} className="rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
-                      <p style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
+                    <div key={i} className="cd-box rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
+                      <p className="cd-num" style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
                       <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted }}>{block.label}</p>
                     </div>
                   ))}
@@ -1893,6 +1954,189 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
       </main>
+
+      {/* ── MOBILE FULLSCREEN MODALS ── */}
+      {showDreMobile && dreContas && dreValoresAnuais && (
+        <div className="portal-fullscreen-modal" style={{ position: 'fixed', inset: 0, zIndex: 50, background: C.bg, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <button onClick={() => setShowDreMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.primary, padding: 4 }}>←</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.txt }}>DRE Financeira</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+            <div style={{ marginBottom: 12 }}>
+              <DreBanner
+                faturamento={cardData?.fat}
+                mcPct={cardData ? (cardData.fat !== 0 ? (cardData.mc / Math.abs(cardData.fat)) * 100 : null) : null}
+                gcPct={cardData ? (cardData.fat !== 0 ? (cardData.gc / Math.abs(cardData.fat)) * 100 : null) : null}
+              />
+            </div>
+            <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+              <div className="flex items-center justify-between" style={{ padding: '12px 16px', borderBottom: `1px solid #F0F4FA` }}>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {dreMonthsAll.map(m => {
+                    const isActive = dreMonthsActive.has(m);
+                    return (
+                      <button key={m} onClick={() => { setDreMonthsActive(prev => { const next = new Set(prev); if (next.has(m)) next.delete(m); else next.add(m); return next; }); }}
+                        style={{ padding: '4px 10px', borderRadius: 14, fontSize: 10, fontWeight: isActive ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', border: isActive ? `1.5px solid ${C.primary}` : `1px solid ${C.border}`, background: isActive ? C.primary : '#fff', color: isActive ? '#FFFFFF' : C.txtSec }}>
+                        {getMonthShort(m)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: '#F0F4FA', borderBottom: `1px solid ${C.border}` }}>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, position: 'sticky', left: 0, zIndex: 10, background: '#F0F4FA', borderRight: `1px solid ${C.border}`, minWidth: 180 }}>CONTA DRE</th>
+                      {Array.from(dreMonthsActive).sort().map(m => (
+                        <th key={m} style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: m === competencia ? C.primary : C.txtMuted, textTransform: 'uppercase', background: m === competencia ? C.pLo : '#F0F4FA', minWidth: 90 }}>
+                          {m === competencia && '▲ '}{getMonthShort(m)}
+                        </th>
+                      ))}
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, textTransform: 'uppercase', background: '#F0F4FA', minWidth: 100 }}>ACUMULADO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const rows: JSX.Element[] = [];
+                      const activeMonths = Array.from(dreMonthsActive).sort();
+                      const renderMobileDreRow = (node: DreNode): JSX.Element | null => {
+                        const conta = node.conta;
+                        const isGrupo = conta.nivel === 0;
+                        const isSubgrupo = conta.nivel === 1;
+                        const isCat = conta.nivel === 2;
+                        const isTotal = !!conta.is_total;
+                        const hasChildren = node.children.length > 0;
+                        const isCollapsed = dreCollapsed.has(conta.id);
+                        if (isCat && !isTotal) {
+                          const hasAnyVal = dreMonthsAll.some(m => { const v = dreValoresMap[conta.id]?.[m]; return v != null && v !== 0; });
+                          if (!hasAnyVal) return null;
+                        }
+                        const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
+                        let rowBg = '#FAFCFF', fontWeight = 400, textColor = C.txtSec;
+                        if (isTotal) { rowBg = '#0D1B35'; fontWeight = 700; textColor = '#FFFFFF'; }
+                        else if (isGrupo) { rowBg = '#F0F4FA'; fontWeight = 700; textColor = C.txt; }
+                        else if (isSubgrupo) { rowBg = '#FFFFFF'; fontWeight = 600; textColor = C.txt; }
+                        let acum = 0;
+                        dreMonthsAll.forEach(m => { const map = getDreMonthMap(m); const v = isCat ? (map[conta.id] ?? 0) : (sumNodeLeafs(node, map) ?? 0); acum += v; });
+                        return (
+                          <Fragment key={conta.id}>
+                            <tr style={{ background: rowBg, borderBottom: isTotal ? 'none' : `1px solid ${isGrupo ? C.borderStr : '#F8F9FB'}` }}>
+                              <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize: 12, color: textColor, whiteSpace: 'nowrap', minWidth: 180, position: 'sticky', left: 0, zIndex: 5, background: rowBg, borderRight: `1px solid ${C.border}` }}>
+                                <span className="flex items-center gap-1.5">
+                                  {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
+                                    <button onClick={() => { setDreCollapsed(prev => { const n = new Set(prev); if (n.has(conta.id)) n.delete(conta.id); else n.add(conta.id); return n; }); }} style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 2, lineHeight: 0, color: C.txtMuted }}>
+                                      {isCollapsed ? <ChevronRight style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+                                    </button>
+                                  ) : <span style={{ width: 18 }} />}
+                                  {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
+                                  <span>{conta.nome}</span>
+                                </span>
+                              </td>
+                              {activeMonths.map(m => {
+                                const map = getDreMonthMap(m);
+                                const val = isCat ? (map[conta.id] ?? null) : sumNodeLeafs(node, map);
+                                const isSel = m === competencia;
+                                return (
+                                  <td key={m} style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: val != null ? (val < 0 ? C.red : (isTotal ? '#FFF' : (isSel ? C.primary : C.txt))) : C.txtMuted, padding: '8px 10px', background: isSel ? (isTotal ? '#0D1B35' : C.pLo) : (isTotal ? '#0D1B35' : undefined) }}>
+                                    {fmtTorre(val)}
+                                  </td>
+                                );
+                              })}
+                              <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: acum < 0 ? C.red : (isTotal ? '#FFF' : C.txt), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(acum)}</td>
+                            </tr>
+                            {hasChildren && !isCollapsed && node.children.map(child => renderMobileDreRow(child))}
+                          </Fragment>
+                        );
+                      };
+                      for (const seq of SEQUENCIA_DRE) {
+                        const grupos = dreGruposPorTipo[seq.tipo] || [];
+                        for (const g of grupos) { const row = renderMobileDreRow(g); if (row) rows.push(row); }
+                        if (seq.totalizadorApos) {
+                          const cfg = TOTALIZADOR_CONFIG[seq.totalizadorApos];
+                          const tiposAcum = SEQUENCIA_DRE.slice(0, SEQUENCIA_DRE.findIndex(s => s.totalizadorApos === seq.totalizadorApos) + 1).map(s => s.tipo);
+                          rows.push(
+                            <tr key={`tot-${cfg.key}`} style={{ background: '#0D1B35' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', position: 'sticky', left: 0, zIndex: 5, background: '#0D1B35', borderRight: `1px solid ${C.border}` }}>
+                                <span className="flex items-center gap-1.5"><span style={{ color: C.cyan, fontSize: 13 }}>◈</span>{cfg.nome}</span>
+                              </td>
+                              {activeMonths.map(m => {
+                                const map = getDreMonthMap(m);
+                                const total = tiposAcum.reduce((acc, t) => acc + sumGrupos(dreGruposPorTipo[t] || [], map), 0);
+                                return <td key={m} style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: m === competencia ? 'rgba(26,60,255,0.18)' : '#0D1B35' }}>{fmtTorre(total)}</td>;
+                              })}
+                              <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: '#0D1B35' }}>
+                                {fmtTorre(tiposAcum.reduce((acc, t) => acc + dreMonthsAll.reduce((s, m) => s + sumGrupos(dreGruposPorTipo[t] || [], getDreMonthMap(m)), 0), 0))}
+                              </td>
+                            </tr>
+                          );
+                        }
+                      }
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTorreMobile && dreContas && (torreMetas || []).length > 0 && (
+        <div className="portal-fullscreen-modal" style={{ position: 'fixed', inset: 0, zIndex: 50, background: C.bg, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <button onClick={() => setShowTorreMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.primary, padding: 4 }}>←</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.txt }}>Torre de Controle</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+            <div className="flex" style={{ borderBottom: `1px solid ${C.border}`, marginBottom: 12, background: '#fff', borderRadius: '12px 12px 0 0' }}>
+              {[
+                { key: 'gpi' as const, label: 'Metas GPI' },
+                { key: 'simulacao' as const, label: 'Minha Simulação' },
+              ].map(tab => (
+                <button key={tab.key} onClick={() => setTorreTab(tab.key)}
+                  style={{ padding: '10px 20px', fontSize: 12, fontWeight: torreTab === tab.key ? 700 : 500, color: torreTab === tab.key ? C.primary : C.txtSec, background: torreTab === tab.key ? '#fff' : C.surfaceHi, borderBottom: torreTab === tab.key ? `2px solid ${C.primary}` : '2px solid transparent', cursor: 'pointer', border: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', flex: 1 }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: '#F0F4FA', borderBottom: `1px solid ${C.border}` }}>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, position: 'sticky', left: 0, zIndex: 10, background: '#F0F4FA', borderRight: `1px solid ${C.border}`, minWidth: 180 }}>CONTA</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, background: '#F0F4FA', minWidth: 90 }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, background: '#F0F4FA', minWidth: 70 }}>AJUSTE</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.primary, background: C.pLo, minWidth: 90 }}>META</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renderTorreTable(
+                      torreTab === 'simulacao' ? Object.fromEntries(Object.entries(simLocalMap).map(([k, v]) => [k, v as TorreMeta])) : torreMetaMap,
+                      torreRealMap,
+                      torreCollapsed,
+                      (id) => setTorreCollapsed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }),
+                      torreTab === 'simulacao'
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {torreTab === 'simulacao' && simDirty && (
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, textAlign: 'right' }}>
+                  <button onClick={handleSaveSimulation} disabled={savingSim}
+                    className="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white"
+                    style={{ background: C.primary, opacity: savingSim ? 0.6 : 1, width: '100%', justifyContent: 'center' }}>
+                    {savingSim ? 'Salvando...' : 'Salvar simulação'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
