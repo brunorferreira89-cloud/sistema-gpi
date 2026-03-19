@@ -464,6 +464,31 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     },
   });
 
+  // ── Header pill: metas de receita (query leve, independente da Torre) ──
+  const { data: headerMetas } = useQuery({
+    queryKey: ['portal-header-metas', resolvedClienteId, competencia],
+    queryFn: async () => {
+      if (!resolvedClienteId || !competencia) return null;
+      const { data: contasReceita } = await supabase
+        .from('plano_de_contas')
+        .select('id')
+        .eq('cliente_id', resolvedClienteId)
+        .eq('tipo', 'receita')
+        .eq('nivel', 1);
+      if (!contasReceita?.length) return null;
+      const contaIds = contasReceita.map(c => c.id);
+      const { data: metas } = await supabase
+        .from('torre_metas')
+        .select('conta_id, meta_tipo, meta_valor')
+        .eq('cliente_id', resolvedClienteId)
+        .eq('competencia', competencia)
+        .in('conta_id', contaIds);
+      return metas ?? [];
+    },
+    enabled: !!resolvedClienteId && !!competencia,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const dreContaIds = useMemo(() => dreContas?.map(c => c.id) || [], [dreContas]);
 
   // Get year from competencia
