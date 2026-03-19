@@ -273,6 +273,16 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     loadEmpresas();
   }, [propClienteId, profile?.id, profile?.cliente_id]);
 
+  // ── Restore empresa from sessionStorage on refresh ────────────
+  useEffect(() => {
+    if (propClienteId) return;
+    const savedId = sessionStorage.getItem('gpi_portal_cliente_id');
+    if (savedId && empresas.length > 0 && !clienteIdSelecionado) {
+      const found = empresas.find(e => e.cliente_id === savedId);
+      if (found) setClienteIdSelecionado(found.cliente_id);
+    }
+  }, [empresas, propClienteId]);
+
   // ── Load competencias & dashboard data ────────────────────────
   useEffect(() => {
     if (!resolvedClienteId) return;
