@@ -79,6 +79,25 @@ serve(async (req) => {
       );
     }
 
+    // ─── UPDATE EMAIL ───
+    if (action === "update_email") {
+      const { user_id, novo_email } = body;
+      if (!user_id || !novo_email) throw new Error("user_id e novo_email são obrigatórios");
+
+      const { error } = await adminClient.auth.admin.updateUserById(user_id, {
+        email: novo_email,
+        email_confirm: true,
+      });
+      if (error) throw error;
+
+      await adminClient.from("profiles").update({ email: novo_email }).eq("id", user_id);
+
+      return new Response(
+        JSON.stringify({ success: true, message: "E-mail atualizado." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ─── CREATE ───
     const { email, password, nome, cliente_id, usar_convite, role: requestedRole } = body;
 
