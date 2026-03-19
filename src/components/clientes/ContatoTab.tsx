@@ -270,6 +270,7 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
         cnpj: cliente.cnpj || '',
         nome_empresa: cliente.nome_empresa || '',
         segmento: cliente.segmento || '',
+        icone_emoji: cliente.icone_emoji || '🏢',
         faturamento_faixa: cliente.faturamento_faixa || '',
         endereco_completo: cliente.endereco_completo || '',
         cep: cliente.cep || '',
