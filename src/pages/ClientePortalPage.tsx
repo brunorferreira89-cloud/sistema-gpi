@@ -196,6 +196,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [simLocalMap, setSimLocalMap] = useState<Record<string, { meta_tipo: string; meta_valor: number | null }>>({});
   const [simDirty, setSimDirty] = useState(false);
   const [savingSim, setSavingSim] = useState(false);
+  const [editingSimId, setEditingSimId] = useState<string | null>(null);
+  const [editingSimVal, setEditingSimVal] = useState<string>('');
   const [torreShowAV, setTorreShowAV] = useState(false);
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
