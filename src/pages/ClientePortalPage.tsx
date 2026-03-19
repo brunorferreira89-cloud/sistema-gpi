@@ -880,62 +880,266 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // ══ MAIN RENDER ═══════════════════════════════════════════════
   return (
     <div style={{ width: '100%', background: C.bg, fontFamily: 'DM Sans, sans-serif' }} className="min-h-screen">
-      {/* ── SEÇÃO 1: HEADER STICKY ─────────────────────────────── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FFFFFF', borderBottom: `1px solid ${C.border}`, boxShadow: '0 1px 8px rgba(13,27,53,0.06)' }}>
-        {/* Linha superior */}
-        <div className="flex items-center justify-between" style={{ padding: '10px 24px' }}>
-          <div className="flex items-center gap-3">
-            <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
-            <span className="text-sm font-semibold" style={{ color: C.txt }}>{cliente?.razao_social || cliente?.nome_empresa}</span>
-            <span className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider" style={{ background: '#EBF0FF', color: C.primary }}>Portal do Cliente</span>
-          </div>
+      {/* ── SEÇÃO 1: HEADER PREMIUM ──────────────────────────── */}
+      <style>{`
+        @keyframes hdr-pulse-expand { 0% { transform: scale(0.8); opacity: .6 } 100% { transform: scale(1.8); opacity: 0 } }
+        @keyframes hdr-float-up { from { transform: translateY(0) scale(1); opacity: .6 } to { transform: translateY(-140px) scale(0.1); opacity: 0 } }
+        @keyframes hdr-slide-right { from { transform: translateX(-100%) } to { transform: translateX(200%) } }
+        @keyframes hdr-radar-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+        @keyframes hdr-glow-pulse { 0%,100%{ opacity:.5 } 50%{ opacity:1 } }
+      `}</style>
+      <header style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FFFFFF', borderBottom: '1.5px solid #DDE4F0', boxShadow: '0 4px 32px rgba(13,27,53,0.08)', overflow: 'hidden' }}>
 
-          {/* Seletor de empresa (centro) */}
-          {showTrocarEmpresa && (
-            <div className="relative">
-              <button
-                onClick={() => setEmpresaDropdownOpen(!empresaDropdownOpen)}
-                className="inline-flex items-center gap-2 rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-colors"
-                style={{ background: C.surfaceHi, border: `1.5px solid ${C.borderStr}`, color: C.txt }}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ background: C.green }} />
-                {empresaAtual?.razao_social || empresaAtual?.nome_empresa || 'Empresa'}
-                <ChevronDown className="h-3 w-3" style={{ color: C.txtMuted }} />
-              </button>
-              {empresaDropdownOpen && (
-                <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 rounded-lg bg-white shadow-lg border z-50 min-w-[200px]" style={{ borderColor: C.border }}>
-                  {empresas.map(e => (
-                    <button
-                      key={e.cliente_id}
-                      onClick={() => {
-                        setClienteIdSelecionado(e.cliente_id);
-                        setEmpresaDropdownOpen(false);
-                        setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
-                        setIndicadoresCalc([]); setAlertas([]); setProximaReuniao(null);
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-xs hover:bg-[#F6F9FF] transition-colors first:rounded-t-lg last:rounded-b-lg"
-                      style={{ color: e.cliente_id === resolvedClienteId ? C.primary : C.txt, fontWeight: e.cliente_id === resolvedClienteId ? 700 : 400 }}
-                    >
-                      {e.empresa_padrao && <span className="mr-1">★</span>}
-                      {e.razao_social || e.nome_empresa}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {!espelho && (
-            <button onClick={signOut} className="rounded-md p-1.5 transition-colors hover:text-[#DC2626]" style={{ color: C.txtSec }}>
-              <LogOut className="h-4 w-4" />
-            </button>
-          )}
+        {/* ── Visual effect layers ── */}
+        {/* 1. HUD grid */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'linear-gradient(rgba(26,60,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(26,60,255,0.035) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+        {/* 2. Radial glows */}
+        <div style={{ position: 'absolute', top: -40, left: '20%', width: 600, height: 320, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(26,60,255,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -30, right: '5%', width: 350, height: 220, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(0,153,230,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: -20, left: '2%', width: 240, height: 200, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(0,168,107,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '40%', left: '50%', width: 200, height: 160, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(26,60,255,0.05) 0%, transparent 70%)', pointerEvents: 'none', transform: 'translateX(-50%)' }} />
+        {/* 3. Pulse rings */}
+        {[{ top: '30%', left: '15%', delay: '0s' }, { top: '60%', right: '25%', delay: '1s' }, { top: '20%', right: '40%', delay: '2s' }].map((r, i) => (
+          <div key={`ring-${i}`} style={{ position: 'absolute', ...r, width: 60, height: 60, border: '1px solid rgba(26,60,255,0.08)', borderRadius: '50%', animation: `hdr-pulse-expand 3s ease-out ${r.delay} infinite`, pointerEvents: 'none' }} />
+        ))}
+        {/* 4. Floating particles */}
+        {[
+          { left: '5%', s: 4, c: 'rgba(26,60,255,0.12)', dur: '8s', del: '0s', round: true },
+          { left: '12%', s: 3, c: 'rgba(0,153,230,0.10)', dur: '11s', del: '2s', round: false },
+          { left: '20%', s: 5, c: 'rgba(0,168,107,0.09)', dur: '9s', del: '1s', round: true },
+          { left: '28%', s: 3, c: 'rgba(217,119,6,0.08)', dur: '13s', del: '3s', round: false },
+          { left: '35%', s: 4, c: 'rgba(26,60,255,0.10)', dur: '10s', del: '0.5s', round: true },
+          { left: '42%', s: 3, c: 'rgba(0,153,230,0.10)', dur: '12s', del: '4s', round: false },
+          { left: '50%', s: 5, c: 'rgba(0,168,107,0.09)', dur: '7s', del: '1.5s', round: true },
+          { left: '57%', s: 3, c: 'rgba(26,60,255,0.12)', dur: '14s', del: '2.5s', round: false },
+          { left: '63%', s: 4, c: 'rgba(217,119,6,0.08)', dur: '9s', del: '3.5s', round: true },
+          { left: '70%', s: 3, c: 'rgba(0,153,230,0.10)', dur: '11s', del: '0.8s', round: false },
+          { left: '76%', s: 5, c: 'rgba(26,60,255,0.10)', dur: '8s', del: '4.5s', round: true },
+          { left: '82%', s: 3, c: 'rgba(0,168,107,0.09)', dur: '15s', del: '1.2s', round: false },
+          { left: '88%', s: 4, c: 'rgba(217,119,6,0.08)', dur: '10s', del: '5s', round: true },
+          { left: '93%', s: 3, c: 'rgba(26,60,255,0.12)', dur: '12s', del: '2.8s', round: false },
+          { left: '8%', s: 3, c: 'rgba(0,153,230,0.10)', dur: '16s', del: '6s', round: true },
+          { left: '25%', s: 4, c: 'rgba(0,168,107,0.09)', dur: '13s', del: '3.2s', round: false },
+          { left: '45%', s: 3, c: 'rgba(26,60,255,0.10)', dur: '19s', del: '1.8s', round: true },
+          { left: '60%', s: 5, c: 'rgba(217,119,6,0.08)', dur: '11s', del: '4.2s', round: false },
+          { left: '72%', s: 3, c: 'rgba(0,153,230,0.10)', dur: '14s', del: '0.3s', round: true },
+          { left: '85%', s: 4, c: 'rgba(26,60,255,0.12)', dur: '17s', del: '5.5s', round: false },
+          { left: '15%', s: 3, c: 'rgba(0,168,107,0.09)', dur: '10s', del: '7s', round: true },
+          { left: '55%', s: 4, c: 'rgba(217,119,6,0.08)', dur: '12s', del: '2.2s', round: false },
+        ].map((p, i) => (
+          <div key={`ptcl-${i}`} style={{ position: 'absolute', bottom: 4, left: p.left, width: p.s, height: p.s, background: p.c, borderRadius: p.round ? '50%' : 2, animation: `hdr-float-up ${p.dur} linear ${p.del} infinite`, pointerEvents: 'none' }} />
+        ))}
+        {/* 5. Scan lines */}
+        {[{ dur: '10s', del: '0s' }, { dur: '16s', del: '3s' }, { dur: '22s', del: '7s' }].map((s, i) => (
+          <div key={`scan-${i}`} style={{ position: 'absolute', top: `${20 + i * 30}%`, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(26,60,255,0.08), transparent)', animation: `hdr-slide-right ${s.dur} linear ${s.del} infinite`, pointerEvents: 'none' }} />
+        ))}
+        {/* 6. SVG decorative geometry */}
+        <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', opacity: 0.045, pointerEvents: 'none' }}>
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="55" fill="none" stroke="#1A3CFF" strokeWidth="0.8" />
+            <circle cx="60" cy="60" r="40" fill="none" stroke="#1A3CFF" strokeWidth="0.5" />
+            <circle cx="60" cy="60" r="25" fill="none" stroke="#0099E6" strokeWidth="0.5" />
+            <line x1="60" y1="5" x2="60" y2="115" stroke="#1A3CFF" strokeWidth="0.3" />
+            <line x1="5" y1="60" x2="115" y2="60" stroke="#1A3CFF" strokeWidth="0.3" />
+            <line x1="60" y1="60" x2="110" y2="60" stroke="#0099E6" strokeWidth="1">
+              <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="8s" repeatCount="indefinite" />
+            </line>
+          </svg>
         </div>
 
-        {/* Linha inferior: chips de competência */}
+        {/* ── LINHA 1: TOP BAR ── */}
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src={gpiLogo} alt="GPI" style={{ height: 32 }} />
+            <div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.txt }}>GPI Inteligência Financeira</span>
+              <span style={{ display: 'block', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.txtMuted }}>Portal do Cliente</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 9, fontWeight: 600, color: C.green, background: 'rgba(0,168,107,0.12)', border: '1px solid rgba(0,168,107,0.25)', borderRadius: 6, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, animation: 'pulse 2s infinite', boxShadow: '0 0 6px rgba(0,168,107,0.8)' }} />
+              Sistemas online
+            </span>
+            {/* Bell */}
+            <button style={{ position: 'relative', width: 32, height: 32, borderRadius: 8, background: '#F6F9FF', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <Bell style={{ width: 15, height: 15, color: C.txtSec }} />
+              {alertas.length > 0 && <span style={{ position: 'absolute', top: 4, right: 4, width: 7, height: 7, borderRadius: '50%', background: C.red, border: '1.5px solid #fff' }} />}
+            </button>
+            {/* WhatsApp */}
+            <button
+              onClick={() => { window.open(`https://wa.me/?text=${encodeURIComponent('Olá, preciso de ajuda com meu painel financeiro GPI.')}`, '_blank'); }}
+              style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,168,107,0.07)', border: '1px solid rgba(0,168,107,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              <MessageCircle style={{ width: 15, height: 15, color: C.green }} />
+            </button>
+            {/* Logout */}
+            {!espelho && (
+              <button onClick={signOut} className="rounded-md p-1.5 transition-colors hover:text-[#DC2626]" style={{ color: C.txtSec }}>
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── LINHA 2: HERO CONTENT ── */}
+        <div style={{ position: 'relative', zIndex: 1, padding: '16px 32px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
+          {/* Bloco esquerdo */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Saudação */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 16, height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, #1A3CFF, #0099E6)' }} />
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted }}>
+                Olá, {profile?.nome || 'Cliente'} — bem-vindo ao seu painel financeiro
+              </span>
+            </div>
+            {/* Nome do cliente */}
+            <div style={{ position: 'relative', display: 'inline-block', marginBottom: 8 }}>
+              <h1 style={{ fontSize: 27, fontWeight: 800, color: C.txt, margin: 0, lineHeight: 1.2 }}>
+                {cliente?.razao_social || cliente?.nome_empresa || ''}
+              </h1>
+              <div style={{ width: '40%', height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, #1A3CFF, transparent)', marginTop: 4 }} />
+            </div>
+            {/* Pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              {cliente?.segmento && (
+                <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(0,153,230,0.08)', color: '#0099E6' }}>🏥 {cliente.segmento}</span>
+              )}
+              {cliente?.faturamento_faixa && (
+                <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(0,168,107,0.07)', color: '#00A86B' }}>📈 {cliente.faturamento_faixa}</span>
+              )}
+              <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: '#F0F4FA', color: '#4A5E80' }}>📅 {fmtMesAnoLong(competencia)}</span>
+              {alertas.length > 0 && (
+                <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(217,119,6,0.07)', color: '#D97706' }}>⚠ {alertas.length} alerta{alertas.length > 1 ? 's' : ''} ativo{alertas.length > 1 ? 's' : ''}</span>
+              )}
+            </div>
+          </div>
+          {/* Bloco direito */}
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            {/* Card Score GC */}
+            {cardData && (
+              <div style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Mini gauge SVG */}
+                <svg width="52" height="52" viewBox="0 0 52 52">
+                  <circle cx="26" cy="26" r="22" fill="none" stroke="#F0F4FA" strokeWidth="4" />
+                  <circle cx="26" cy="26" r="22" fill="none"
+                    stroke={cardData.gc > 0 ? C.green : cardData.gcAV > -10 ? C.orange : C.red}
+                    strokeWidth="4" strokeLinecap="round"
+                    strokeDasharray={`${Math.min(Math.abs(cardData.gcAV), 100) / 100 * 138.2} 138.2`}
+                    transform="rotate(-90 26 26)"
+                  />
+                  <text x="26" y="28" textAnchor="middle" style={{ fontSize: 9, fontWeight: 800, fontFamily: C.mono, fill: cardData.gc > 0 ? C.green : cardData.gcAV > -10 ? C.orange : C.red }}>
+                    {cardData.gcAV.toFixed(0)}%
+                  </text>
+                </svg>
+                <div>
+                  <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, display: 'block' }}>Geração de Caixa</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: C.mono, color: cardData.gc > 0 ? C.green : cardData.gcAV > -10 ? C.orange : C.red, display: 'block' }}>
+                    {cardData.gcAV.toFixed(1)}%
+                  </span>
+                  <span style={{ fontSize: 9.5, color: C.txtMuted }}>
+                    {cardData.gc > 0 ? '✓ Saudável' : cardData.gcAV > -10 ? '⚠ Atenção' : '✗ Crítico'}
+                  </span>
+                </div>
+              </div>
+            )}
+            {/* Seletor empresa */}
+            {showTrocarEmpresa && (
+              <div style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
+                <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, display: 'block', marginBottom: 6 }}>🏢 Empresa ativa</span>
+                <div className="relative">
+                  <button
+                    onClick={() => setEmpresaDropdownOpen(!empresaDropdownOpen)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: 'none', border: 'none', padding: 0, width: '100%' }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, boxShadow: '0 0 4px rgba(0,168,107,0.6)' }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: C.txt, flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {empresaAtual?.razao_social || empresaAtual?.nome_empresa || 'Empresa'}
+                    </span>
+                    <ChevronDown style={{ width: 14, height: 14, color: C.txtMuted }} />
+                  </button>
+                  {empresaDropdownOpen && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: `1px solid ${C.border}`, boxShadow: '0 4px 16px rgba(13,27,53,0.12)', zIndex: 50 }}>
+                      {empresas.map(e => (
+                        <button
+                          key={e.cliente_id}
+                          onClick={() => {
+                            setClienteIdSelecionado(e.cliente_id);
+                            setEmpresaDropdownOpen(false);
+                            setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
+                            setIndicadoresCalc([]); setAlertas([]); setProximaReuniao(null);
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
+                            padding: '8px 12px', fontSize: 11, cursor: 'pointer', border: 'none',
+                            background: e.cliente_id === resolvedClienteId ? 'rgba(26,60,255,0.04)' : 'transparent',
+                            color: e.cliente_id === resolvedClienteId ? C.primary : C.txt,
+                            fontWeight: e.cliente_id === resolvedClienteId ? 700 : 400,
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={ev => { (ev.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
+                          onMouseLeave={ev => { if (e.cliente_id !== resolvedClienteId) (ev.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: e.cliente_id === resolvedClienteId ? C.primary : C.border, boxShadow: e.cliente_id === resolvedClienteId ? '0 0 0 2px rgba(26,60,255,0.2)' : 'none' }} />
+                          {e.empresa_padrao && <span style={{ fontSize: 9 }}>★</span>}
+                          {e.razao_social || e.nome_empresa}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── LINHA 3: MINI KPIs ── */}
+        {cardData && (
+          <div style={{ position: 'relative', zIndex: 1, padding: '0 32px 14px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {[
+              { label: 'Faturamento', icon: '💰', value: cardData.fat, av: cardData.fatAV, delta: cardData.fatVar, spark: cardData.fatSpark, accent: '#1A3CFF', glow: 'rgba(26,60,255,0.08)' },
+              { label: 'Margem de Contribuição', icon: '📊', value: cardData.mc, av: cardData.mcAV, delta: cardData.mcVar, spark: cardData.mcSpark, accent: '#00A86B', glow: 'rgba(0,168,107,0.08)' },
+              { label: 'Resultado Operacional', icon: '📉', value: cardData.ro, av: cardData.roAV, delta: cardData.roVar, spark: cardData.roSpark, accent: '#0099E6', glow: 'rgba(0,153,230,0.08)' },
+              { label: 'Geração de Caixa', icon: '🏦', value: cardData.gc, av: cardData.gcAV, delta: cardData.gcVar, spark: cardData.gcSpark, accent: cardData.gc < 0 ? '#DC2626' : '#00A86B', glow: cardData.gc < 0 ? 'rgba(220,38,38,0.08)' : 'rgba(0,168,107,0.08)' },
+            ].map((card, idx) => (
+              <div
+                key={idx}
+                style={{
+                  position: 'relative', background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 10,
+                  padding: '10px 13px', overflow: 'hidden', transition: 'all 0.2s', cursor: 'default',
+                }}
+                onMouseEnter={ev => { const el = ev.currentTarget; el.style.borderColor = C.borderStr; el.style.boxShadow = '0 4px 16px rgba(13,27,53,0.08)'; el.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={ev => { const el = ev.currentTarget; el.style.borderColor = C.border; el.style.boxShadow = 'none'; el.style.transform = 'translateY(0)'; }}
+              >
+                {/* Top accent bar */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, background: card.accent }} />
+                {/* Glow */}
+                <div style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${card.glow}, transparent)`, pointerEvents: 'none' }} />
+                {/* Icon */}
+                <span style={{ position: 'absolute', top: 10, right: 10, fontSize: 13, opacity: 0.6 }}>{card.icon}</span>
+                {/* Content */}
+                <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, display: 'block', marginBottom: 4 }}>{card.label}</span>
+                <span style={{ fontSize: 17, fontWeight: 800, fontFamily: C.mono, color: C.txt, display: 'block' }}>{fmtR$(card.value)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <span style={{ fontSize: 10, color: C.txtMuted }}>AV {card.av.toFixed(1)}%</span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                    background: card.delta >= 0 ? 'rgba(0,168,107,0.1)' : 'rgba(220,38,38,0.08)',
+                    color: card.delta >= 0 ? C.green : C.red,
+                  }}>
+                    {card.delta >= 0 ? '↑' : '↓'} {fmtPct(card.delta)}
+                  </span>
+                  <SparkLine data={card.spark} color={card.accent} width={80} height={20} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── LINHA 4: CHIPS DE COMPETÊNCIA ── */}
         {competenciasLiberadas.length > 1 && (
-          <div style={{ padding: '0 24px 10px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, marginRight: 4 }}>Competência</span>
+          <div style={{ position: 'relative', zIndex: 1, padding: '0 32px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, marginRight: 4 }}>📆 Competência</span>
             {competenciasLiberadas.map(m => {
               const isAtivo = m === competencia;
               return (
@@ -957,6 +1161,25 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             })}
           </div>
         )}
+
+        {/* ── LINHA 5: FOOTER DO HEADER ── */}
+        <div style={{ position: 'relative', zIndex: 1, background: '#F6F9FF', borderTop: `1px solid ${C.border}`, padding: '6px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: C.txtMuted }}>
+            <span>🕐 Atualizado em {new Date().toLocaleDateString('pt-BR')}</span>
+            <span style={{ width: 1, height: 12, background: C.border }} />
+            {proximaReuniao && (
+              <>
+                <span>📅 Próxima reunião: {new Date(proximaReuniao.data_reuniao + 'T12:00:00').toLocaleDateString('pt-BR')} às {proximaReuniao.horario?.substring(0, 5) || '09:00'}</span>
+                <span style={{ width: 1, height: 12, background: C.border }} />
+              </>
+            )}
+            <span>📊 {dreMonthsAll.length} meses disponíveis</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 9, fontWeight: 600, color: C.primary, background: 'rgba(26,60,255,0.06)', padding: '2px 8px', borderRadius: 4 }}>GPI Inteligência Financeira</span>
+            <span style={{ fontSize: 9, color: C.txtMuted }}>🔒 Confidencial</span>
+          </div>
+        </div>
       </header>
 
       <main className="space-y-6" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
