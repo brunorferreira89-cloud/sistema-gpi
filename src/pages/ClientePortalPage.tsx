@@ -12,6 +12,10 @@ import { PainelPersonalizado } from '@/components/clientes/PainelPersonalizado';
 import { SparkLine } from '@/components/ui/spark-line';
 import { type ContaRow } from '@/lib/plano-contas-utils';
 import { TorreMeta, calcProjetado, calcStatus, fmtTorre, mesSeguinte as getMesSeguinte, fmtCompetencia } from '@/lib/torre-utils';
+import { DreBanner } from '@/components/clientes/DreBanner';
+import { TorreBanner } from '@/components/clientes/TorreBanner';
+import { SpeedometerGauge } from '@/components/ui/speedometer-gauge';
+import { DreIndicadoresHeader } from '@/components/clientes/DreIndicadoresHeader';
 
 // ── Colors ──────────────────────────────────────────────────────
 const C = {
