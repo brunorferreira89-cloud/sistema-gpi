@@ -559,7 +559,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Torre historical metas (all year) for historical month chips
   const { data: torreMetasAno } = useQuery({
     queryKey: ['portal-torre-metas-ano', resolvedClienteId, competenciaYear],
-    enabled: !!resolvedClienteId,
+    enabled: !!resolvedClienteId && torreVisible,
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
         .eq('cliente_id', resolvedClienteId!)
