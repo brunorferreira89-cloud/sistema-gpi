@@ -324,6 +324,14 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs">Ícone / Subsegmento</Label>
+            <EmojiSegmentoPicker
+              value={form.icone_emoji || '🏢'}
+              onChange={(emoji) => set('icone_emoji', emoji)}
+            />
+          </div>
+
           <div><Label className="text-xs">Endereço Completo</Label><Input value={form.endereco_completo || ''} onChange={(e) => set('endereco_completo', e.target.value)} /></div>
 
           <div className="grid grid-cols-2 gap-3">
