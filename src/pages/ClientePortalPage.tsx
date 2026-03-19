@@ -1155,20 +1155,20 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── LINHA 5: FOOTER DO HEADER ── */}
-        <div style={{ position: 'relative', zIndex: 1, background: '#F6F9FF', borderTop: `1px solid ${C.border}`, padding: '6px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="portal-footer" style={{ position: 'relative', zIndex: 1, background: '#F6F9FF', borderTop: `1px solid ${C.border}`, padding: '6px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: C.txtMuted }}>
             <span>🕐 Atualizado em {new Date().toLocaleDateString('pt-BR')}</span>
-            <span style={{ width: 1, height: 12, background: C.border }} />
+            <span className="portal-footer-extra" style={{ width: 1, height: 12, background: C.border }} />
             {proximaReuniao && (
-              <>
+              <span className="portal-footer-extra" style={{ display: 'contents' }}>
                 <span>📅 Próxima reunião: {new Date(proximaReuniao.data_reuniao + 'T12:00:00').toLocaleDateString('pt-BR')} às {proximaReuniao.horario?.substring(0, 5) || '09:00'}</span>
                 <span style={{ width: 1, height: 12, background: C.border }} />
-              </>
+              </span>
             )}
-            <span>📊 {dreMonthsAll.length} meses disponíveis</span>
+            <span className="portal-footer-extra">📊 {dreMonthsAll.length} meses disponíveis</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, color: C.primary, background: 'rgba(26,60,255,0.06)', padding: '2px 8px', borderRadius: 4 }}>GPI Inteligência Financeira</span>
+            <span className="portal-footer-extra" style={{ fontSize: 9, fontWeight: 600, color: C.primary, background: 'rgba(26,60,255,0.06)', padding: '2px 8px', borderRadius: 4 }}>GPI Inteligência Financeira</span>
             <span style={{ fontSize: 9, color: C.txtMuted }}>🔒 Confidencial</span>
           </div>
         </div>
