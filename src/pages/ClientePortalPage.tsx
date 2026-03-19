@@ -262,8 +262,12 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           } else setNoAccess(true);
         }
       } catch {
-        if (profile.cliente_id) setClienteIdSelecionado(profile.cliente_id as string);
-        else setNoAccess(true);
+        if (profile.cliente_id) {
+          const { data: fallbackCli } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('id', profile.cliente_id).single();
+          if (fallbackCli) {
+            setEmpresas([{ cliente_id: fallbackCli.id, nome_empresa: fallbackCli.nome_empresa, razao_social: fallbackCli.razao_social, empresa_padrao: true, segmento: (fallbackCli as any).segmento ?? null }]);
+          } else setNoAccess(true);
+        } else setNoAccess(true);
       } finally { setLoadingEmpresas(false); }
     };
     loadEmpresas();
