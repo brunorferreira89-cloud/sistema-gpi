@@ -623,6 +623,16 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     };
   }, [dreContas, dreValoresAnuais, competencia, dreMonthsAll, getDreMonthMap]);
 
+  // ── DreIndicadoresHeader months format ─────────────────────────
+  const dreIndicadorMonths = useMemo(() => {
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesesShort = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    return dreMonthsAll.map(m => {
+      const d = new Date(m + 'T12:00:00');
+      return { value: m, label: `${meses[d.getMonth()]}/${d.getFullYear()}`, shortLabel: mesesShort[d.getMonth()] };
+    });
+  }, [dreMonthsAll]);
+
   // ── Gauge data (torre_metas subgroups with metas) ─────────────
   const gaugeData = useMemo(() => {
     if (!dreContas || !torreMetas || torreMetas.length === 0) return [];
