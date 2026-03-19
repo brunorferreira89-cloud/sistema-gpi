@@ -355,6 +355,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // ── Load competencias & dashboard data ────────────────────────
   useEffect(() => {
     if (!resolvedClienteId) return;
+    if (didInitRef.current && !espelho) return;
+    didInitRef.current = true;
     const clienteId = resolvedClienteId;
     const load = async () => {
       setLoading(true);
