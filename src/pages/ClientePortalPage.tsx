@@ -1315,29 +1315,214 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               </>
             )}
 
+            {/* Torre toolbar (AV%/AH% toggles + month chips) */}
+            <div className="flex items-center justify-between flex-wrap gap-2" style={{ padding: '10px 16px', borderBottom: `1px solid #F0F4FA` }}>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {dreMonthsAll.filter(m => m !== competencia).map(m => {
+                  const isActive = torreMonthsActive.has(m);
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setTorreMonthsActive(prev => {
+                          const next = new Set(prev);
+                          if (next.has(m)) next.delete(m); else next.add(m);
+                          return next;
+                        });
+                      }}
+                      style={{
+                        padding: '4px 10px', borderRadius: 14, fontSize: 10, fontWeight: isActive ? 700 : 500,
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        border: isActive ? `1.5px solid ${C.primary}` : `1px solid ${C.border}`,
+                        background: isActive ? C.primary : '#fff',
+                        color: isActive ? '#FFFFFF' : C.txtSec,
+                      }}
+                    >
+                      {getMonthShort(m)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {[
+                  { key: 'av', label: 'AV%', active: torreShowAV, toggle: () => setTorreShowAV(v => !v) },
+                  { key: 'ah', label: 'AH%', active: torreShowAH, toggle: () => setTorreShowAH(v => !v) },
+                ].map(b => (
+                  <button
+                    key={b.key}
+                    onClick={b.toggle}
+                    style={{
+                      padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                      border: `1px solid ${b.active ? C.primary : C.border}`,
+                      background: b.active ? '#E8EEF8' : '#F0F4FA',
+                      color: b.active ? C.primary : C.txtSec,
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Torre table */}
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: '#F0F4FA', borderBottom: `1px solid ${C.border}` }}>
                     <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, position: 'sticky', left: 0, zIndex: 10, background: '#F0F4FA', borderRight: `1px solid ${C.border}`, minWidth: 220 }}>CONTA DRE</th>
+                    {Array.from(torreMonthsActive).sort().map(m => (
+                      <Fragment key={`th-hist-${m}`}>
+                        <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, minWidth: 90 }}>REAL {getMonthShort(m)}</th>
+                        {torreMetaMapByComp[m] && <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.primary, minWidth: 90, background: C.pLo }}>META {getMonthShort(m)}</th>}
+                      </Fragment>
+                    ))}
                     <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, minWidth: 100 }}>REALIZADO {getMonthShort(competencia)}</th>
+                    {torreShowAV && <th style={{ textAlign: 'right', padding: '8px 6px', fontSize: 10, fontWeight: 700, color: C.txtMuted, minWidth: 50 }}>AV%</th>}
+                    {torreShowAH && <th style={{ textAlign: 'right', padding: '8px 6px', fontSize: 10, fontWeight: 700, color: C.txtMuted, minWidth: 50 }}>AH%</th>}
                     <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, minWidth: 80 }}>AJUSTE</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, minWidth: 80 }}>R$</th>
                     <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.primary, minWidth: 110, background: C.pLo }}>META {getMonthShort(mesProximo)}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {torreTab === 'gpi'
-                    ? renderTorreTable(torreMetaMap, torreRealMap, torreCollapsed, (id) => setTorreCollapsed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }), false)
-                    : renderTorreTable(
-                        // Build TorreMeta from simLocalMap
-                        Object.fromEntries(Object.entries(simLocalMap).map(([k, v]) => [k, { conta_id: k, meta_tipo: v.meta_tipo as any, meta_valor: v.meta_valor }])),
-                        torreRealMap,
-                        torreCollapsed,
-                        (id) => setTorreCollapsed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }),
-                        true
-                      )
-                  }
+                  {(() => {
+                    const activeMetaMap = torreTab === 'gpi' ? torreMetaMap : Object.fromEntries(Object.entries(simLocalMap).map(([k, v]) => [k, { conta_id: k, meta_tipo: v.meta_tipo as any, meta_valor: v.meta_valor }]));
+                    const editable = torreTab === 'simulacao';
+                    const toggleFn = (id: string) => setTorreCollapsed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+                    const prevComp = getCompetenciaAnterior(competencia);
+                    const prevRealMap = getDreMonthMap(prevComp);
+                    const fatReal = sumGrupos(dreGruposPorTipo['receita'] || [], torreRealMap);
+
+                    const renderRow = (node: DreNode): JSX.Element | null => {
+                      const conta = node.conta;
+                      const isGrupo = conta.nivel === 0;
+                      const isSubgrupo = conta.nivel === 1;
+                      const isCat = conta.nivel === 2;
+                      const isTotal = !!conta.is_total;
+                      const hasChildren = node.children.length > 0;
+                      const isCollapsedItem = torreCollapsed.has(conta.id);
+
+                      if (isCat && !isTotal) {
+                        const val = torreRealMap[conta.id];
+                        if (val == null || val === 0) return null;
+                      }
+
+                      const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
+                      let rowBg = '#FAFCFF', fontWeight = 400, fontSize = 12, textColor = C.txtSec;
+                      if (isTotal) { rowBg = '#0D1B35'; fontWeight = 700; textColor = '#FFFFFF'; }
+                      else if (isGrupo) { rowBg = '#F0F4FA'; fontWeight = 700; textColor = C.txt; }
+                      else if (isSubgrupo) { rowBg = '#FFFFFF'; fontWeight = 600; textColor = C.txt; }
+
+                      const meta = activeMetaMap[conta.id] || null;
+                      const realSel = isCat ? (torreRealMap[conta.id] ?? null) : sumNodeLeafs(node, torreRealMap);
+                      const projetado = isCat
+                        ? (realSel != null ? calcProjetado(realSel, meta, conta.tipo) : null)
+                        : sumNodeProjetado(node, torreRealMap, activeMetaMap);
+
+                      let ajustePct: number | null = null;
+                      if (realSel != null && projetado != null && realSel !== 0) ajustePct = ((projetado - realSel) / Math.abs(realSel)) * 100;
+                      const varR$ = realSel != null && projetado != null ? projetado - realSel : null;
+                      const isReceita = conta.tipo === 'receita';
+                      const getAjusteColor = () => { if (ajustePct == null || Math.abs(ajustePct) < 0.05) return C.txtMuted; return isReceita ? (ajustePct! > 0 ? C.green : C.red) : (ajustePct! > 0 ? C.red : C.green); };
+                      const getVarColor = () => { if (varR$ == null || Math.abs(varR$) < 1) return C.txtMuted; return isReceita ? (varR$! > 0 ? C.green : C.red) : (varR$! > 0 ? C.red : C.green); };
+                      const ajusteArrow = ajustePct != null ? (ajustePct > 0.05 ? '↑ +' : ajustePct < -0.05 ? '↓ −' : '→ ') : '';
+                      const avVal = realSel != null && fatReal !== 0 ? (Math.abs(realSel) / Math.abs(fatReal)) * 100 : null;
+                      const prevVal = isCat ? (prevRealMap[conta.id] ?? null) : sumNodeLeafs(node, prevRealMap);
+                      const ahVal = realSel != null && prevVal != null && prevVal !== 0 ? ((realSel - prevVal) / Math.abs(prevVal)) * 100 : null;
+
+                      return (
+                        <Fragment key={conta.id}>
+                          <tr style={{ background: rowBg, borderBottom: isTotal ? 'none' : `1px solid ${isGrupo ? C.borderStr : '#F8F9FB'}`, borderTop: isGrupo && !isTotal ? `1px solid ${C.borderStr}` : 'none' }}>
+                            <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize, color: textColor, whiteSpace: 'nowrap', minWidth: 220, position: 'sticky', left: 0, zIndex: 5, background: rowBg, borderRight: `1px solid ${C.border}` }}>
+                              <span className="flex items-center gap-1.5">
+                                {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
+                                  <button onClick={() => toggleFn(conta.id)} style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 2, lineHeight: 0, color: C.txtMuted }}>
+                                    {isCollapsedItem ? <ChevronRight style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+                                  </button>
+                                ) : <span style={{ width: 18 }} />}
+                                {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
+                                <span style={{ letterSpacing: isGrupo && !isTotal ? '0.04em' : undefined, textTransform: isGrupo && !isTotal ? 'uppercase' : undefined }}>{conta.nome}</span>
+                              </span>
+                            </td>
+                            {/* Historical month columns */}
+                            {Array.from(torreMonthsActive).sort().map(m => {
+                              const histMap = getDreMonthMap(m);
+                              const histVal = isCat ? (histMap[conta.id] ?? null) : sumNodeLeafs(node, histMap);
+                              const histMetaMap = torreMetaMapByComp[m] || {};
+                              const histMeta = histMetaMap[conta.id] || null;
+                              const histProj = histMeta && histVal != null ? calcProjetado(histVal, histMeta, conta.tipo) : null;
+                              return (
+                                <Fragment key={`hist-${m}`}>
+                                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: isTotal ? 800 : 400, color: histVal != null ? (histVal < 0 ? C.red : (isTotal ? '#FFF' : C.txtSec)) : C.txtMuted, padding: '8px 8px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(histVal)}</td>
+                                  {torreMetaMapByComp[m] && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: isTotal ? 800 : 400, color: histProj != null ? (isTotal ? '#FFF' : C.primary) : C.txtMuted, padding: '8px 8px', background: isTotal ? 'rgba(26,60,255,0.18)' : C.pLo }}>{fmtTorre(histProj)}</td>}
+                                </Fragment>
+                              );
+                            })}
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: realSel != null ? (realSel < 0 ? C.red : (isTotal ? '#FFF' : C.txt)) : C.txtMuted, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(realSel)}</td>
+                            {torreShowAV && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: isTotal ? '#00E68A' : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{avVal != null ? `${avVal.toFixed(1)}%` : '—'}</td>}
+                            {torreShowAH && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: ahVal != null ? (ahVal >= 0 ? C.green : C.red) : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{ahVal != null ? `${ahVal >= 0 ? '+' : ''}${ahVal.toFixed(1)}%` : '—'}</td>}
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getAjusteColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: projetado != null ? (isTotal ? '#FFF' : C.primary) : C.txtMuted, padding: '8px 10px', background: isTotal ? 'rgba(26,60,255,0.18)' : C.pLo }}>
+                              {editable && isCat && !isTotal ? (
+                                <input type="text" defaultValue={projetado != null ? Math.abs(projetado).toFixed(0) : ''}
+                                  onChange={(e) => { const val = parseFloat(e.target.value.replace(/[^\d.,-]/g, '').replace(',', '.')); if (!isNaN(val)) { const sign = conta.tipo !== 'receita' ? -1 : 1; const pctVal = realSel && realSel !== 0 ? Math.round(((sign * val / realSel) - 1) * 10000) / 100 : 0; setSimLocalMap(prev => ({ ...prev, [conta.id]: { meta_tipo: 'pct', meta_valor: pctVal } })); setSimDirty(true); } }}
+                                  style={{ width: 80, textAlign: 'right', fontFamily: C.mono, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', outline: 'none', background: C.surfaceHi, color: C.primary }}
+                                />
+                              ) : fmtTorre(projetado)}
+                            </td>
+                          </tr>
+                          {hasChildren && !isCollapsedItem && node.children.map(child => renderRow(child))}
+                        </Fragment>
+                      );
+                    };
+
+                    const rows: JSX.Element[] = [];
+                    const calcTotais = (tipos: string[]) => { let total = 0; for (const tipo of tipos) { for (const g of (dreGruposPorTipo[tipo] || [])) { const v = sumNodeProjetado(g, torreRealMap, activeMetaMap); if (v != null) total += v; } } return total; };
+
+                    for (const seq of SEQUENCIA_DRE) {
+                      const grupos = dreGruposPorTipo[seq.tipo] || [];
+                      for (const g of grupos) { const row = renderRow(g); if (row) rows.push(row); }
+                      if (seq.totalizadorApos) {
+                        const cfg = TOTALIZADOR_CONFIG[seq.totalizadorApos];
+                        const tiposAcum = SEQUENCIA_DRE.slice(0, SEQUENCIA_DRE.findIndex(s => s.totalizadorApos === seq.totalizadorApos) + 1).map(s => s.tipo);
+                        const realTotal = tiposAcum.reduce((acc, t) => acc + sumGrupos(dreGruposPorTipo[t] || [], torreRealMap), 0);
+                        const projTotal = calcTotais(tiposAcum);
+                        const totVarR$ = projTotal - realTotal;
+                        const totAvVal = fatReal !== 0 ? (Math.abs(realTotal) / Math.abs(fatReal)) * 100 : null;
+                        const prevRealTotal = tiposAcum.reduce((acc, t) => acc + sumGrupos(dreGruposPorTipo[t] || [], prevRealMap), 0);
+                        const totAhVal = prevRealTotal !== 0 ? ((realTotal - prevRealTotal) / Math.abs(prevRealTotal)) * 100 : null;
+
+                        rows.push(
+                          <tr key={`tot-${cfg.key}`} style={{ background: '#0D1B35', borderBottom: 'none' }}>
+                            <td style={{ padding: '8px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', position: 'sticky', left: 0, zIndex: 5, background: '#0D1B35', borderRight: `1px solid ${C.border}` }}>
+                              <span className="flex items-center gap-1.5"><span style={{ color: C.cyan, fontSize: 13 }}>◈</span>{cfg.nome}</span>
+                            </td>
+                            {Array.from(torreMonthsActive).sort().map(m => {
+                              const histMap = getDreMonthMap(m);
+                              const histTotal = tiposAcum.reduce((acc, t) => acc + sumGrupos(dreGruposPorTipo[t] || [], histMap), 0);
+                              const histMetaMap2 = torreMetaMapByComp[m] || {};
+                              const histProjTotal = tiposAcum.reduce((acc, tipo) => { let s = 0; for (const g of (dreGruposPorTipo[tipo] || [])) { const v = sumNodeProjetado(g, histMap, histMetaMap2); if (v != null) s += v; } return acc + s; }, 0);
+                              return (
+                                <Fragment key={`tot-hist-${m}`}>
+                                  <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 800, color: '#FFFFFF', padding: '8px 8px', background: '#0D1B35' }}>{fmtTorre(histTotal)}</td>
+                                  {torreMetaMapByComp[m] && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 800, color: '#FFFFFF', padding: '8px 8px', background: 'rgba(26,60,255,0.18)' }}>{fmtTorre(histProjTotal)}</td>}
+                                </Fragment>
+                              );
+                            })}
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: '#0D1B35' }}>{fmtTorre(realTotal)}</td>
+                            {torreShowAV && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, fontWeight: 600, color: '#00E68A', padding: '8px 6px', background: '#0D1B35' }}>{totAvVal != null ? `${totAvVal.toFixed(1)}%` : '—'}</td>}
+                            {torreShowAH && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, fontWeight: 600, color: totAhVal != null ? (totAhVal >= 0 ? '#00E68A' : '#FF6B6B') : C.txtMuted, padding: '8px 6px', background: '#0D1B35' }}>{totAhVal != null ? `${totAhVal >= 0 ? '+' : ''}${totAhVal.toFixed(1)}%` : '—'}</td>}
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: C.txtMuted, padding: '8px 10px', background: '#0D1B35' }}>—</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: totVarR$ !== 0 ? (totVarR$ > 0 ? '#00E68A' : '#FF6B6B') : C.txtMuted, padding: '8px 10px', background: '#0D1B35' }}>{Math.abs(totVarR$) >= 1 ? `${totVarR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(totVarR$))}` : '—'}</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: 'rgba(26,60,255,0.18)' }}>{fmtTorre(projTotal)}</td>
+                          </tr>
+                        );
+                      }
+                    }
+                    return rows;
+                  })()}
                 </tbody>
               </table>
             </div>
