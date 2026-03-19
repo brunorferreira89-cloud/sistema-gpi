@@ -268,8 +268,13 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
 
-  // ── Countdown ─────────────────────────────────────────────────
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, min: 0, sec: 0 });
+  // ── Refs for lazy rendering ────────────────────────────────────
+  const didInitRef = useRef(false);
+  const dreRef = useRef<HTMLDivElement>(null);
+  const torreRef = useRef<HTMLDivElement>(null);
+  const dreVisible = useIsVisible(dreRef);
+  const torreVisible = useIsVisible(torreRef);
+
   const [showDreMobile, setShowDreMobile] = useState(false);
   const [showTorreMobile, setShowTorreMobile] = useState(false);
 
