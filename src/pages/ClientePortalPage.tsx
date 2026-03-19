@@ -1294,18 +1294,25 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               ))}
             </div>
 
-            {/* Simulação banner */}
+            {/* Simulação banner + info card */}
             {torreTab === 'simulacao' && (
-              <div className="flex items-center justify-between" style={{ padding: '10px 20px', background: 'rgba(217,119,6,0.06)', borderBottom: '1px solid rgba(217,119,6,0.2)' }}>
-                <p className="text-xs" style={{ color: '#92400E' }}>⚠ Modo Simulação — suas alterações não afetam as metas definidas pela GPI</p>
-                <button
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors"
-                  style={{ border: `1px solid ${C.orange}`, color: C.orange, background: 'transparent' }}
-                >
-                  ↓ Exportar PDF
-                </button>
-              </div>
+              <>
+                <div className="flex items-center justify-between" style={{ padding: '10px 20px', background: 'rgba(217,119,6,0.06)', borderBottom: '1px solid rgba(217,119,6,0.2)' }}>
+                  <p className="text-xs" style={{ color: '#92400E' }}>⚠ Modo Simulação — suas alterações não afetam as metas definidas pela GPI</p>
+                  <button
+                    onClick={() => window.print()}
+                    className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors"
+                    style={{ border: `1px solid ${C.orange}`, color: C.orange, background: 'transparent' }}
+                  >
+                    ↓ Exportar PDF
+                  </button>
+                </div>
+                <div style={{ margin: '12px 20px', padding: '12px 16px', background: '#F6F9FF', border: '1px solid #DDE4F0', borderRadius: 10 }}>
+                  <p style={{ fontSize: 11.5, color: '#4A5E80', lineHeight: 1.6 }}>
+                    💡 Aqui você pode criar sua própria simulação financeira. Ajuste os percentuais como quiser, salve e exporte em PDF. Suas alterações não afetam as metas definidas pela GPI na reunião. Simule quantas vezes precisar!
+                  </p>
+                </div>
+              </>
             )}
 
             {/* Torre table */}
