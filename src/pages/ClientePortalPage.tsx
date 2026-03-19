@@ -1049,7 +1049,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           {/* Bloco direito */}
-          <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Card Score GC */}
             {cardData && (
               <div className="portal-gc-card" style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
