@@ -156,6 +156,70 @@ interface ClientePortalPageProps {
   espelho?: boolean;
 }
 
+// ── useIsVisible hook (lazy render) ─────────────────────────────
+const useIsVisible = (ref: React.RefObject<HTMLDivElement>) => {
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return isVisible;
+};
+
+// ── CountdownReuniao (isolated to avoid full-page re-renders) ──
+const CountdownReuniao = ({ proximaReuniao }: { proximaReuniao: any }) => {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, min: 0, sec: 0 });
+  useEffect(() => {
+    if (!proximaReuniao) return;
+    const target = new Date(`${proximaReuniao.data_reuniao}T${proximaReuniao.horario || '09:00:00'}`);
+    const update = () => {
+      const diff = Math.max(0, target.getTime() - Date.now());
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        min: Math.floor((diff % 3600000) / 60000),
+        sec: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [proximaReuniao?.data_reuniao, proximaReuniao?.horario]);
+
+  if (!proximaReuniao) {
+    return <p className="text-sm text-center" style={{ color: C.txtSec }}>Nenhuma reunião agendada</p>;
+  }
+
+  return (
+    <div className="text-center">
+      <div className="flex items-center justify-center gap-3 mb-4">
+        {[
+          { value: timeLeft.days, label: 'DIAS' },
+          { value: timeLeft.hours, label: 'HORAS' },
+          { value: timeLeft.min, label: 'MIN' },
+          { value: timeLeft.sec, label: 'SEG' },
+        ].map((block, i) => (
+          <div key={i} className="cd-box rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
+            <p className="cd-num" style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
+            <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted }}>{block.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="text-[13px] font-bold" style={{ color: C.txt }}>{proximaReuniao.titulo}</p>
+      <p className="text-[11px]" style={{ color: C.txtMuted }}>
+        {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        {proximaReuniao.horario && ` às ${proximaReuniao.horario.slice(0, 5)}`}
+        {' · '}{proximaReuniao.tipo}
+      </p>
+    </div>
+  );
+};
+
 // ══════════════════════════════════════════════════════════════════
 export default function ClientePortalPage({ clienteId: propClienteId, espelho }: ClientePortalPageProps = {}) {
   const { profile, user, signOut } = useAuth();
