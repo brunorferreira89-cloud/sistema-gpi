@@ -889,7 +889,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <img src={gpiLogo} alt="GPI" className="h-8 w-auto" />
               <span className="text-sm font-semibold" style={{ color: C.txt }}>{cliente?.razao_social || cliente?.nome_empresa || ''}</span>
             </div>
-            {!espelho && <button onClick={signOut} className="rounded-md p-1.5 transition-colors" style={{ color: C.txtSec }}><LogOut className="h-4 w-4" /></button>}
+            {!espelho && <button onClick={() => { sessionStorage.removeItem('gpi_portal_cliente_id'); signOut(); }} className="rounded-md p-1.5 transition-colors" style={{ color: C.txtSec }}><LogOut className="h-4 w-4" /></button>}
           </div>
         </header>
         <div className="max-w-[600px] mx-auto py-16 px-4">
