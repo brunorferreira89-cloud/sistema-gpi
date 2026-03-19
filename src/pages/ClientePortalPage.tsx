@@ -1288,9 +1288,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               )}
             </div>
             {/* ── Pills informativos ── */}
-            {void console.log('proximaReuniao:', proximaReuniao) ?? null}
-            {void console.log('alertas:', alertas) ?? null}
-            {void console.log('torreMetas portal:', torreMetas) ?? null}
+            {(() => { console.log('proximaReuniao:', proximaReuniao); console.log('alertas:', alertas); console.log('torreMetas portal:', torreMetas); return null; })()}
             <div className="portal-info-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {/* Pill 1 — Próxima Reunião */}
               {proximaReuniao && (() => {
