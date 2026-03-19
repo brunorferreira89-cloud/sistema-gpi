@@ -473,7 +473,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         .eq('usuario_id', user!.id)
         .eq('cliente_id', resolvedClienteId!)
         .eq('competencia', mesProximo);
-      return (data || []) as { conta_id: string; meta_tipo: string; meta_valor: number | null }[];
+      return (data || []) as unknown as { conta_id: string; meta_tipo: string; meta_valor: number | null }[];
     },
   });
 
