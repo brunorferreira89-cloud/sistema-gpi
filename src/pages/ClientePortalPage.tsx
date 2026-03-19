@@ -1017,7 +1017,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
         {/* ── LINHA 2: HERO CONTENT ── */}
-        <div style={{ position: 'relative', zIndex: 1, padding: '16px 32px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
+        <div className="portal-hero" style={{ position: 'relative', zIndex: 1, padding: '16px 32px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
           {/* Bloco esquerdo */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Saudação */}
