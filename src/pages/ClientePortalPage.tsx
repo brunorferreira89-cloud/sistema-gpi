@@ -1174,7 +1174,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </button>
             {/* Logout */}
             {!espelho && (
-              <button onClick={signOut} className="rounded-md p-1.5 transition-colors hover:text-[#DC2626]" style={{ color: C.txtSec }}>
+              <button onClick={() => { sessionStorage.removeItem('gpi_portal_cliente_id'); signOut(); }} className="rounded-md p-1.5 transition-colors hover:text-[#DC2626]" style={{ color: C.txtSec }}>
                 <LogOut className="h-4 w-4" />
               </button>
             )}
