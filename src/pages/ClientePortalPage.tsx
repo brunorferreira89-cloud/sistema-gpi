@@ -156,20 +156,8 @@ interface ClientePortalPageProps {
   espelho?: boolean;
 }
 
-// ── useIsVisible hook (lazy render) ─────────────────────────────
-const useIsVisible = (ref: React.RefObject<HTMLDivElement>) => {
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    if (!ref.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
-      { rootMargin: '200px' }
-    );
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-  return isVisible;
-};
+
+
 
 // ── CountdownReuniao (isolated to avoid full-page re-renders) ──
 const CountdownReuniao = ({ proximaReuniao }: { proximaReuniao: any }) => {
@@ -268,12 +256,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
 
-  // ── Refs for lazy rendering ────────────────────────────────────
+  // ── Refs ────────────────────────────────────────────────────────
   const didInitRef = useRef(false);
-  const dreRef = useRef<HTMLDivElement>(null);
-  const torreRef = useRef<HTMLDivElement>(null);
-  const dreVisible = useIsVisible(dreRef);
-  const torreVisible = useIsVisible(torreRef);
 
   const [showDreMobile, setShowDreMobile] = useState(false);
   const [showTorreMobile, setShowTorreMobile] = useState(false);
@@ -563,7 +547,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
   const { data: torreMetas } = useQuery({
     queryKey: ['portal-torre-metas', resolvedClienteId, mesProximo],
-    enabled: !!resolvedClienteId && !!mesProximo && torreVisible,
+    enabled: !!resolvedClienteId && !!mesProximo,
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor')
         .eq('cliente_id', resolvedClienteId!)
@@ -584,7 +568,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Torre historical metas (all year) for historical month chips
   const { data: torreMetasAno } = useQuery({
     queryKey: ['portal-torre-metas-ano', resolvedClienteId, competenciaYear],
-    enabled: !!resolvedClienteId && torreVisible,
+    enabled: !!resolvedClienteId,
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
         .eq('cliente_id', resolvedClienteId!)
@@ -614,7 +598,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // ── Simulação data ────────────────────────────────────────────
   const { data: simSaved } = useQuery({
     queryKey: ['portal-simulacao', user?.id, resolvedClienteId, mesProximo],
-    enabled: !!user?.id && !!resolvedClienteId && !!mesProximo && torreVisible,
+    enabled: !!user?.id && !!resolvedClienteId && !!mesProximo,
     queryFn: async () => {
       const { data } = await supabase.from('torre_simulacoes' as any)
         .select('conta_id, meta_tipo, meta_valor')
@@ -1556,8 +1540,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 4: DRE FINANCEIRA ────────────────────────── */}
-        <div ref={dreRef}>
-        {dreVisible && dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 ? (
+        <div>
+        {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 ? (
           <>
           <button className="portal-mobile-btn" onClick={() => setShowDreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1803,10 +1787,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           </div>
           </>
-        ) : !dreVisible ? (
-          <div style={{height: 400, background: '#fff', border: '1px solid #DDE4F0', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <div style={{color: '#8A9BBC', fontSize: 12}}>Carregando DRE...</div>
-          </div>
         ) : null}
         </div>
 
@@ -1844,8 +1824,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 6: TORRE DE CONTROLE ──────────────────────── */}
-        <div ref={torreRef}>
-        {torreVisible && dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 ? (
+        <div>
+        {dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 ? (
           <>
           <button className="portal-mobile-btn" onClick={() => setShowTorreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2249,10 +2229,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           </div>
           </>
-        ) : !torreVisible ? (
-          <div style={{height: 300, background: '#fff', border: '1px solid #DDE4F0', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <div style={{color: '#8A9BBC', fontSize: 12}}>Carregando Torre de Controle...</div>
-          </div>
         ) : null}
         </div>
 
