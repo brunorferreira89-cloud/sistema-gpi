@@ -1461,7 +1461,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── SEÇÃO 5: APRESENTAÇÃO DO MÊS ───────────────────── */}
         {competencia && (
-          <div className="rounded-[14px] bg-white flex items-center justify-between" style={{ border: `1px solid ${C.border}`, padding: '18px 24px' }}>
+          <div className="portal-apresentacao rounded-[14px] bg-white flex items-center justify-between" style={{ border: `1px solid ${C.border}`, padding: '18px 24px' }}>
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center rounded-lg" style={{ width: 44, height: 44, background: 'rgba(26,60,255,0.08)', border: '1px solid rgba(26,60,255,0.2)' }}>
                 <span className="text-xl">📊</span>
@@ -1483,7 +1483,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <button
                 onClick={() => hasApresentacao ? navigate(`/apresentacao/${resolvedClienteId}`) : undefined}
                 disabled={!hasApresentacao}
-                className="inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-all"
+                className="portal-apresentacao-btn inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-all"
                 style={{ background: C.primary, boxShadow: '0 2px 8px rgba(26,60,255,0.18)', opacity: hasApresentacao ? 1 : 0.5, cursor: hasApresentacao ? 'pointer' : 'not-allowed' }}
               >
                 <Play className="h-4 w-4" /> Iniciar Apresentação
