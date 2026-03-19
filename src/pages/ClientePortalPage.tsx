@@ -198,6 +198,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [savingSim, setSavingSim] = useState(false);
   const [editingSimId, setEditingSimId] = useState<string | null>(null);
   const [editingSimVal, setEditingSimVal] = useState<string>('');
+  const [editingSimTipo, setEditingSimTipo] = useState<'pct' | 'delta' | 'valor'>('pct');
   const [torreShowAV, setTorreShowAV] = useState(false);
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
