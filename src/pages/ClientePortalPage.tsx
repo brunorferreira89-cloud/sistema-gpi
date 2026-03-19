@@ -1174,17 +1174,20 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
       </header>
 
-      <main className="space-y-6" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+      <main className="space-y-6 portal-main" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
 
         {/* ── SEÇÃO 2: CARDS DE RESUMO (DreIndicadoresHeader) ── */}
         {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
-          <DreIndicadoresHeader
-            contas={dreContas}
-            valoresAnuais={dreValoresAnuais}
-            months={dreIndicadorMonths}
-            mesSelecionado={competencia}
-            clienteId={resolvedClienteId || undefined}
-          />
+          <div className="portal-cards-wrapper">
+            <DreIndicadoresHeader
+              contas={dreContas}
+              valoresAnuais={dreValoresAnuais}
+              months={dreIndicadorMonths}
+              mesSelecionado={competencia}
+              clienteId={resolvedClienteId || undefined}
+            />
+            <p className="portal-swipe-hint" style={{ display: 'none', fontSize: 9, color: C.txtMuted, textAlign: 'center', marginTop: 4 }}>← deslize para ver mais →</p>
+          </div>
         )}
 
         {/* ── SEÇÃO 3: ALERTAS DE META (SPEEDOMETER GAUGES) ── */}
