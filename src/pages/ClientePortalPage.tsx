@@ -450,7 +450,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
       finally { setLoading(false); }
     };
     load();
-  }, [resolvedClienteId, competenciaSelecionada, espelho]);
+  }, [resolvedClienteId, espelho]);
 
   // ── DRE Data queries ──────────────────────────────────────────
   const competencia = competenciaSelecionada || competenciasLiberadas[0] || getCompetenciaAtual();
