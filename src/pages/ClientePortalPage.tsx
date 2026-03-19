@@ -148,6 +148,7 @@ interface EmpresaOption {
   nome_empresa: string;
   razao_social: string | null;
   empresa_padrao: boolean;
+  segmento: string | null;
 }
 
 interface ClientePortalPageProps {
