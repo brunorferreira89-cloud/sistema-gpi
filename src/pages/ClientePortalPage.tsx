@@ -1035,7 +1035,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <div style={{ width: '40%', height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, #1A3CFF, transparent)', marginTop: 4 }} />
             </div>
             {/* Pills */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            <div className="portal-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
               {cliente?.segmento && (
                 <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(0,153,230,0.08)', color: '#0099E6' }}>🏥 {cliente.segmento}</span>
               )}
