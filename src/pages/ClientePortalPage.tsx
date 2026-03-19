@@ -2180,31 +2180,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           <div style={{ padding: 20 }}>
-            {proximaReuniao ? (
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  {[
-                    { value: countdown.days, label: 'DIAS' },
-                    { value: countdown.hours, label: 'HORAS' },
-                    { value: countdown.min, label: 'MIN' },
-                    { value: countdown.sec, label: 'SEG' },
-                  ].map((block, i) => (
-                    <div key={i} className="cd-box rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
-                      <p className="cd-num" style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
-                      <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted }}>{block.label}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[13px] font-bold" style={{ color: C.txt }}>{proximaReuniao.titulo}</p>
-                <p className="text-[11px]" style={{ color: C.txtMuted }}>
-                  {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  {proximaReuniao.horario && ` às ${proximaReuniao.horario.slice(0, 5)}`}
-                  {' · '}{proximaReuniao.tipo}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-center" style={{ color: C.txtSec }}>Nenhuma reunião agendada</p>
-            )}
+            <CountdownReuniao proximaReuniao={proximaReuniao} />
           </div>
         </div>
 
