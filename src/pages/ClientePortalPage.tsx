@@ -1376,6 +1376,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                   </span>
                 );
               })()}
+            </div>
           </div>
           {/* Bloco direito */}
           <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'flex-start', flexWrap: 'wrap' }}>
