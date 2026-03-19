@@ -1227,7 +1227,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 5: APRESENTAÇÃO DO MÊS ───────────────────── */}
-        {hasApresentacao && (
+        {competencia && (
           <div className="rounded-[14px] bg-white flex items-center justify-between" style={{ border: `1px solid ${C.border}`, padding: '18px 24px' }}>
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center rounded-lg" style={{ width: 44, height: 44, background: 'rgba(26,60,255,0.08)', border: '1px solid rgba(26,60,255,0.2)' }}>
@@ -1236,16 +1236,22 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
               <div>
                 <p className="text-sm font-bold" style={{ color: C.txt }}>Apresentação do Mês — {fmtMesAno(competencia)}</p>
                 <p className="text-[11px]" style={{ color: C.txtMuted }}>Relatório consultivo preparado pela equipe GPI</p>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold mt-1" style={{ color: C.green }}>● Disponível para visualizar</span>
+                {hasApresentacao ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold mt-1" style={{ color: C.green }}>● Disponível para visualizar</span>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold mt-1" style={{ color: C.orange }}>● Em preparação</span>
+                    <p className="text-[10px] mt-0.5" style={{ color: C.txtMuted }}>Seu consultor está preparando o relatório deste mês</p>
+                  </>
+                )}
               </div>
             </div>
             {!espelho && (
               <button
-                onClick={() => navigate(`/apresentacao/${resolvedClienteId}`)}
+                onClick={() => hasApresentacao ? navigate(`/apresentacao/${resolvedClienteId}`) : undefined}
+                disabled={!hasApresentacao}
                 className="inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-all"
-                style={{ background: C.primary, boxShadow: '0 2px 8px rgba(26,60,255,0.18)' }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(26,60,255,0.3)'; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(26,60,255,0.18)'; }}
+                style={{ background: C.primary, boxShadow: '0 2px 8px rgba(26,60,255,0.18)', opacity: hasApresentacao ? 1 : 0.5, cursor: hasApresentacao ? 'pointer' : 'not-allowed' }}
               >
                 <Play className="h-4 w-4" /> Iniciar Apresentação
               </button>
