@@ -1787,10 +1787,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           </div>
           </>
-        ) : !dreVisible ? (
-          <div style={{height: 400, background: '#fff', border: '1px solid #DDE4F0', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <div style={{color: '#8A9BBC', fontSize: 12}}>Carregando DRE...</div>
-          </div>
         ) : null}
         </div>
 
