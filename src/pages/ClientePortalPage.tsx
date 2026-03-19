@@ -589,7 +589,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // ── Simulação data ────────────────────────────────────────────
   const { data: simSaved } = useQuery({
     queryKey: ['portal-simulacao', user?.id, resolvedClienteId, mesProximo],
-    enabled: !!user?.id && !!resolvedClienteId && !!mesProximo,
+    enabled: !!user?.id && !!resolvedClienteId && !!mesProximo && torreVisible,
     queryFn: async () => {
       const { data } = await supabase.from('torre_simulacoes' as any)
         .select('conta_id, meta_tipo, meta_valor')
