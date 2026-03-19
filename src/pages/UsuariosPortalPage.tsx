@@ -515,7 +515,24 @@ function EditarUsuarioModal({
 
     setLoading(true);
     try {
-      await supabase.from('profiles').update({ nome: nome.trim(), email: email.trim() }).eq('id', user.id);
+      const emailChanged = email.trim().toLowerCase() !== (user.email || '').toLowerCase();
+
+      // Sync email in auth if changed
+      if (emailChanged) {
+        const { data: res, error: fnErr } = await supabase.functions.invoke('criar-usuario', {
+          body: { action: 'update_email', user_id: user.id, novo_email: email.trim() },
+        });
+        if (fnErr || (res && !res.success)) {
+          throw new Error(res?.error || fnErr?.message || 'Erro ao atualizar e-mail no auth');
+        }
+      } else {
+        await supabase.from('profiles').update({ nome: nome.trim(), email: email.trim() }).eq('id', user.id);
+      }
+
+      // Update nome separately if email was synced via function (function already updates profiles.email)
+      if (emailChanged) {
+        await supabase.from('profiles').update({ nome: nome.trim() }).eq('id', user.id);
+      }
 
       const existing = user.empresas.map((e) => e.cliente_id);
       const toRemove = existing.filter((id) => !selectedClientes.includes(id));
