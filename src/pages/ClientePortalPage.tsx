@@ -1454,7 +1454,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 4: DRE FINANCEIRA ────────────────────────── */}
-        {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
+        <div ref={dreRef}>
+        {dreVisible && dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 ? (
           <>
           <button className="portal-mobile-btn" onClick={() => setShowDreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
