@@ -1261,9 +1261,13 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── SEÇÃO 6: TORRE DE CONTROLE ──────────────────────── */}
         {dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 && (
+          <div>
+            {/* Torre Banner */}
+            <div style={{ marginBottom: 12 }}>
+              <TorreBanner />
+            </div>
           <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
-              <p className="text-[13px] font-bold" style={{ color: C.txt }}>Torre de Controle — Metas {fmtMesAno(mesProximo)}</p>
               <p className="text-[11px]" style={{ color: C.txtMuted }}>Planejamento definido pela equipe GPI para o próximo mês</p>
             </div>
 
