@@ -1742,7 +1742,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 6: TORRE DE CONTROLE ──────────────────────── */}
-        {dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 && (
+        <div ref={torreRef}>
+        {torreVisible && dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 ? (
           <>
           <button className="portal-mobile-btn" onClick={() => setShowTorreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
