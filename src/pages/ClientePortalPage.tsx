@@ -958,43 +958,15 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
       <main className="space-y-6" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
 
-        {/* ── SEÇÃO 2: CARDS DE RESUMO (6 cards) ─────────────── */}
-        {cardData && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {[
-              { label: 'FATURAMENTO', value: cardData.fat, av: cardData.fatAV, delta: cardData.fatVar, spark: cardData.fatSpark, accent: C.primary },
-              { label: 'CUSTOS OPERACIONAIS', value: cardData.custos, av: cardData.custosAV, delta: cardData.custosVar, spark: cardData.custosSpark, accent: C.red },
-              { label: 'MARGEM DE CONTRIBUIÇÃO', value: cardData.mc, av: cardData.mcAV, delta: cardData.mcVar, spark: cardData.mcSpark, accent: C.green },
-              { label: 'DESPESAS FIXAS', value: cardData.despFixas, av: cardData.despFixasAV, delta: cardData.despFixasVar, spark: cardData.despFixasSpark, accent: C.orange },
-              { label: 'RESULTADO OPERACIONAL', value: cardData.ro, av: cardData.roAV, delta: cardData.roVar, spark: cardData.roSpark, accent: C.cyan },
-              { label: 'GERAÇÃO DE CAIXA', value: cardData.gc, av: cardData.gcAV, delta: cardData.gcVar, spark: cardData.gcSpark, accent: cardData.gc < 0 ? C.red : C.green },
-            ].map((card, i) => (
-              <div key={i} className="rounded-xl bg-white shadow-sm overflow-hidden" style={{ border: `1px solid ${C.border}`, boxShadow: '0 2px 8px rgba(13,27,53,0.06)' }}>
-                <div style={{ height: 3, background: card.accent }} />
-                <div style={{ padding: '14px 16px' }}>
-                  <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, marginBottom: 6 }}>{card.label}</p>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p style={{ fontSize: 20, fontWeight: 800, fontFamily: C.mono, color: C.txt }}>{fmtR$(card.value)}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span style={{ fontSize: 10, color: C.txtMuted }}>{card.av.toFixed(1)}% fat.</span>
-                        <span
-                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                          style={{
-                            color: card.delta >= 0 ? C.green : C.red,
-                            background: card.delta >= 0 ? C.greenBg : C.redBg,
-                          }}
-                        >
-                          {card.delta >= 0 ? '▲' : '▼'} {Math.abs(card.delta).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                    <SparkLine data={card.spark} color={card.accent} width={56} height={20} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* ── SEÇÃO 2: CARDS DE RESUMO (DreIndicadoresHeader) ── */}
+        {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
+          <DreIndicadoresHeader
+            contas={dreContas}
+            valoresAnuais={dreValoresAnuais}
+            months={dreIndicadorMonths}
+            mesSelecionado={competencia}
+            clienteId={resolvedClienteId || undefined}
+          />
         )}
 
         {/* ── SEÇÃO 3: ALERTAS DE META (GAUGES) ──────────────── */}
