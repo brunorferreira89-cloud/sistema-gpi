@@ -1049,10 +1049,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           {/* Bloco direito */}
-          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
             {/* Card Score GC */}
             {cardData && (
-              <div style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="portal-gc-card" style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 {/* Mini gauge SVG */}
                 <svg width="52" height="52" viewBox="0 0 52 52">
                   <circle cx="26" cy="26" r="22" fill="none" stroke="#F0F4FA" strokeWidth="4" />
