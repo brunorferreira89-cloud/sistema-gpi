@@ -889,6 +889,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         @keyframes hdr-slide-right { from { transform: translateX(-100%) } to { transform: translateX(200%) } }
         @keyframes hdr-radar-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
         @keyframes hdr-glow-pulse { 0%,100%{ opacity:.5 } 50%{ opacity:1 } }
+        @keyframes portal-modal-in { from { transform: translateY(100%) } to { transform: translateY(0) } }
+        @media (max-width: 768px) {
+          .portal-topbar { padding: 10px 16px 0 !important; }
+          .portal-badge-online { display: none !important; }
+          .portal-hero { flex-direction: column !important; gap: 12px !important; padding: 12px 16px 16px !important; }
+          .portal-client-name { font-size: 20px !important; }
+          .portal-pills { gap: 5px !important; }
+          .portal-pills > span { font-size: 9px !important; padding: 2px 8px !important; }
+          .portal-gc-card { display: none !important; }
+          .portal-right-block { flex-direction: column !important; width: 100% !important; }
+          .portal-empresa-sel { width: 100% !important; min-width: unset !important; }
+          .portal-chips-row { overflow-x: auto !important; flex-wrap: nowrap !important; padding: 0 16px 8px !important; -ms-overflow-style: none; scrollbar-width: none; }
+          .portal-chips-row::-webkit-scrollbar { display: none; }
+          .portal-footer { padding: 6px 16px !important; }
+          .portal-footer-extra { display: none !important; }
+          .portal-main { padding: 12px !important; }
+          .portal-main > * + * { margin-top: 12px; }
+          .portal-cards-wrapper .dre-header-grid { display: flex !important; overflow-x: auto !important; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 10px !important; padding: 4px 0 8px; }
+          .portal-cards-wrapper .dre-header-grid::-webkit-scrollbar { display: none; }
+          .portal-cards-wrapper .dre-header-grid > div { min-width: 220px !important; flex-shrink: 0 !important; scroll-snap-align: start; }
+          .portal-cards-wrapper > div { margin-bottom: 8px; }
+          .portal-swipe-hint { display: block !important; }
+          .portal-gauges-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .portal-dre-desktop { display: none !important; }
+          .portal-mobile-btn { display: flex !important; }
+          .portal-torre-desktop { display: none !important; }
+          .portal-apresentacao { flex-direction: column !important; align-items: stretch !important; padding: 14px 16px !important; }
+          .portal-apresentacao-btn { width: 100% !important; margin-top: 10px !important; }
+          .portal-reuniao .cd-num { font-size: 18px !important; }
+          .portal-reuniao .cd-box { padding: 8px 10px !important; min-width: 50px !important; }
+          .portal-fullscreen-modal { animation: portal-modal-in 0.25s ease-out; }
+        }
       `}</style>
       <header style={{ position: 'sticky', top: 0, zIndex: 40, background: '#FFFFFF', borderBottom: '1.5px solid #DDE4F0', boxShadow: '0 4px 32px rgba(13,27,53,0.08)', overflow: 'hidden' }}>
 
