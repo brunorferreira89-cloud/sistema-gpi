@@ -256,12 +256,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
 
-  // ── Refs for lazy rendering ────────────────────────────────────
+  // ── Refs ────────────────────────────────────────────────────────
   const didInitRef = useRef(false);
-  const dreRef = useRef<HTMLDivElement>(null);
-  const torreRef = useRef<HTMLDivElement>(null);
-  const dreVisible = useIsVisible(dreRef);
-  const torreVisible = useIsVisible(torreRef);
 
   const [showDreMobile, setShowDreMobile] = useState(false);
   const [showTorreMobile, setShowTorreMobile] = useState(false);
