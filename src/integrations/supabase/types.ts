@@ -548,6 +548,7 @@ export type Database = {
       }
       kpi_indicadores: {
         Row: {
+          alerta_portal: boolean | null
           ativo: boolean
           cliente_id: string | null
           conta_id: string | null
@@ -564,6 +565,7 @@ export type Database = {
           totalizador_key: string | null
         }
         Insert: {
+          alerta_portal?: boolean | null
           ativo?: boolean
           cliente_id?: string | null
           conta_id?: string | null
@@ -580,6 +582,7 @@ export type Database = {
           totalizador_key?: string | null
         }
         Update: {
+          alerta_portal?: boolean | null
           ativo?: boolean
           cliente_id?: string | null
           conta_id?: string | null
@@ -1232,6 +1235,67 @@ export type Database = {
             columns: ["conta_id"]
             isOneToOne: false
             referencedRelation: "plano_de_contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      torre_simulacoes: {
+        Row: {
+          cliente_id: string
+          competencia: string
+          conta_id: string
+          created_at: string | null
+          id: string
+          meta_tipo: string
+          meta_valor: number | null
+          nome_cenario: string | null
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          cliente_id: string
+          competencia: string
+          conta_id: string
+          created_at?: string | null
+          id?: string
+          meta_tipo?: string
+          meta_valor?: number | null
+          nome_cenario?: string | null
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          cliente_id?: string
+          competencia?: string
+          conta_id?: string
+          created_at?: string | null
+          id?: string
+          meta_tipo?: string
+          meta_valor?: number | null
+          nome_cenario?: string | null
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "torre_simulacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torre_simulacoes_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_de_contas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "torre_simulacoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
