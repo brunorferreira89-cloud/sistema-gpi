@@ -2147,7 +2147,12 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           </div>
           </>
-        )}
+        ) : !torreVisible ? (
+          <div style={{height: 300, background: '#fff', border: '1px solid #DDE4F0', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{color: '#8A9BBC', fontSize: 12}}>Carregando Torre de Controle...</div>
+          </div>
+        ) : null}
+        </div>
 
         {/* ── MEU PAINEL (widgets) ────────────────────────────── */}
         {portalWidgets.length > 0 && resolvedClienteId && (
