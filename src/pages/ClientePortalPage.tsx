@@ -1093,48 +1093,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
         </div>
 
-        {/* ── LINHA 3: MINI KPIs ── */}
-        {cardData && (
-          <div style={{ position: 'relative', zIndex: 1, padding: '0 32px 14px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-            {[
-              { label: 'Faturamento', icon: '💰', value: cardData.fat, av: cardData.fatAV, delta: cardData.fatVar, spark: cardData.fatSpark, accent: '#1A3CFF', glow: 'rgba(26,60,255,0.08)' },
-              { label: 'Margem de Contribuição', icon: '📊', value: cardData.mc, av: cardData.mcAV, delta: cardData.mcVar, spark: cardData.mcSpark, accent: '#00A86B', glow: 'rgba(0,168,107,0.08)' },
-              { label: 'Resultado Operacional', icon: '📉', value: cardData.ro, av: cardData.roAV, delta: cardData.roVar, spark: cardData.roSpark, accent: '#0099E6', glow: 'rgba(0,153,230,0.08)' },
-              { label: 'Geração de Caixa', icon: '🏦', value: cardData.gc, av: cardData.gcAV, delta: cardData.gcVar, spark: cardData.gcSpark, accent: cardData.gc < 0 ? '#DC2626' : '#00A86B', glow: cardData.gc < 0 ? 'rgba(220,38,38,0.08)' : 'rgba(0,168,107,0.08)' },
-            ].map((card, idx) => (
-              <div
-                key={idx}
-                style={{
-                  position: 'relative', background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 10,
-                  padding: '10px 13px', overflow: 'hidden', transition: 'all 0.2s', cursor: 'default',
-                }}
-                onMouseEnter={ev => { const el = ev.currentTarget; el.style.borderColor = C.borderStr; el.style.boxShadow = '0 4px 16px rgba(13,27,53,0.08)'; el.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={ev => { const el = ev.currentTarget; el.style.borderColor = C.border; el.style.boxShadow = 'none'; el.style.transform = 'translateY(0)'; }}
-              >
-                {/* Top accent bar */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2.5, background: card.accent }} />
-                {/* Glow */}
-                <div style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${card.glow}, transparent)`, pointerEvents: 'none' }} />
-                {/* Icon */}
-                <span style={{ position: 'absolute', top: 10, right: 10, fontSize: 13, opacity: 0.6 }}>{card.icon}</span>
-                {/* Content */}
-                <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, display: 'block', marginBottom: 4 }}>{card.label}</span>
-                <span style={{ fontSize: 17, fontWeight: 800, fontFamily: C.mono, color: C.txt, display: 'block' }}>{fmtR$(card.value)}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <span style={{ fontSize: 10, color: C.txtMuted }}>AV {card.av.toFixed(1)}%</span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                    background: card.delta >= 0 ? 'rgba(0,168,107,0.1)' : 'rgba(220,38,38,0.08)',
-                    color: card.delta >= 0 ? C.green : C.red,
-                  }}>
-                    {card.delta >= 0 ? '↑' : '↓'} {fmtPct(card.delta)}
-                  </span>
-                  <SparkLine data={card.spark} color={card.accent} width={80} height={20} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* ── LINHA 4: CHIPS DE COMPETÊNCIA ── */}
         {competenciasLiberadas.length > 1 && (
