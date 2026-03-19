@@ -1428,7 +1428,15 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                       const varR$ = realSel != null && projetado != null ? projetado - realSel : null;
                       const isReceita = conta.tipo === 'receita';
                       const getAjusteColor = () => { if (ajustePct == null || Math.abs(ajustePct) < 0.05) return C.txtMuted; return isReceita ? (ajustePct! > 0 ? C.green : C.red) : (ajustePct! > 0 ? C.red : C.green); };
-                      const getVarColor = () => { if (varR$ == null || Math.abs(varR$) < 1) return C.txtMuted; return isReceita ? (varR$! > 0 ? C.green : C.red) : (varR$! > 0 ? C.red : C.green); };
+                      // R$ visual: + green when META column value increases, - red when it decreases
+                      const getVarColor = () => {
+                        if (varR$ == null || Math.abs(varR$) < 1) return C.txtMuted;
+                        const metaAbsUp = projetado != null && realSel != null && Math.abs(projetado) > Math.abs(realSel);
+                        return metaAbsUp ? C.green : C.red;
+                      };
+                      const varVisualSign = varR$ != null && projetado != null && realSel != null
+                        ? (Math.abs(projetado) > Math.abs(realSel) ? '+' : '−')
+                        : '+';
                       const ajusteArrow = ajustePct != null ? (ajustePct > 0.05 ? '↑ +' : ajustePct < -0.05 ? '↓ −' : '→ ') : '';
                       const avVal = realSel != null && fatReal !== 0 ? (Math.abs(realSel) / Math.abs(fatReal)) * 100 : null;
                       const prevVal = isCat ? (prevRealMap[conta.id] ?? null) : sumNodeLeafs(node, prevRealMap);
@@ -1570,7 +1578,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                               );
                             })()}
                             {/* R$ — static */}
-                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varVisualSign}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
                             {/* META — static calculated */}
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: projetado != null ? (isTotal ? '#FFF' : C.primary) : C.txtMuted, padding: '8px 10px', background: isTotal ? 'rgba(26,60,255,0.18)' : C.pLo }}>
                               {fmtTorre(projetado)}
@@ -1618,7 +1626,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                             {torreShowAV && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, fontWeight: 600, color: '#00E68A', padding: '8px 6px', background: '#0D1B35' }}>{totAvVal != null ? `${totAvVal.toFixed(1)}%` : '—'}</td>}
                             {torreShowAH && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, fontWeight: 600, color: totAhVal != null ? (totAhVal >= 0 ? '#00E68A' : '#FF6B6B') : C.txtMuted, padding: '8px 6px', background: '#0D1B35' }}>{totAhVal != null ? `${totAhVal >= 0 ? '+' : ''}${totAhVal.toFixed(1)}%` : '—'}</td>}
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: C.txtMuted, padding: '8px 10px', background: '#0D1B35' }}>—</td>
-                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: totVarR$ !== 0 ? (totVarR$ > 0 ? '#00E68A' : '#FF6B6B') : C.txtMuted, padding: '8px 10px', background: '#0D1B35' }}>{Math.abs(totVarR$) >= 1 ? `${totVarR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(totVarR$))}` : '—'}</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: totVarR$ !== 0 ? (Math.abs(projTotal) > Math.abs(realTotal) ? '#00E68A' : '#FF6B6B') : C.txtMuted, padding: '8px 10px', background: '#0D1B35' }}>{Math.abs(totVarR$) >= 1 ? `${Math.abs(projTotal) > Math.abs(realTotal) ? '+' : '−'}${fmtTorre(Math.abs(totVarR$))}` : '—'}</td>
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: 'rgba(26,60,255,0.18)' }}>{fmtTorre(projTotal)}</td>
                           </tr>
                         );
