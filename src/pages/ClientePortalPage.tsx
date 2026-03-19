@@ -1488,8 +1488,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                                 else if (curMeta.meta_tipo === 'valor') displayPct = realSel !== 0 ? ((curMeta.meta_valor - Math.abs(realSel)) / Math.abs(realSel)) * 100 : 0;
                               }
                               if (isCat && displayPct == null) displayPct = ajustePct;
-                              const dpColor = () => { if (displayPct == null || Math.abs(displayPct) < 0.05) return C.txtMuted; return isReceita ? (displayPct! > 0 ? C.green : C.red) : (displayPct! > 0 ? C.red : C.green); };
-                              const dpArrow = displayPct != null ? (displayPct > 0.05 ? '↑ +' : displayPct < -0.05 ? '↓ −' : '→ ') : '';
+                              // Same magnitude logic as R$ column: green if |META|>|REAL|, red otherwise
+                              const dpMetaAbsUp = projetado != null && realSel != null && Math.abs(projetado) > Math.abs(realSel);
+                              const dpColor = () => { if (displayPct == null || Math.abs(displayPct) < 0.05) return C.txtMuted; return dpMetaAbsUp ? C.green : C.red; };
+                              const dpArrow = displayPct != null ? (dpMetaAbsUp ? '↑ +' : (Math.abs(displayPct) < 0.05 ? '→ ' : '↓ −')) : '';
 
                               const tipoButtons: { tipo: 'pct' | 'delta' | 'valor'; label: string }[] = [
                                 { tipo: 'pct', label: '%' }, { tipo: 'delta', label: 'R$' }, { tipo: 'valor', label: '=R$' },
