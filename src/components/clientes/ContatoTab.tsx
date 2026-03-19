@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Pencil, Trash2, Plus, Mail, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { segmentLabels, faixaLabels, statusLabels } from '@/lib/clientes-utils';
+import { EmojiSegmentoPicker } from '@/components/clientes/EmojiSegmentoPicker';
 
 interface ContatoTabProps {
   clienteId: string;
