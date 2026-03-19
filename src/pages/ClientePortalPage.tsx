@@ -1374,21 +1374,28 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                 );
               })()}
 
-              {/* Pill 4 — Meta do Mês */}
+              {/* Pill 4 — Meta do Mês (usa headerMetas independente da Torre) */}
               {(() => {
-                if (!dreContas || !torreMetas || torreMetas.length === 0) return null;
-                const receitaN1 = dreContas.filter(c => c.nivel === 1 && c.tipo === 'receita');
+                if (!headerMetas || headerMetas.length === 0 || !dreContas) return null;
                 let metaTotal = 0, realTotal = 0, hasMeta = false;
-                for (const n1 of receitaN1) {
-                  const meta = torreMetaMap[n1.id];
-                  if (!meta || meta.meta_valor === null) continue;
+                for (const m of headerMetas) {
+                  if (m.meta_valor === null) continue;
                   hasMeta = true;
-                  const children = dreContas.filter(c => c.conta_pai_id === n1.id && c.nivel === 2);
+                  if (m.meta_tipo === 'valor') {
+                    metaTotal += Math.abs(m.meta_valor);
+                  } else {
+                    // For pct/delta metas, calculate projected from realized
+                    const children = dreContas.filter(c => c.conta_pai_id === m.conta_id && c.nivel === 2);
+                    let realSum = 0;
+                    for (const ch of children) { realSum += Math.abs(dreValoresMap[ch.id]?.[competencia] ?? 0); }
+                    const proj = calcProjetado(realSum, m as TorreMeta, 'receita');
+                    metaTotal += Math.abs(proj ?? 0);
+                  }
+                  // Sum realized for this N1
+                  const children = dreContas.filter(c => c.conta_pai_id === m.conta_id && c.nivel === 2);
                   let realSum = 0;
-                  for (const ch of children) { realSum += torreRealMap[ch.id] ?? 0; }
-                  const proj = calcProjetado(realSum, meta, n1.tipo);
-                  metaTotal += Math.abs(proj ?? 0);
-                  realTotal += Math.abs(realSum);
+                  for (const ch of children) { realSum += Math.abs(dreValoresMap[ch.id]?.[competencia] ?? 0); }
+                  realTotal += realSum;
                 }
                 if (!hasMeta || metaTotal === 0) return null;
                 const pct = (realTotal / metaTotal) * 100;
