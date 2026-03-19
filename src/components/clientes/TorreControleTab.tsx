@@ -303,7 +303,6 @@ function EditableMetaCell({
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => { setEditing(true); setInput(meta.meta_valor != null ? String(meta.meta_valor) : ''); setLocalTipo(meta.meta_tipo as MetaTipo); }}>
-      {renderTipoToggle()}
       <span style={{ fontFamily: C.mono, fontSize: 12, color: corAjuste, fontWeight: 500 }}>{semanticLabel}</span>
     </span>
   );
