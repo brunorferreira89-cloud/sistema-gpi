@@ -1558,7 +1558,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                                     </span>
                                   ) : canEdit ? (
                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                      {renderTipoToggle()}
                                       <span style={{ fontFamily: C.mono, fontSize: 12, color: dpColor(), fontWeight: 500 }}>
                                         {displayPct != null && Math.abs(displayPct) >= 0.05 ? `${dpArrow}${Math.abs(displayPct).toFixed(1)}%` : '—'}
                                       </span>
