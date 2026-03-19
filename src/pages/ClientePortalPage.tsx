@@ -205,6 +205,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
   // ── Countdown ─────────────────────────────────────────────────
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, min: 0, sec: 0 });
+  const [showDreMobile, setShowDreMobile] = useState(false);
+  const [showTorreMobile, setShowTorreMobile] = useState(false);
 
   const resolvedClienteId = propClienteId || clienteIdSelecionado;
 
