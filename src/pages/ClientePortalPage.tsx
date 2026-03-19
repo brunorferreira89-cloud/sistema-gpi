@@ -969,56 +969,38 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           />
         )}
 
-        {/* ── SEÇÃO 3: ALERTAS DE META (GAUGES) ──────────────── */}
+        {/* ── SEÇÃO 3: ALERTAS DE META (SPEEDOMETER GAUGES) ── */}
         {gaugeData.length > 0 && (
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, marginBottom: 10 }}>Alertas de Meta</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {gaugeData.map((g, i) => {
-                const isReceita = g.tipo === 'receita';
-                const pctAtingido = g.pct;
-                let statusColor = C.green, statusLabel = 'No plano', statusBg = C.greenBg;
-                if (!isReceita) {
-                  if (pctAtingido > 90) { statusColor = C.red; statusLabel = 'Próximo do limite'; statusBg = C.redBg; }
-                  else if (pctAtingido > 70) { statusColor = C.orange; statusLabel = 'Atenção'; statusBg = C.orangeBg; }
-                } else {
-                  if (pctAtingido < 70) { statusColor = C.red; statusLabel = 'Abaixo da meta'; statusBg = C.redBg; }
-                  else if (pctAtingido < 90) { statusColor = C.orange; statusLabel = 'Atenção'; statusBg = C.orangeBg; }
-                }
-
-                const arcLen = 141;
-                const fill = Math.min(pctAtingido / 100, 1) * arcLen;
-
-                return (
-                  <div key={i} className="rounded-[14px] bg-white text-center hover:shadow-md transition-shadow" style={{ border: `1px solid ${C.border}`, padding: 16 }}>
-                    <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, marginBottom: 8 }}>{g.nome}</p>
-                    <svg width={110} height={62} style={{ margin: '0 auto', display: 'block' }}>
-                      <path d="M10 55 A45 45 0 0 1 100 55" fill="none" stroke="#F0F4FA" strokeWidth={10} strokeLinecap="round" />
-                      <path
-                        d="M10 55 A45 45 0 0 1 100 55"
-                        fill="none"
-                        stroke={statusColor}
-                        strokeWidth={10}
-                        strokeLinecap="round"
-                        strokeDasharray={`${fill} ${arcLen}`}
-                        style={{ transition: 'stroke-dasharray 0.8s ease' }}
-                      />
-                    </svg>
-                    <p style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 16, color: C.txt, marginTop: -4 }}>{fmtR$(g.realizado)}</p>
-                    <p style={{ fontSize: 10, color: C.txtMuted, marginTop: 2 }}>{pctAtingido.toFixed(0)}% atingido</p>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: statusColor, marginTop: 2 }}>Meta: {fmtR$(g.meta)}</p>
-                    <span className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold mt-2" style={{ color: statusColor, background: statusBg }}>
-                      {statusLabel}
-                    </span>
-                  </div>
-                );
-              })}
+              {gaugeData.map((g, i) => (
+                <SpeedometerGauge
+                  key={i}
+                  nome={g.nome}
+                  pctAtingido={g.pct}
+                  realizado={g.realizado}
+                  meta={g.meta}
+                  tipo={g.tipo}
+                  fmtR$={fmtR$}
+                />
+              ))}
             </div>
           </div>
         )}
 
         {/* ── SEÇÃO 4: DRE FINANCEIRA ────────────────────────── */}
         {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
+          <div>
+            {/* DRE Banner */}
+            <div style={{ marginBottom: 12 }}>
+              <DreBanner
+                faturamento={cardData?.fat}
+                mcPct={cardData ? (cardData.fat !== 0 ? (cardData.mc / Math.abs(cardData.fat)) * 100 : null) : null}
+                gcPct={cardData ? (cardData.fat !== 0 ? (cardData.gc / Math.abs(cardData.fat)) * 100 : null) : null}
+              />
+            </div>
+
           <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
             {/* Toolbar */}
             <div className="flex items-center justify-between" style={{ padding: '12px 16px', borderBottom: `1px solid #F0F4FA` }}>
