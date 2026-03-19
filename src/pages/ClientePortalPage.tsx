@@ -462,6 +462,28 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Torre realized map (current competencia)
   const torreRealMap = useMemo(() => competencia ? getDreMonthMap(competencia) : {}, [competencia, getDreMonthMap]);
 
+  // Torre historical metas (all year) for historical month chips
+  const { data: torreMetasAno } = useQuery({
+    queryKey: ['portal-torre-metas-ano', resolvedClienteId, competenciaYear],
+    enabled: !!resolvedClienteId,
+    queryFn: async () => {
+      const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
+        .eq('cliente_id', resolvedClienteId!)
+        .gte('competencia', `${competenciaYear}-01-01`)
+        .lte('competencia', `${competenciaYear}-12-31`);
+      return (data || []) as (TorreMeta & { competencia: string })[];
+    },
+  });
+
+  const torreMetaMapByComp = useMemo(() => {
+    const map: Record<string, Record<string, TorreMeta>> = {};
+    (torreMetasAno || []).forEach(m => {
+      if (!map[m.competencia]) map[m.competencia] = {};
+      map[m.competencia][m.conta_id] = m;
+    });
+    return map;
+  }, [torreMetasAno]);
+
   // Initialize torre collapsed
   useEffect(() => {
     if (dreContas && dreContas.length > 0 && torreCollapsed.size === 0) {
