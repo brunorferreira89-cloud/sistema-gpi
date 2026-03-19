@@ -1212,7 +1212,18 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
         {/* ── SEÇÃO 4: DRE FINANCEIRA ────────────────────────── */}
         {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
-          <div>
+          <>
+          <button className="portal-mobile-btn" onClick={() => setShowDreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>📊</span>
+              <div style={{ textAlign: 'left' }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.txt, margin: 0 }}>DRE Financeira</p>
+                <p style={{ fontSize: 11, color: C.txtMuted, margin: 0 }}>Demonstrativo completo</p>
+              </div>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.primary }}>Ver análise →</span>
+          </button>
+          <div className="portal-dre-desktop">
             {/* DRE Banner */}
             <div style={{ marginBottom: 12 }}>
               <DreBanner
