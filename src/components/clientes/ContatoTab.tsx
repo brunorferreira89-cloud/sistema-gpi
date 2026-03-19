@@ -111,6 +111,13 @@ export function ContatoTab({ clienteId, cliente }: ContatoTabProps) {
           <FieldDisplay label="CNPJ" value={cliente.cnpj} />
           <FieldDisplay label="Nome Empresa" value={cliente.nome_empresa} />
           <FieldDisplay label="Segmento" value={segmentLabels[cliente.segmento] || cliente.segmento} />
+          <div className="space-y-0.5">
+            <p className="text-[11px] text-[hsl(var(--txt-muted))]">Ícone / Subsegmento</p>
+            <EmojiSegmentoPicker
+              value={cliente.icone_emoji || '🏢'}
+              onChange={(emoji) => updateCliente.mutate({ icone_emoji: emoji })}
+            />
+          </div>
           <FieldDisplay label="Faixa de Faturamento" value={faixaLabels[cliente.faturamento_faixa] || cliente.faturamento_faixa} />
           <FieldDisplay label="Status" value={statusLabels[cliente.status] || cliente.status} />
           <FieldDisplay label="Endereço" value={cliente.endereco_completo} />
