@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, Fragment } from 'react';
+import { useState, useEffect, useMemo, useCallback, Fragment, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -156,6 +156,70 @@ interface ClientePortalPageProps {
   espelho?: boolean;
 }
 
+// ── useIsVisible hook (lazy render) ─────────────────────────────
+const useIsVisible = (ref: React.RefObject<HTMLDivElement>) => {
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return isVisible;
+};
+
+// ── CountdownReuniao (isolated to avoid full-page re-renders) ──
+const CountdownReuniao = ({ proximaReuniao }: { proximaReuniao: any }) => {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, min: 0, sec: 0 });
+  useEffect(() => {
+    if (!proximaReuniao) return;
+    const target = new Date(`${proximaReuniao.data_reuniao}T${proximaReuniao.horario || '09:00:00'}`);
+    const update = () => {
+      const diff = Math.max(0, target.getTime() - Date.now());
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        min: Math.floor((diff % 3600000) / 60000),
+        sec: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [proximaReuniao?.data_reuniao, proximaReuniao?.horario]);
+
+  if (!proximaReuniao) {
+    return <p className="text-sm text-center" style={{ color: C.txtSec }}>Nenhuma reunião agendada</p>;
+  }
+
+  return (
+    <div className="text-center">
+      <div className="flex items-center justify-center gap-3 mb-4">
+        {[
+          { value: timeLeft.days, label: 'DIAS' },
+          { value: timeLeft.hours, label: 'HORAS' },
+          { value: timeLeft.min, label: 'MIN' },
+          { value: timeLeft.sec, label: 'SEG' },
+        ].map((block, i) => (
+          <div key={i} className="cd-box rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
+            <p className="cd-num" style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
+            <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted }}>{block.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="text-[13px] font-bold" style={{ color: C.txt }}>{proximaReuniao.titulo}</p>
+      <p className="text-[11px]" style={{ color: C.txtMuted }}>
+        {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        {proximaReuniao.horario && ` às ${proximaReuniao.horario.slice(0, 5)}`}
+        {' · '}{proximaReuniao.tipo}
+      </p>
+    </div>
+  );
+};
+
 // ══════════════════════════════════════════════════════════════════
 export default function ClientePortalPage({ clienteId: propClienteId, espelho }: ClientePortalPageProps = {}) {
   const { profile, user, signOut } = useAuth();
@@ -204,8 +268,13 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
 
-  // ── Countdown ─────────────────────────────────────────────────
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, min: 0, sec: 0 });
+  // ── Refs for lazy rendering ────────────────────────────────────
+  const didInitRef = useRef(false);
+  const dreRef = useRef<HTMLDivElement>(null);
+  const torreRef = useRef<HTMLDivElement>(null);
+  const dreVisible = useIsVisible(dreRef);
+  const torreVisible = useIsVisible(torreRef);
+
   const [showDreMobile, setShowDreMobile] = useState(false);
   const [showTorreMobile, setShowTorreMobile] = useState(false);
 
@@ -286,6 +355,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // ── Load competencias & dashboard data ────────────────────────
   useEffect(() => {
     if (!resolvedClienteId) return;
+    if (didInitRef.current && !espelho) return;
+    didInitRef.current = true;
     const clienteId = resolvedClienteId;
     const load = async () => {
       setLoading(true);
@@ -379,7 +450,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
       finally { setLoading(false); }
     };
     load();
-  }, [resolvedClienteId, competenciaSelecionada, espelho]);
+  }, [resolvedClienteId, espelho]);
 
   // ── DRE Data queries ──────────────────────────────────────────
   const competencia = competenciaSelecionada || competenciasLiberadas[0] || getCompetenciaAtual();
@@ -467,7 +538,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
 
   const { data: torreMetas } = useQuery({
     queryKey: ['portal-torre-metas', resolvedClienteId, mesProximo],
-    enabled: !!resolvedClienteId && !!mesProximo,
+    enabled: !!resolvedClienteId && !!mesProximo && torreVisible,
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor')
         .eq('cliente_id', resolvedClienteId!)
@@ -488,7 +559,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // Torre historical metas (all year) for historical month chips
   const { data: torreMetasAno } = useQuery({
     queryKey: ['portal-torre-metas-ano', resolvedClienteId, competenciaYear],
-    enabled: !!resolvedClienteId,
+    enabled: !!resolvedClienteId && torreVisible,
     queryFn: async () => {
       const { data } = await supabase.from('torre_metas').select('conta_id, meta_tipo, meta_valor, competencia')
         .eq('cliente_id', resolvedClienteId!)
@@ -518,7 +589,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   // ── Simulação data ────────────────────────────────────────────
   const { data: simSaved } = useQuery({
     queryKey: ['portal-simulacao', user?.id, resolvedClienteId, mesProximo],
-    enabled: !!user?.id && !!resolvedClienteId && !!mesProximo,
+    enabled: !!user?.id && !!resolvedClienteId && !!mesProximo && torreVisible,
     queryFn: async () => {
       const { data } = await supabase.from('torre_simulacoes' as any)
         .select('conta_id, meta_tipo, meta_valor')
@@ -543,23 +614,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     setSimDirty(false);
   }, [simSaved, torreMetas]);
 
-  // ── Countdown timer ───────────────────────────────────────────
-  useEffect(() => {
-    if (!proximaReuniao) return;
-    const target = new Date(`${proximaReuniao.data_reuniao}T${proximaReuniao.horario || '09:00:00'}`);
-    const update = () => {
-      const now = new Date();
-      const diff = Math.max(0, target.getTime() - now.getTime());
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const min = Math.floor((diff % 3600000) / 60000);
-      const sec = Math.floor((diff % 60000) / 1000);
-      setCountdown({ days, hours, min, sec });
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [proximaReuniao]);
+  // (Countdown timer moved to CountdownReuniao component)
 
   // ── Save simulation ───────────────────────────────────────────
   const handleSaveSimulation = async () => {
@@ -1399,7 +1454,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 4: DRE FINANCEIRA ────────────────────────── */}
-        {dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 && (
+        <div ref={dreRef}>
+        {dreVisible && dreContas && dreContas.length > 0 && dreValoresAnuais && dreValoresAnuais.length > 0 ? (
           <>
           <button className="portal-mobile-btn" onClick={() => setShowDreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1645,7 +1701,12 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           </div>
           </>
-        )}
+        ) : !dreVisible ? (
+          <div style={{height: 400, background: '#fff', border: '1px solid #DDE4F0', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{color: '#8A9BBC', fontSize: 12}}>Carregando DRE...</div>
+          </div>
+        ) : null}
+        </div>
 
         {/* ── SEÇÃO 5: APRESENTAÇÃO DO MÊS ───────────────────── */}
         {competencia && (
@@ -1681,7 +1742,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 6: TORRE DE CONTROLE ──────────────────────── */}
-        {dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 && (
+        <div ref={torreRef}>
+        {torreVisible && dreContas && dreContas.length > 0 && (torreMetas || []).length > 0 ? (
           <>
           <button className="portal-mobile-btn" onClick={() => setShowTorreMobile(true)} style={{ display: 'none', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2085,7 +2147,12 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           </div>
           </>
-        )}
+        ) : !torreVisible ? (
+          <div style={{height: 300, background: '#fff', border: '1px solid #DDE4F0', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{color: '#8A9BBC', fontSize: 12}}>Carregando Torre de Controle...</div>
+          </div>
+        ) : null}
+        </div>
 
         {/* ── MEU PAINEL (widgets) ────────────────────────────── */}
         {portalWidgets.length > 0 && resolvedClienteId && (
@@ -2113,31 +2180,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           <div style={{ padding: 20 }}>
-            {proximaReuniao ? (
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  {[
-                    { value: countdown.days, label: 'DIAS' },
-                    { value: countdown.hours, label: 'HORAS' },
-                    { value: countdown.min, label: 'MIN' },
-                    { value: countdown.sec, label: 'SEG' },
-                  ].map((block, i) => (
-                    <div key={i} className="cd-box rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
-                      <p className="cd-num" style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
-                      <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted }}>{block.label}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[13px] font-bold" style={{ color: C.txt }}>{proximaReuniao.titulo}</p>
-                <p className="text-[11px]" style={{ color: C.txtMuted }}>
-                  {new Date(proximaReuniao.data_reuniao + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  {proximaReuniao.horario && ` às ${proximaReuniao.horario.slice(0, 5)}`}
-                  {' · '}{proximaReuniao.tipo}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-center" style={{ color: C.txtSec }}>Nenhuma reunião agendada</p>
-            )}
+            <CountdownReuniao proximaReuniao={proximaReuniao} />
           </div>
         </div>
 
