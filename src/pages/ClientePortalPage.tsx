@@ -198,6 +198,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
   const [savingSim, setSavingSim] = useState(false);
   const [editingSimId, setEditingSimId] = useState<string | null>(null);
   const [editingSimVal, setEditingSimVal] = useState<string>('');
+  const [editingSimTipo, setEditingSimTipo] = useState<'pct' | 'delta' | 'valor'>('pct');
   const [torreShowAV, setTorreShowAV] = useState(false);
   const [torreShowAH, setTorreShowAH] = useState(false);
   const [torreMonthsActive, setTorreMonthsActive] = useState<Set<string>>(new Set());
@@ -1464,47 +1465,111 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: realSel != null ? (realSel < 0 ? C.red : (isTotal ? '#FFF' : C.txt)) : C.txtMuted, padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(realSel)}</td>
                             {torreShowAV && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: isTotal ? '#00E68A' : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{avVal != null ? `${avVal.toFixed(1)}%` : '—'}</td>}
                             {torreShowAH && <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 10, color: ahVal != null ? (ahVal >= 0 ? C.green : C.red) : C.txtMuted, padding: '8px 6px', background: isTotal ? '#0D1B35' : undefined }}>{ahVal != null ? `${ahVal >= 0 ? '+' : ''}${ahVal.toFixed(1)}%` : '—'}</td>}
-                            {/* AJUSTE — editable for sim categories and subgrupos */}
-                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getAjusteColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined, cursor: editable && (isCat || isSubgrupo) && !isTotal ? 'pointer' : undefined, position: 'relative' }}
-                              onClick={() => { if (editable && (isCat || isSubgrupo) && !isTotal && editingSimId !== conta.id) { setEditingSimId(conta.id); setEditingSimVal(simLocalMap[conta.id]?.meta_valor?.toString() ?? '0'); } }}
-                              onMouseEnter={e => { if (editable && (isCat || isSubgrupo) && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
-                              onMouseLeave={e => { if (editable && (isCat || isSubgrupo) && !isTotal && editingSimId !== conta.id) (e.currentTarget as HTMLElement).style.background = ''; }}
-                            >
-                              {editable && (isCat || isSubgrupo) && !isTotal && editingSimId === conta.id ? (
-                                <span className="inline-flex items-center gap-0.5">
-                                  <input
-                                    type="number"
-                                    value={editingSimVal}
-                                    onChange={e => setEditingSimVal(e.target.value)}
-                                    onBlur={() => {
-                                      const pct = parseFloat(editingSimVal) || 0;
-                                      const updates: Record<string, { meta_tipo: string; meta_valor: number }> = { [conta.id]: { meta_tipo: 'pct', meta_valor: pct } };
-                                      if (isSubgrupo && hasChildren) {
-                                        const propagate = (n: DreNode) => {
-                                          for (const child of n.children) {
-                                            updates[child.conta.id] = { meta_tipo: 'pct', meta_valor: pct };
-                                            if (child.children.length > 0) propagate(child);
-                                          }
-                                        };
-                                        propagate(node);
-                                      }
-                                      setSimLocalMap(prev => ({ ...prev, ...updates }));
-                                      setSimDirty(true);
-                                      setEditingSimId(null);
-                                    }}
-                                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingSimId(null); }}
-                                    autoFocus
-                                    style={{ width: 70, padding: '3px 6px', border: '1.5px solid #1A3CFF', borderRadius: 6, fontFamily: 'Courier New', fontSize: 11, textAlign: 'center', color: '#0D1B35', background: '#F6F9FF', outline: 'none' }}
-                                  />
-                                  <span style={{ fontSize: 10, color: '#4A5E80' }}>%</span>
+                            {/* AJUSTE — editable for sim groups, subgrupos and categories */}
+                            {(() => {
+                              const canEdit = editable && (isCat || isSubgrupo || isGrupo) && !isTotal;
+                              const isEditing = editingSimId === conta.id;
+                              const curMeta = simLocalMap[conta.id];
+                              const curTipo = isEditing ? editingSimTipo : ((curMeta?.meta_tipo as 'pct' | 'delta' | 'valor') || 'pct');
+
+                              // Compute display pct based on meta type
+                              let displayPct: number | null = ajustePct;
+                              if (curMeta && curMeta.meta_valor != null && realSel != null) {
+                                if (curMeta.meta_tipo === 'pct') displayPct = curMeta.meta_valor;
+                                else if (curMeta.meta_tipo === 'delta') displayPct = realSel !== 0 ? (curMeta.meta_valor / Math.abs(realSel)) * 100 : 0;
+                                else if (curMeta.meta_tipo === 'valor') displayPct = realSel !== 0 ? ((curMeta.meta_valor - Math.abs(realSel)) / Math.abs(realSel)) * 100 : 0;
+                              }
+                              if (isCat && displayPct == null) displayPct = ajustePct;
+                              const dpColor = () => { if (displayPct == null || Math.abs(displayPct) < 0.05) return C.txtMuted; return isReceita ? (displayPct! > 0 ? C.green : C.red) : (displayPct! > 0 ? C.red : C.green); };
+                              const dpArrow = displayPct != null ? (displayPct > 0.05 ? '↑ +' : displayPct < -0.05 ? '↓ −' : '→ ') : '';
+
+                              const tipoButtons: { tipo: 'pct' | 'delta' | 'valor'; label: string }[] = [
+                                { tipo: 'pct', label: '%' }, { tipo: 'delta', label: 'R$' }, { tipo: 'valor', label: '=R$' },
+                              ];
+
+                              const propagateDown = (n: DreNode, tipo: 'pct' | 'delta' | 'valor', valor: number) => {
+                                const updates: Record<string, { meta_tipo: string; meta_valor: number }> = {};
+                                const walk = (nd: DreNode) => { for (const ch of nd.children) { updates[ch.conta.id] = { meta_tipo: tipo, meta_valor: valor }; if (ch.children.length > 0) walk(ch); } };
+                                walk(n);
+                                return updates;
+                              };
+
+                              const commitSim = () => {
+                                const cleaned = editingSimVal.replace(/[^\d.,-]/g, '').replace(',', '.');
+                                const num = cleaned === '' ? null : parseFloat(cleaned);
+                                const val = (num != null && !isNaN(num)) ? num : null;
+                                const updates: Record<string, { meta_tipo: string; meta_valor: number | null }> = { [conta.id]: { meta_tipo: editingSimTipo, meta_valor: val } };
+                                if (val != null && (isGrupo || isSubgrupo) && hasChildren) {
+                                  Object.assign(updates, propagateDown(node, editingSimTipo, val));
+                                }
+                                setSimLocalMap(prev => ({ ...prev, ...updates }));
+                                setSimDirty(true);
+                                setEditingSimId(null);
+                              };
+
+                              const switchSimTipo = (newTipo: 'pct' | 'delta' | 'valor') => {
+                                if (newTipo === editingSimTipo) return;
+                                setEditingSimTipo(newTipo);
+                                // Also update existing meta type if already has value
+                                if (curMeta && curMeta.meta_valor != null) {
+                                  const updates: Record<string, { meta_tipo: string; meta_valor: number | null }> = { [conta.id]: { meta_tipo: newTipo, meta_valor: curMeta.meta_valor } };
+                                  if ((isGrupo || isSubgrupo) && hasChildren) Object.assign(updates, propagateDown(node, newTipo, curMeta.meta_valor));
+                                  setSimLocalMap(prev => ({ ...prev, ...updates }));
+                                  setSimDirty(true);
+                                }
+                              };
+
+                              const renderTipoToggle = () => (
+                                <span style={{ display: 'inline-flex', gap: 1, marginRight: 4 }}>
+                                  {tipoButtons.map(b => (
+                                    <button key={b.tipo} onClick={e => { e.stopPropagation(); switchSimTipo(b.tipo); }}
+                                      style={{ fontSize: 8, fontWeight: 700, cursor: 'pointer', padding: '1px 4px', borderRadius: 4, background: curTipo === b.tipo ? C.primary : 'rgba(26,60,255,0.08)', color: curTipo === b.tipo ? '#FFFFFF' : '#4A5E80', border: 'none', transition: 'all 0.12s' }}>
+                                      {b.label}
+                                    </button>
+                                  ))}
                                 </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1">
-                                  {isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}
-                                  {editable && (isCat || isSubgrupo) && !isTotal && <span style={{ fontSize: 9, color: '#C4CFEA', marginLeft: 2 }}>✎</span>}
-                                </span>
-                              )}
-                            </td>
+                              );
+
+                              const prefix = editingSimTipo === 'pct' ? '' : editingSimTipo === 'delta' ? 'R$ ' : '=R$ ';
+                              const suffix = editingSimTipo === 'pct' ? '%' : '';
+
+                              return (
+                                <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: dpColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined, cursor: canEdit ? 'pointer' : undefined, position: 'relative' }}
+                                  onClick={() => { if (canEdit && !isEditing) { setEditingSimId(conta.id); setEditingSimVal(curMeta?.meta_valor?.toString() ?? ''); setEditingSimTipo((curMeta?.meta_tipo as 'pct' | 'delta' | 'valor') || 'pct'); } }}
+                                  onMouseEnter={e => { if (canEdit && !isEditing) (e.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
+                                  onMouseLeave={e => { if (canEdit && !isEditing) (e.currentTarget as HTMLElement).style.background = ''; }}
+                                >
+                                  {isEditing ? (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      {renderTipoToggle()}
+                                      <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                        {prefix && <span style={{ fontSize: 10, color: C.txtMuted, marginRight: 2 }}>{prefix}</span>}
+                                        <input
+                                          value={editingSimVal}
+                                          onChange={e => setEditingSimVal(e.target.value)}
+                                          onBlur={commitSim}
+                                          onKeyDown={e => { if (e.key === 'Enter') commitSim(); if (e.key === 'Escape') setEditingSimId(null); }}
+                                          autoFocus
+                                          placeholder="0"
+                                          style={{ width: 60, textAlign: 'right', fontFamily: 'Courier New', fontSize: 12, border: `1px solid ${C.primary}`, borderRadius: 4, padding: '2px 6px', outline: 'none', background: '#F6F9FF' }}
+                                        />
+                                        {suffix && <span style={{ fontSize: 10, color: C.txtMuted, marginLeft: 2 }}>{suffix}</span>}
+                                      </span>
+                                    </span>
+                                  ) : canEdit ? (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      {renderTipoToggle()}
+                                      <span style={{ fontFamily: C.mono, fontSize: 12, color: dpColor(), fontWeight: 500 }}>
+                                        {displayPct != null && Math.abs(displayPct) >= 0.05 ? `${dpArrow}${Math.abs(displayPct).toFixed(1)}%` : '—'}
+                                      </span>
+                                      <span style={{ fontSize: 9, color: '#C4CFEA' }}>✎</span>
+                                    </span>
+                                  ) : (
+                                    <span>{isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}</span>
+                                  )}
+                                </td>
+                              );
+                            })()}
                             {/* R$ — static */}
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
                             {/* META — static calculated */}
