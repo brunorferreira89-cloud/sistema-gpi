@@ -1293,16 +1293,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
         </div>
 
-  // ── Restore empresa from sessionStorage on refresh ────────────
-  useEffect(() => {
-    if (propClienteId) return;
-    const savedId = sessionStorage.getItem('gpi_portal_cliente_id');
-    if (savedId && empresas.length > 0 && !clienteIdSelecionado) {
-      const found = empresas.find(e => e.cliente_id === savedId);
-      if (found) setClienteIdSelecionado(found.cliente_id);
-    }
-  }, [empresas, propClienteId]);
-
 
         {/* ── LINHA 4: CHIPS DE COMPETÊNCIA ── */}
         {competenciasLiberadas.length > 1 && (
