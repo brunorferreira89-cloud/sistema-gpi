@@ -1574,7 +1574,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                                       <span style={{ fontSize: 9, color: '#C4CFEA' }}>✎</span>
                                     </span>
                                   ) : (
-                                    <span>{isTotal ? '—' : (ajustePct != null && Math.abs(ajustePct) >= 0.05 ? `${ajusteArrow}${Math.abs(ajustePct).toFixed(1)}%` : '—')}</span>
+                                    <span>{isTotal ? '—' : (displayPct != null && Math.abs(displayPct) >= 0.05 ? `${dpArrow}${Math.abs(displayPct).toFixed(1)}%` : '—')}</span>
                                   )}
                                 </td>
                               );
