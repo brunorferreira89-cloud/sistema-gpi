@@ -156,20 +156,8 @@ interface ClientePortalPageProps {
   espelho?: boolean;
 }
 
-// ── useIsVisible hook (lazy render) ─────────────────────────────
-const useIsVisible = (ref: React.RefObject<HTMLDivElement>) => {
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    if (!ref.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setIsVisible(true); },
-      { rootMargin: '200px' }
-    );
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-  return isVisible;
-};
+
+
 
 // ── CountdownReuniao (isolated to avoid full-page re-renders) ──
 const CountdownReuniao = ({ proximaReuniao }: { proximaReuniao: any }) => {
