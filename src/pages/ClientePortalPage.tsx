@@ -1913,7 +1913,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         )}
 
         {/* ── SEÇÃO 7: PRÓXIMA REUNIÃO ───────────────────────── */}
-        <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+        <div className="portal-reuniao rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-3" style={{ padding: '14px 20px', background: C.surfaceHi, borderBottom: `1px solid ${C.border}` }}>
             <div className="flex items-center justify-center rounded-lg" style={{ width: 36, height: 36, background: 'rgba(0,153,230,0.1)' }}>
               <Calendar className="h-5 w-5" style={{ color: C.cyan }} />
@@ -1935,8 +1935,8 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                     { value: countdown.min, label: 'MIN' },
                     { value: countdown.sec, label: 'SEG' },
                   ].map((block, i) => (
-                    <div key={i} className="rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
-                      <p style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
+                    <div key={i} className="cd-box rounded-[10px] text-center" style={{ background: C.surfaceHi, border: `1.5px solid ${C.border}`, padding: '10px 14px', minWidth: 60 }}>
+                      <p className="cd-num" style={{ fontFamily: C.mono, fontWeight: 800, fontSize: 22, color: C.primary }}>{String(block.value).padStart(2, '0')}</p>
                       <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted }}>{block.label}</p>
                     </div>
                   ))}
@@ -1955,6 +1955,189 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         </div>
 
       </main>
+
+      {/* ── MOBILE FULLSCREEN MODALS ── */}
+      {showDreMobile && dreContas && dreValoresAnuais && (
+        <div className="portal-fullscreen-modal" style={{ position: 'fixed', inset: 0, zIndex: 50, background: C.bg, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <button onClick={() => setShowDreMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.primary, padding: 4 }}>←</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.txt }}>DRE Financeira</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+            <div style={{ marginBottom: 12 }}>
+              <DreBanner
+                faturamento={cardData?.fat}
+                mcPct={cardData ? (cardData.fat !== 0 ? (cardData.mc / Math.abs(cardData.fat)) * 100 : null) : null}
+                gcPct={cardData ? (cardData.fat !== 0 ? (cardData.gc / Math.abs(cardData.fat)) * 100 : null) : null}
+              />
+            </div>
+            <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+              <div className="flex items-center justify-between" style={{ padding: '12px 16px', borderBottom: `1px solid #F0F4FA` }}>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {dreMonthsAll.map(m => {
+                    const isActive = dreMonthsActive.has(m);
+                    return (
+                      <button key={m} onClick={() => { setDreMonthsActive(prev => { const next = new Set(prev); if (next.has(m)) next.delete(m); else next.add(m); return next; }); }}
+                        style={{ padding: '4px 10px', borderRadius: 14, fontSize: 10, fontWeight: isActive ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', border: isActive ? `1.5px solid ${C.primary}` : `1px solid ${C.border}`, background: isActive ? C.primary : '#fff', color: isActive ? '#FFFFFF' : C.txtSec }}>
+                        {getMonthShort(m)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: '#F0F4FA', borderBottom: `1px solid ${C.border}` }}>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, position: 'sticky', left: 0, zIndex: 10, background: '#F0F4FA', borderRight: `1px solid ${C.border}`, minWidth: 180 }}>CONTA DRE</th>
+                      {Array.from(dreMonthsActive).sort().map(m => (
+                        <th key={m} style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: m === competencia ? C.primary : C.txtMuted, textTransform: 'uppercase', background: m === competencia ? C.pLo : '#F0F4FA', minWidth: 90 }}>
+                          {m === competencia && '▲ '}{getMonthShort(m)}
+                        </th>
+                      ))}
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, textTransform: 'uppercase', background: '#F0F4FA', minWidth: 100 }}>ACUMULADO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const rows: JSX.Element[] = [];
+                      const activeMonths = Array.from(dreMonthsActive).sort();
+                      const renderMobileDreRow = (node: DreNode): JSX.Element | null => {
+                        const conta = node.conta;
+                        const isGrupo = conta.nivel === 0;
+                        const isSubgrupo = conta.nivel === 1;
+                        const isCat = conta.nivel === 2;
+                        const isTotal = !!conta.is_total;
+                        const hasChildren = node.children.length > 0;
+                        const isCollapsed = dreCollapsed.has(conta.id);
+                        if (isCat && !isTotal) {
+                          const hasAnyVal = dreMonthsAll.some(m => { const v = dreValoresMap[conta.id]?.[m]; return v != null && v !== 0; });
+                          if (!hasAnyVal) return null;
+                        }
+                        const paddingLeft = isGrupo ? 12 : isSubgrupo ? 24 : 48;
+                        let rowBg = '#FAFCFF', fontWeight = 400, textColor = C.txtSec;
+                        if (isTotal) { rowBg = '#0D1B35'; fontWeight = 700; textColor = '#FFFFFF'; }
+                        else if (isGrupo) { rowBg = '#F0F4FA'; fontWeight = 700; textColor = C.txt; }
+                        else if (isSubgrupo) { rowBg = '#FFFFFF'; fontWeight = 600; textColor = C.txt; }
+                        let acum = 0;
+                        dreMonthsAll.forEach(m => { const map = getDreMonthMap(m); const v = isCat ? (map[conta.id] ?? 0) : (sumNodeLeafs(node, map) ?? 0); acum += v; });
+                        return (
+                          <Fragment key={conta.id}>
+                            <tr style={{ background: rowBg, borderBottom: isTotal ? 'none' : `1px solid ${isGrupo ? C.borderStr : '#F8F9FB'}` }}>
+                              <td style={{ padding: `8px 8px 8px ${paddingLeft}px`, fontWeight, fontSize: 12, color: textColor, whiteSpace: 'nowrap', minWidth: 180, position: 'sticky', left: 0, zIndex: 5, background: rowBg, borderRight: `1px solid ${C.border}` }}>
+                                <span className="flex items-center gap-1.5">
+                                  {hasChildren && !isTotal && (isGrupo || isSubgrupo) ? (
+                                    <button onClick={() => { setDreCollapsed(prev => { const n = new Set(prev); if (n.has(conta.id)) n.delete(conta.id); else n.add(conta.id); return n; }); }} style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 2, lineHeight: 0, color: C.txtMuted }}>
+                                      {isCollapsed ? <ChevronRight style={{ width: 14, height: 14 }} /> : <ChevronDown style={{ width: 14, height: 14 }} />}
+                                    </button>
+                                  ) : <span style={{ width: 18 }} />}
+                                  {isTotal && <span style={{ color: C.cyan, fontSize: 13 }}>◈</span>}
+                                  <span>{conta.nome}</span>
+                                </span>
+                              </td>
+                              {activeMonths.map(m => {
+                                const map = getDreMonthMap(m);
+                                const val = isCat ? (map[conta.id] ?? null) : sumNodeLeafs(node, map);
+                                const isSel = m === competencia;
+                                return (
+                                  <td key={m} style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: val != null ? (val < 0 ? C.red : (isTotal ? '#FFF' : (isSel ? C.primary : C.txt))) : C.txtMuted, padding: '8px 10px', background: isSel ? (isTotal ? '#0D1B35' : C.pLo) : (isTotal ? '#0D1B35' : undefined) }}>
+                                    {fmtTorre(val)}
+                                  </td>
+                                );
+                              })}
+                              <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: acum < 0 ? C.red : (isTotal ? '#FFF' : C.txt), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{fmtTorre(acum)}</td>
+                            </tr>
+                            {hasChildren && !isCollapsed && node.children.map(child => renderMobileDreRow(child))}
+                          </Fragment>
+                        );
+                      };
+                      for (const seq of SEQUENCIA_DRE) {
+                        const grupos = dreGruposPorTipo[seq.tipo] || [];
+                        for (const g of grupos) { const row = renderMobileDreRow(g); if (row) rows.push(row); }
+                        if (seq.totalizadorApos) {
+                          const cfg = TOTALIZADOR_CONFIG[seq.totalizadorApos];
+                          const tiposAcum = SEQUENCIA_DRE.slice(0, SEQUENCIA_DRE.findIndex(s => s.totalizadorApos === seq.totalizadorApos) + 1).map(s => s.tipo);
+                          rows.push(
+                            <tr key={`tot-${cfg.key}`} style={{ background: '#0D1B35' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 700, fontSize: 12, color: '#FFFFFF', position: 'sticky', left: 0, zIndex: 5, background: '#0D1B35', borderRight: `1px solid ${C.border}` }}>
+                                <span className="flex items-center gap-1.5"><span style={{ color: C.cyan, fontSize: 13 }}>◈</span>{cfg.nome}</span>
+                              </td>
+                              {activeMonths.map(m => {
+                                const map = getDreMonthMap(m);
+                                const total = tiposAcum.reduce((acc, t) => acc + sumGrupos(dreGruposPorTipo[t] || [], map), 0);
+                                return <td key={m} style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: m === competencia ? 'rgba(26,60,255,0.18)' : '#0D1B35' }}>{fmtTorre(total)}</td>;
+                              })}
+                              <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: 800, color: '#FFFFFF', padding: '8px 10px', background: '#0D1B35' }}>
+                                {fmtTorre(tiposAcum.reduce((acc, t) => acc + dreMonthsAll.reduce((s, m) => s + sumGrupos(dreGruposPorTipo[t] || [], getDreMonthMap(m)), 0), 0))}
+                              </td>
+                            </tr>
+                          );
+                        }
+                      }
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTorreMobile && dreContas && (torreMetas || []).length > 0 && (
+        <div className="portal-fullscreen-modal" style={{ position: 'fixed', inset: 0, zIndex: 50, background: C.bg, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fff', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <button onClick={() => setShowTorreMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: C.primary, padding: 4 }}>←</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.txt }}>Torre de Controle</span>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+            <div className="flex" style={{ borderBottom: `1px solid ${C.border}`, marginBottom: 12, background: '#fff', borderRadius: '12px 12px 0 0' }}>
+              {[
+                { key: 'gpi' as const, label: 'Metas GPI' },
+                { key: 'simulacao' as const, label: 'Minha Simulação' },
+              ].map(tab => (
+                <button key={tab.key} onClick={() => setTorreTab(tab.key)}
+                  style={{ padding: '10px 20px', fontSize: 12, fontWeight: torreTab === tab.key ? 700 : 500, color: torreTab === tab.key ? C.primary : C.txtSec, background: torreTab === tab.key ? '#fff' : C.surfaceHi, borderBottom: torreTab === tab.key ? `2px solid ${C.primary}` : '2px solid transparent', cursor: 'pointer', border: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', flex: 1 }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="rounded-[14px] bg-white overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: '#F0F4FA', borderBottom: `1px solid ${C.border}` }}>
+                      <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.txtMuted, position: 'sticky', left: 0, zIndex: 10, background: '#F0F4FA', borderRight: `1px solid ${C.border}`, minWidth: 180 }}>CONTA</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, background: '#F0F4FA', minWidth: 90 }}>REALIZADO</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.txtMuted, background: '#F0F4FA', minWidth: 70 }}>AJUSTE</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: C.primary, background: C.pLo, minWidth: 90 }}>META</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renderTorreTable(
+                      torreTab === 'simulacao' ? Object.fromEntries(Object.entries(simLocalMap).map(([k, v]) => [k, v as TorreMeta])) : torreMetaMap,
+                      torreRealMap,
+                      torreCollapsed,
+                      (id) => setTorreCollapsed(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }),
+                      torreTab === 'simulacao'
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {torreTab === 'simulacao' && simDirty && (
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, textAlign: 'right' }}>
+                  <button onClick={handleSaveSimulation} disabled={savingSim}
+                    className="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white"
+                    style={{ background: C.primary, opacity: savingSim ? 0.6 : 1, width: '100%', justifyContent: 'center' }}>
+                    {savingSim ? 'Salvando...' : 'Salvar simulação'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
