@@ -1127,6 +1127,9 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .portal-client-name { font-size: 20px !important; }
           .portal-pills { gap: 5px !important; }
           .portal-pills > span { font-size: 9px !important; padding: 2px 8px !important; }
+          .portal-info-pills { gap: 6px !important; }
+          .portal-info-pills > span { font-size: 10px !important; padding: 4px 10px !important; flex-basis: calc(50% - 3px) !important; box-sizing: border-box !important; }
+          .portal-pill-alerta { max-width: calc(50% - 3px) !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
           .portal-gc-card { display: none !important; }
           .portal-right-block { flex-direction: column !important; width: 100% !important; }
           .portal-empresa-sel { width: 100% !important; min-width: unset !important; }
