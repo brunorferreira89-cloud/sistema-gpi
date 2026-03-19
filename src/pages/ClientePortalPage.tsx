@@ -1287,33 +1287,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           </div>
           {/* Bloco direito */}
           <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {/* Card Score GC */}
-            {cardData && (
-              <div className="portal-gc-card" style={{ background: '#F6F9FF', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Mini gauge SVG */}
-                <svg width="52" height="52" viewBox="0 0 52 52">
-                  <circle cx="26" cy="26" r="22" fill="none" stroke="#F0F4FA" strokeWidth="4" />
-                  <circle cx="26" cy="26" r="22" fill="none"
-                    stroke={cardData.gc > 0 ? C.green : cardData.gcAV > -10 ? C.orange : C.red}
-                    strokeWidth="4" strokeLinecap="round"
-                    strokeDasharray={`${Math.min(Math.abs(cardData.gcAV), 100) / 100 * 138.2} 138.2`}
-                    transform="rotate(-90 26 26)"
-                  />
-                  <text x="26" y="28" textAnchor="middle" style={{ fontSize: 9, fontWeight: 800, fontFamily: C.mono, fill: cardData.gc > 0 ? C.green : cardData.gcAV > -10 ? C.orange : C.red }}>
-                    {cardData.gcAV.toFixed(0)}%
-                  </text>
-                </svg>
-                <div>
-                  <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, display: 'block' }}>Geração de Caixa</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: C.mono, color: cardData.gc > 0 ? C.green : cardData.gcAV > -10 ? C.orange : C.red, display: 'block' }}>
-                    {cardData.gcAV.toFixed(1)}%
-                  </span>
-                  <span style={{ fontSize: 9.5, color: C.txtMuted }}>
-                    {cardData.gc > 0 ? '✓ Saudável' : cardData.gcAV > -10 ? '⚠ Atenção' : '✗ Crítico'}
-                  </span>
-                </div>
-              </div>
-            )}
             {/* Seletor empresa */}
             {showTrocarEmpresa && (
               <div className="portal-empresa-sel" style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
