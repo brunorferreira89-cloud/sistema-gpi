@@ -1417,38 +1417,62 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                   </button>
                   {empresaDropdownOpen && (
                     <>
-                      <div className="portal-emp-overlay" onClick={() => setEmpresaDropdownOpen(false)} style={{ display: 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 99 }} />
-                      <style>{`.portal-emp-overlay { display: none; } @media(max-width:768px) { .portal-emp-overlay { display: block !important; } }`}</style>
-                      <div className="portal-emp-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 8, border: `1px solid ${C.border}`, boxShadow: '0 4px 16px rgba(13,27,53,0.12)', zIndex: 100 }}>
-                      {empresas.map(e => (
-                        <button
-                          key={e.cliente_id}
-                          onClick={() => {
-                            sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id);
-                            setClienteIdSelecionado(e.cliente_id);
-                            setEmpresaDropdownOpen(false);
-                            setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
-                            setIndicadoresCalc([]); setAlertas([]); setProximaReuniao(null);
-                          }}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left',
-                            padding: '8px 12px', fontSize: 11, cursor: 'pointer', border: 'none',
-                            background: e.cliente_id === resolvedClienteId ? 'rgba(26,60,255,0.04)' : 'transparent',
-                            color: e.cliente_id === resolvedClienteId ? C.primary : C.txt,
-                            fontWeight: e.cliente_id === resolvedClienteId ? 700 : 400,
-                            transition: 'background 0.15s',
-                          }}
-                          onMouseEnter={ev => { (ev.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.04)'; }}
-                          onMouseLeave={ev => { if (e.cliente_id !== resolvedClienteId) (ev.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                        >
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: e.cliente_id === resolvedClienteId ? C.primary : C.border, boxShadow: e.cliente_id === resolvedClienteId ? '0 0 0 2px rgba(26,60,255,0.2)' : 'none' }} />
-                          {e.empresa_padrao && <span style={{ fontSize: 9 }}>★</span>}
-                          {e.razao_social || e.nome_empresa}
-                        </button>
-                      ))}
-                    </div>
-                    </>
+                      {/* Overlay */}
+                      <div onClick={() => setEmpresaDropdownOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 99 }} />
 
+                      {/* Desktop: dropdown absoluto / Mobile: modal centralizado */}
+                      <div className="portal-emp-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 8px 32px rgba(13,27,53,0.18)', zIndex: 100, overflow: 'hidden' }}>
+                        <style>{`
+                          @media(max-width:768px) {
+                            .portal-emp-dropdown {
+                              position: fixed !important;
+                              top: 50% !important;
+                              left: 50% !important;
+                              right: auto !important;
+                              transform: translate(-50%, -50%) !important;
+                              width: 85vw !important;
+                              max-width: 320px !important;
+                              margin-top: 0 !important;
+                              border-radius: 16px !important;
+                              box-shadow: 0 16px 48px rgba(0,0,0,0.25) !important;
+                            }
+                          }
+                        `}</style>
+
+                        {/* Título do modal (visível apenas no mobile via CSS) */}
+                        <div className="portal-emp-modal-header" style={{ display: 'none', padding: '14px 16px 8px', borderBottom: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.txt }}>Selecione a empresa</span>
+                        </div>
+                        <style>{`@media(max-width:768px) { .portal-emp-modal-header { display: block !important; } }`}</style>
+
+                        {empresas.map(e => (
+                          <button
+                            key={e.cliente_id}
+                            onClick={() => {
+                              sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id);
+                              setClienteIdSelecionado(e.cliente_id);
+                              setEmpresaDropdownOpen(false);
+                              setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
+                              setIndicadoresCalc([]); setAlertas([]); setProximaReuniao(null);
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+                              padding: '10px 16px', fontSize: 13, cursor: 'pointer', border: 'none',
+                              background: e.cliente_id === resolvedClienteId ? 'rgba(26,60,255,0.06)' : 'transparent',
+                              color: e.cliente_id === resolvedClienteId ? C.primary : C.txt,
+                              fontWeight: e.cliente_id === resolvedClienteId ? 700 : 500,
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={ev => { (ev.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.06)'; }}
+                            onMouseLeave={ev => { if (e.cliente_id !== resolvedClienteId) (ev.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                          >
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.cliente_id === resolvedClienteId ? C.primary : C.border, boxShadow: e.cliente_id === resolvedClienteId ? '0 0 0 2px rgba(26,60,255,0.2)' : 'none', flexShrink: 0 }} />
+                            {e.empresa_padrao && <span style={{ fontSize: 10 }}>★</span>}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.razao_social || e.nome_empresa}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
