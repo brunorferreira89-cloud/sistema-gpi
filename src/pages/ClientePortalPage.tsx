@@ -1578,7 +1578,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                               );
                             })()}
                             {/* R$ — static */}
-                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varR$ > 0 ? '+' : '−'}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
+                            <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 11, fontWeight: 500, color: getVarColor(), padding: '8px 10px', background: isTotal ? '#0D1B35' : undefined }}>{varR$ != null && Math.abs(varR$) >= 1 ? `${varVisualSign}${fmtTorre(Math.abs(varR$))}` : '—'}</td>
                             {/* META — static calculated */}
                             <td style={{ textAlign: 'right', fontFamily: C.mono, fontSize: 12, fontWeight: isTotal ? 800 : (isGrupo || isSubgrupo ? 600 : 400), color: projetado != null ? (isTotal ? '#FFF' : C.primary) : C.txtMuted, padding: '8px 10px', background: isTotal ? 'rgba(26,60,255,0.18)' : C.pLo }}>
                               {fmtTorre(projetado)}
