@@ -1428,7 +1428,15 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
                       const varR$ = realSel != null && projetado != null ? projetado - realSel : null;
                       const isReceita = conta.tipo === 'receita';
                       const getAjusteColor = () => { if (ajustePct == null || Math.abs(ajustePct) < 0.05) return C.txtMuted; return isReceita ? (ajustePct! > 0 ? C.green : C.red) : (ajustePct! > 0 ? C.red : C.green); };
-                      const getVarColor = () => { if (varR$ == null || Math.abs(varR$) < 1) return C.txtMuted; return isReceita ? (varR$! > 0 ? C.green : C.red) : (varR$! > 0 ? C.red : C.green); };
+                      // R$ visual: + green when META column value increases, - red when it decreases
+                      const getVarColor = () => {
+                        if (varR$ == null || Math.abs(varR$) < 1) return C.txtMuted;
+                        const metaAbsUp = projetado != null && realSel != null && Math.abs(projetado) > Math.abs(realSel);
+                        return metaAbsUp ? C.green : C.red;
+                      };
+                      const varVisualSign = varR$ != null && projetado != null && realSel != null
+                        ? (Math.abs(projetado) > Math.abs(realSel) ? '+' : '−')
+                        : '+';
                       const ajusteArrow = ajustePct != null ? (ajustePct > 0.05 ? '↑ +' : ajustePct < -0.05 ? '↓ −' : '→ ') : '';
                       const avVal = realSel != null && fatReal !== 0 ? (Math.abs(realSel) / Math.abs(fatReal)) * 100 : null;
                       const prevVal = isCat ? (prevRealMap[conta.id] ?? null) : sumNodeLeafs(node, prevRealMap);
