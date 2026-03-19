@@ -614,23 +614,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     setSimDirty(false);
   }, [simSaved, torreMetas]);
 
-  // ── Countdown timer ───────────────────────────────────────────
-  useEffect(() => {
-    if (!proximaReuniao) return;
-    const target = new Date(`${proximaReuniao.data_reuniao}T${proximaReuniao.horario || '09:00:00'}`);
-    const update = () => {
-      const now = new Date();
-      const diff = Math.max(0, target.getTime() - now.getTime());
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const min = Math.floor((diff % 3600000) / 60000);
-      const sec = Math.floor((diff % 60000) / 1000);
-      setCountdown({ days, hours, min, sec });
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [proximaReuniao]);
+  // (Countdown timer moved to CountdownReuniao component)
 
   // ── Save simulation ───────────────────────────────────────────
   const handleSaveSimulation = async () => {
