@@ -148,6 +148,7 @@ interface EmpresaOption {
   nome_empresa: string;
   razao_social: string | null;
   empresa_padrao: boolean;
+  segmento: string | null;
 }
 
 interface ClientePortalPageProps {
@@ -241,10 +242,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         if (error) throw error;
         if (links && (links as any[]).length > 0) {
           const clienteIds = (links as any[]).map((l: any) => l.cliente_id);
-          const { data: clientes } = await supabase.from('clientes').select('id, nome_empresa, razao_social').in('id', clienteIds);
+          const { data: clientes } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').in('id', clienteIds);
           const empresasList: EmpresaOption[] = (clientes || []).map((c) => {
             const link = (links as any[]).find((l: any) => l.cliente_id === c.id);
-            return { cliente_id: c.id, nome_empresa: c.nome_empresa, razao_social: c.razao_social, empresa_padrao: link?.empresa_padrao ?? false };
+            return { cliente_id: c.id, nome_empresa: c.nome_empresa, razao_social: c.razao_social, empresa_padrao: link?.empresa_padrao ?? false, segmento: (c as any).segmento ?? null };
           });
           empresasList.sort((a, b) => {
             if (a.empresa_padrao && !b.empresa_padrao) return -1;
@@ -252,14 +253,21 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             return (a.razao_social || a.nome_empresa).localeCompare(b.razao_social || b.nome_empresa);
           });
           setEmpresas(empresasList);
-          if (empresasList.length === 1) setClienteIdSelecionado(empresasList[0].cliente_id);
         } else {
-          if (profile.cliente_id) { setClienteIdSelecionado(profile.cliente_id as string); setEmpresas([]); }
-          else setNoAccess(true);
+          if (profile.cliente_id) {
+            const { data: fallbackCli } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('id', profile.cliente_id).single();
+            if (fallbackCli) {
+              setEmpresas([{ cliente_id: fallbackCli.id, nome_empresa: fallbackCli.nome_empresa, razao_social: fallbackCli.razao_social, empresa_padrao: true, segmento: (fallbackCli as any).segmento ?? null }]);
+            } else { setNoAccess(true); }
+          } else setNoAccess(true);
         }
       } catch {
-        if (profile.cliente_id) setClienteIdSelecionado(profile.cliente_id as string);
-        else setNoAccess(true);
+        if (profile.cliente_id) {
+          const { data: fallbackCli } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').eq('id', profile.cliente_id).single();
+          if (fallbackCli) {
+            setEmpresas([{ cliente_id: fallbackCli.id, nome_empresa: fallbackCli.nome_empresa, razao_social: fallbackCli.razao_social, empresa_padrao: true, segmento: (fallbackCli as any).segmento ?? null }]);
+          } else setNoAccess(true);
+        } else setNoAccess(true);
       } finally { setLoadingEmpresas(false); }
     };
     loadEmpresas();
@@ -680,28 +688,185 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     );
   }
 
-  if (!propClienteId && !clienteIdSelecionado && empresas.length >= 2) {
+  if (!propClienteId && !clienteIdSelecionado && empresas.length >= 1) {
+    const FLOATER_TEXTS = [
+      'R$217.663','55,0%','+19,9%','GC: 10%','CMV<38%','R$86.677','MC: 76%','DRE',
+      'RO: 40%','R$45.462','▲12,4%','▼3,3%','=R$ Meta','Fev/2026','AV%','R$112.858',
+      '−102,2%','+66,9%','CMO<25%','Δ%','R$38.384','Margem','Caixa','▲R$21k',
+      'Lucro','GC>10%','DRE 2026','▼39%','Meta ✓','Receita','Custo','Despesa',
+      '102%','−66,9%','76,8%','23,2%'
+    ];
+    const FLOATER_COLORS = [
+      'rgba(26,60,255,0.28)','rgba(0,153,230,0.25)','rgba(0,168,107,0.22)',
+      'rgba(217,119,6,0.20)','rgba(220,38,38,0.18)'
+    ];
+    const CARD_COLORS = [C.primary, '#00A86B', '#0099E6', '#D97706'];
+    const segEmoji = (seg: string | null) => {
+      if (!seg) return '🏢';
+      const s = seg.toLowerCase();
+      if (s.includes('aliment')) return '🍕';
+      if (s.includes('saude') || s.includes('saúde')) return '🏥';
+      if (s.includes('beleza') || s.includes('estet') || s.includes('estét')) return '💅';
+      return '🏢';
+    };
+
+    const floaters = Array.from({ length: 80 }, (_, i) => {
+      const text = FLOATER_TEXTS[i % FLOATER_TEXTS.length];
+      const colorIdx = i % FLOATER_COLORS.length;
+      const color = FLOATER_COLORS[colorIdx];
+      const baseFontSizes = [[13,24],[12,22],[11,20],[12,23],[11,21]];
+      const [minFs, maxFs] = baseFontSizes[colorIdx];
+      const fontSize = minFs + Math.random() * (maxFs - minFs);
+      const left = 2 + Math.random() * 96;
+      const dur = 8 + Math.random() * 18;
+      const delay = Math.random() * 20;
+      const fw = i % 2 === 0 ? 700 : 900;
+      return { text, color, fontSize, left, dur, delay, fw };
+    });
+
+    const scanLines = Array.from({ length: 6 }, (_, i) => ({
+      top: 10 + i * 15 + Math.random() * 5,
+      dur: 8 + Math.random() * 14,
+      delay: Math.random() * 6,
+    }));
+
+    const pulseRings = Array.from({ length: 3 }, (_, i) => ({
+      dur: 4 + i * 0.5,
+      delay: i * 1.3,
+    }));
+
     return (
-      <div className="flex flex-col items-center py-12 px-4 min-h-screen" style={{ background: C.bg }}>
-        <img src={gpiLogo} alt="GPI" className="h-10 w-auto mb-8" />
-        <h1 className="text-xl font-bold mb-1" style={{ color: C.txt }}>Selecione a empresa</h1>
-        <p className="text-sm mb-8" style={{ color: C.txtSec }}>Você tem acesso a {empresas.length} empresas</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-[600px]">
-          {empresas.map((e) => (
-            <button
-              key={e.cliente_id}
-              onClick={() => setClienteIdSelecionado(e.cliente_id)}
-              className="relative rounded-xl bg-white p-6 text-left shadow-sm transition-all hover:shadow-md hover:scale-[1.01]"
-              style={{ border: e.empresa_padrao ? `2px solid ${C.primary}` : `1px solid ${C.border}` }}
-            >
-              {e.empresa_padrao && (
-                <span className="absolute top-3 right-3 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: '#EBF0FF', color: C.primary }}>★ Principal</span>
-              )}
-              <span className="text-2xl mb-3 block">🏢</span>
-              <p className="text-sm font-bold mb-4" style={{ color: C.txt }}>{e.razao_social || e.nome_empresa}</p>
-              <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: C.primary }}>Acessar <ArrowRight className="h-3 w-3" /></span>
-            </button>
+      <div style={{ position: 'fixed', inset: 0, background: C.bg, fontFamily: 'DM Sans, sans-serif', overflow: 'auto' }}>
+        <style>{`
+          @keyframes sel-float-up { 0%{transform:translateY(105vh);opacity:0} 8%{opacity:1} 88%{opacity:1} 100%{transform:translateY(-15vh);opacity:0} }
+          @keyframes sel-slide-right { from{transform:translateX(-100%)} to{transform:translateX(200%)} }
+          @keyframes sel-ring-exp { 0%{transform:scale(.5);opacity:.7} 100%{transform:scale(2.8);opacity:0} }
+          @keyframes sel-radar-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          .sel-card-empresa { transition: all .2s; }
+          .sel-card-empresa:hover { border-color: ${C.primary} !important; box-shadow: 0 8px 28px rgba(26,60,255,0.12); transform: translateY(-2px); }
+          .sel-card-empresa:hover .sel-arrow { transform: translateX(3px); }
+          .sel-arrow { transition: transform .2s; }
+          @media(max-width:768px) {
+            .sel-grid-empresas { grid-template-columns: 1fr !important; }
+            .sel-hero-title { font-size: 22px !important; }
+            .sel-svg-deco { display: none !important; }
+            .sel-floater-item { font-size: 14px !important; }
+          }
+        `}</style>
+
+        {/* BG: Grid HUD */}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, backgroundImage: 'repeating-linear-gradient(0deg,rgba(26,60,255,0.05) 0 1px,transparent 1px 28px),repeating-linear-gradient(90deg,rgba(26,60,255,0.05) 0 1px,transparent 1px 28px)', backgroundSize: '28px 28px', pointerEvents: 'none' }} />
+
+        {/* BG: Glows */}
+        <div style={{ position: 'fixed', top: '-5%', left: '-5%', width: 500, height: 400, background: 'radial-gradient(ellipse,rgba(26,60,255,0.10),transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'fixed', bottom: '-5%', right: '-5%', width: 400, height: 300, background: 'radial-gradient(ellipse,rgba(0,153,230,0.09),transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'fixed', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 400, background: 'radial-gradient(ellipse,rgba(26,60,255,0.05),transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'fixed', top: '10%', right: '10%', width: 300, height: 250, background: 'radial-gradient(ellipse,rgba(0,168,107,0.06),transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+
+        {/* BG: Floaters */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, overflow: 'hidden' }}>
+          {floaters.map((f, i) => (
+            <span key={i} className="sel-floater-item" style={{ position: 'absolute', left: `${f.left}%`, bottom: 0, fontFamily: "'Courier New', monospace", fontWeight: f.fw, fontSize: f.fontSize, color: f.color, animation: `sel-float-up ${f.dur}s linear ${f.delay}s infinite`, whiteSpace: 'nowrap' }}>{f.text}</span>
           ))}
+        </div>
+
+        {/* BG: Scan lines */}
+        {scanLines.map((s, i) => (
+          <div key={`scan-${i}`} style={{ position: 'fixed', top: `${s.top}%`, left: 0, width: '100%', height: 1.5, background: 'linear-gradient(90deg,transparent,rgba(26,60,255,0.10),transparent)', animation: `sel-slide-right ${s.dur}s linear ${s.delay}s infinite`, pointerEvents: 'none', zIndex: 1 }} />
+        ))}
+
+        {/* BG: Pulse rings */}
+        <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 1 }}>
+          {pulseRings.map((r, i) => (
+            <div key={`ring-${i}`} style={{ position: 'absolute', top: '50%', left: '50%', width: 200, height: 200, marginTop: -100, marginLeft: -100, borderRadius: '50%', border: '1px solid rgba(26,60,255,0.07)', animation: `sel-ring-exp ${r.dur}s ease-out ${r.delay}s infinite` }} />
+          ))}
+        </div>
+
+        {/* BG: SVG decorativo */}
+        <svg className="sel-svg-deco" style={{ position: 'fixed', right: '4%', top: '50%', transform: 'translateY(-50%)', opacity: 0.055, pointerEvents: 'none', zIndex: 1 }} width="340" height="340" viewBox="0 0 340 340">
+          <circle cx="170" cy="170" r="150" fill="none" stroke="#1A3CFF" strokeWidth="0.8" />
+          <circle cx="170" cy="170" r="110" fill="none" stroke="#1A3CFF" strokeWidth="0.6" />
+          <circle cx="170" cy="170" r="70" fill="none" stroke="#1A3CFF" strokeWidth="0.5" />
+          <circle cx="170" cy="170" r="30" fill="none" stroke="#1A3CFF" strokeWidth="0.4" />
+          <line x1="20" y1="170" x2="320" y2="170" stroke="#1A3CFF" strokeWidth="0.3" />
+          <line x1="170" y1="20" x2="170" y2="320" stroke="#1A3CFF" strokeWidth="0.3" />
+          <line x1="170" y1="170" x2="170" y2="20" stroke="#1A3CFF" strokeWidth="1.2" opacity="0.5">
+            <animateTransform attributeName="transform" type="rotate" values="0 170 170;360 170 170" dur="6s" repeatCount="indefinite" />
+          </line>
+        </svg>
+
+        {/* ── CONTENT ─────────────────────────── */}
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: 700, margin: '0 auto', padding: '32px 20px 40px' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 28 }}>
+            <div style={{ background: '#FFFFFF', borderRadius: 14, padding: '10px 18px', boxShadow: '0 8px 24px rgba(26,60,255,0.13)' }}>
+              <img src={gpiLogo} alt="GPI" style={{ height: 32, width: 'auto', display: 'block' }} />
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 700, color: C.txt, letterSpacing: '-0.01em' }}>GPI Inteligência Financeira</span>
+            <span style={{ fontSize: 9, fontWeight: 600, color: C.txtMuted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Portal do Cliente</span>
+          </div>
+
+          {/* Hero text */}
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ width: 32, height: 2, background: `linear-gradient(90deg,${C.primary},${C.cyan})`, borderRadius: 2 }} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: C.txtMuted, letterSpacing: '0.05em' }}>Bem-vindo ao seu portal financeiro</span>
+              <span style={{ width: 32, height: 2, background: `linear-gradient(90deg,${C.cyan},${C.primary})`, borderRadius: 2 }} />
+            </div>
+            <h1 className="sel-hero-title" style={{ fontSize: 28, fontWeight: 800, color: C.txt, lineHeight: 1.2, marginBottom: 8 }}>
+              Selecione a empresa que<br />você quer <span style={{ color: C.primary }}>analisar</span>
+            </h1>
+            <p style={{ fontSize: 13, color: C.txtSec, maxWidth: 420, margin: '0 auto' }}>
+              Escolha abaixo qual empresa deseja visualizar os resultados financeiros.
+            </p>
+          </div>
+
+          {/* Badge online */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, color: C.green, background: C.greenBg, padding: '5px 14px', borderRadius: 20 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, animation: 'hdr-glow-pulse 2s ease-in-out infinite' }} />
+              Sistemas online · Dados atualizados
+            </span>
+          </div>
+
+          {/* Grid empresas */}
+          <div className="sel-grid-empresas" style={{ display: 'grid', gridTemplateColumns: empresas.length === 1 ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 32 }}>
+            {empresas.map((e, idx) => (
+              <button
+                key={e.cliente_id}
+                className="sel-card-empresa"
+                onClick={() => setClienteIdSelecionado(e.cliente_id)}
+                style={{ background: '#FFFFFF', border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 18, cursor: 'pointer', textAlign: 'left', position: 'relative' }}
+              >
+                {/* Top row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ width: 38, height: 38, background: C.bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                    {segEmoji(e.segmento)}
+                  </div>
+                  {e.empresa_padrao && (
+                    <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: 'rgba(26,60,255,0.08)', padding: '3px 8px', borderRadius: 8 }}>★ Principal</span>
+                  )}
+                </div>
+                {/* Name */}
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.txt, marginBottom: 4, lineHeight: 1.3 }}>{e.razao_social || e.nome_empresa}</p>
+                <p style={{ fontSize: 10, color: C.txtMuted, marginBottom: 12 }}>
+                  {e.segmento ? e.segmento.charAt(0).toUpperCase() + e.segmento.slice(1).replace(/_/g, ' ') : 'Empresa'}
+                </p>
+                {/* Footer */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.primary, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    Acessar <span className="sel-arrow" style={{ display: 'inline-block' }}>→</span>
+                  </span>
+                  <SparkLine data={[40 + idx * 5, 42 + idx * 3, 38 + idx * 7, 45 + idx * 2, 50 + idx * 4, 48 + idx * 6]} color={e.empresa_padrao ? C.primary : CARD_COLORS[(idx + 1) % CARD_COLORS.length]} width={80} height={24} />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <p style={{ textAlign: 'center', fontSize: 10, color: C.txtMuted }}>
+            GPI Inteligência Financeira · 🔒 Confidencial · São Luís MA
+          </p>
         </div>
       </div>
     );
