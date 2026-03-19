@@ -1456,6 +1456,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             </div>
           </div>
           </div>
+          </>
         )}
 
         {/* ── SEÇÃO 5: APRESENTAÇÃO DO MÊS ───────────────────── */}
