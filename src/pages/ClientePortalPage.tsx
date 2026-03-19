@@ -242,10 +242,10 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
         if (error) throw error;
         if (links && (links as any[]).length > 0) {
           const clienteIds = (links as any[]).map((l: any) => l.cliente_id);
-          const { data: clientes } = await supabase.from('clientes').select('id, nome_empresa, razao_social').in('id', clienteIds);
+          const { data: clientes } = await supabase.from('clientes').select('id, nome_empresa, razao_social, segmento').in('id', clienteIds);
           const empresasList: EmpresaOption[] = (clientes || []).map((c) => {
             const link = (links as any[]).find((l: any) => l.cliente_id === c.id);
-            return { cliente_id: c.id, nome_empresa: c.nome_empresa, razao_social: c.razao_social, empresa_padrao: link?.empresa_padrao ?? false };
+            return { cliente_id: c.id, nome_empresa: c.nome_empresa, razao_social: c.razao_social, empresa_padrao: link?.empresa_padrao ?? false, segmento: (c as any).segmento ?? null };
           });
           empresasList.sort((a, b) => {
             if (a.empresa_padrao && !b.empresa_padrao) return -1;
@@ -253,7 +253,6 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
             return (a.razao_social || a.nome_empresa).localeCompare(b.razao_social || b.nome_empresa);
           });
           setEmpresas(empresasList);
-          if (empresasList.length === 1) setClienteIdSelecionado(empresasList[0].cliente_id);
         } else {
           if (profile.cliente_id) { setClienteIdSelecionado(profile.cliente_id as string); setEmpresas([]); }
           else setNoAccess(true);
