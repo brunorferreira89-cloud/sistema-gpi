@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Pencil, Trash2, Plus, Mail, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { segmentLabels, faixaLabels, statusLabels } from '@/lib/clientes-utils';
+import { EmojiSegmentoPicker } from '@/components/clientes/EmojiSegmentoPicker';
 
 interface ContatoTabProps {
   clienteId: string;
@@ -110,6 +111,13 @@ export function ContatoTab({ clienteId, cliente }: ContatoTabProps) {
           <FieldDisplay label="CNPJ" value={cliente.cnpj} />
           <FieldDisplay label="Nome Empresa" value={cliente.nome_empresa} />
           <FieldDisplay label="Segmento" value={segmentLabels[cliente.segmento] || cliente.segmento} />
+          <div className="space-y-0.5">
+            <p className="text-[11px] text-[hsl(var(--txt-muted))]">Ícone / Subsegmento</p>
+            <EmojiSegmentoPicker
+              value={cliente.icone_emoji || '🏢'}
+              onChange={(emoji) => updateCliente.mutate({ icone_emoji: emoji })}
+            />
+          </div>
           <FieldDisplay label="Faixa de Faturamento" value={faixaLabels[cliente.faturamento_faixa] || cliente.faturamento_faixa} />
           <FieldDisplay label="Status" value={statusLabels[cliente.status] || cliente.status} />
           <FieldDisplay label="Endereço" value={cliente.endereco_completo} />
@@ -262,6 +270,7 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
         cnpj: cliente.cnpj || '',
         nome_empresa: cliente.nome_empresa || '',
         segmento: cliente.segmento || '',
+        icone_emoji: cliente.icone_emoji || '🏢',
         faturamento_faixa: cliente.faturamento_faixa || '',
         endereco_completo: cliente.endereco_completo || '',
         cep: cliente.cep || '',
@@ -313,6 +322,14 @@ function EditClienteDialog({ open, onOpenChange, cliente, onSave, saving }: {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Ícone / Subsegmento</Label>
+            <EmojiSegmentoPicker
+              value={form.icone_emoji || '🏢'}
+              onChange={(emoji) => set('icone_emoji', emoji)}
+            />
           </div>
 
           <div><Label className="text-xs">Endereço Completo</Label><Input value={form.endereco_completo || ''} onChange={(e) => set('endereco_completo', e.target.value)} /></div>

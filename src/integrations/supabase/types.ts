@@ -300,6 +300,7 @@ export type Database = {
           created_at: string
           endereco_completo: string | null
           faturamento_faixa: string
+          icone_emoji: string | null
           id: string
           nome_empresa: string
           observacoes: string | null
@@ -318,6 +319,7 @@ export type Database = {
           created_at?: string
           endereco_completo?: string | null
           faturamento_faixa: string
+          icone_emoji?: string | null
           id?: string
           nome_empresa: string
           observacoes?: string | null
@@ -336,6 +338,7 @@ export type Database = {
           created_at?: string
           endereco_completo?: string | null
           faturamento_faixa?: string
+          icone_emoji?: string | null
           id?: string
           nome_empresa?: string
           observacoes?: string | null
