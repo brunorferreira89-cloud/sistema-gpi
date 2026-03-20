@@ -336,6 +336,13 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
     }
   }, [empresas, propClienteId]);
 
+  // ── Reset didInitRef when client changes ───────────────────────
+  const prevClienteRef = useRef<string | null>(null);
+  if (resolvedClienteId && resolvedClienteId !== prevClienteRef.current) {
+    prevClienteRef.current = resolvedClienteId;
+    didInitRef.current = false;
+  }
+
   // ── Load competencias & dashboard data ────────────────────────
   useEffect(() => {
     if (!resolvedClienteId) return;
