@@ -223,6 +223,7 @@ function EditableMetaCell({
       {tipoButtons.map(b => (
         <button
           key={b.tipo}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => { e.stopPropagation(); switchTipo(b.tipo); }}
           style={{
             fontSize: 8, fontWeight: 700, cursor: 'pointer', padding: '1px 4px', borderRadius: 4,
