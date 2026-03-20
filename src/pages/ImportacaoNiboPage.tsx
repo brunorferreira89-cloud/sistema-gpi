@@ -212,6 +212,16 @@ export default function ImportacaoNiboPage() {
       queryClient.invalidateQueries({ queryKey: ['valores-mensais'] });
       queryClient.invalidateQueries({ queryKey: ['importacoes-nibo'] });
       toast.success(`Importação concluída. ${active.length} valores registrados para ${label}.`);
+
+      // Alert about plan accounts not found in the file
+      const mappedNames = new Set(active.map(m => m.nomeLimpo.toLowerCase().trim()));
+      const missingContas = contasN2.filter(c => !mappedNames.has(c.nome.toLowerCase().trim()));
+      if (missingContas.length > 0 && missingContas.length <= 20) {
+        const nomes = missingContas.slice(0, 8).map(c => c.nome).join(', ');
+        const extra = missingContas.length > 8 ? ` e mais ${missingContas.length - 8}` : '';
+        toast.warning(`${missingContas.length} contas do plano não encontradas no arquivo: ${nomes}${extra}`, { duration: 10000 });
+      }
+
       resetImport();
     } catch (err) {
       console.error(err);
