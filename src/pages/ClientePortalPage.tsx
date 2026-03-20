@@ -1166,8 +1166,7 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           .portal-gauges-grid > div > p:nth-of-type(1) { font-size: 15px !important; }
           .portal-gauges-grid > div > p:first-child { font-size: 10px !important; text-overflow: ellipsis !important; overflow: hidden !important; white-space: nowrap !important; }
           .portal-gauges-grid > div > span { font-size: 9px !important; padding: 2px 7px !important; }
-          .portal-emp-dropdown { position: fixed !important; left: 12px !important; right: 12px !important; top: auto !important; bottom: 20vh !important; max-height: 50vh !important; overflow-y: auto !important; z-index: 100 !important; border: 1.5px solid #1A3CFF !important; border-radius: 12px !important; box-shadow: 0 8px 32px rgba(13,27,53,0.15) !important; padding: 8px !important; margin-top: 0 !important; }
-          .portal-emp-dropdown button { padding: 10px 12px !important; font-size: 13px !important; border-radius: 8px !important; min-height: 44px !important; }
+          .portal-emp-btn { max-width: 200px !important; padding: 6px 10px !important; }
           .portal-dre-desktop { display: none !important; }
           .portal-mobile-btn { display: flex !important; }
           .portal-torre-desktop { display: none !important; }
@@ -1409,80 +1408,88 @@ export default function ClientePortalPage({ clienteId: propClienteId, espelho }:
           <div className="portal-right-block" style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Seletor empresa */}
             {showTrocarEmpresa && (
-              <div className="portal-empresa-sel" style={{ background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`, borderRadius: 12, padding: '10px 16px', minWidth: 180 }}>
-                <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.txtMuted, display: 'block', marginBottom: 6 }}>🏢 Empresa ativa</span>
-                <div className="relative">
-                  <button
-                    onClick={() => setEmpresaDropdownOpen(!empresaDropdownOpen)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: 'none', border: 'none', padding: 0, width: '100%' }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, boxShadow: '0 0 4px rgba(0,168,107,0.6)' }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: C.txt, flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {empresaAtual?.razao_social || empresaAtual?.nome_empresa || 'Empresa'}
-                    </span>
-                    <ChevronDown style={{ width: 14, height: 14, color: C.txtMuted }} />
-                  </button>
-                  {empresaDropdownOpen && (
-                    <>
-                      {/* Overlay */}
-                      <div onClick={() => setEmpresaDropdownOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 99 }} />
+              <>
+                {/* Botão compacto para trocar empresa */}
+                <button
+                  onClick={() => setEmpresaDropdownOpen(!empresaDropdownOpen)}
+                  className="portal-emp-btn"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    background: '#F6F9FF', border: `1.5px solid ${C.borderStr}`,
+                    borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
+                    maxWidth: 260,
+                  }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, boxShadow: '0 0 4px rgba(0,168,107,0.6)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: C.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
+                    {empresaAtual?.razao_social || empresaAtual?.nome_empresa || 'Empresa'}
+                  </span>
+                  <ChevronDown style={{ width: 14, height: 14, color: C.txtMuted, flexShrink: 0 }} />
+                </button>
 
-                      {/* Desktop: dropdown absoluto / Mobile: modal centralizado */}
-                      <div className="portal-emp-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 8px 32px rgba(13,27,53,0.18)', zIndex: 100, overflow: 'hidden' }}>
-                        <style>{`
-                          @media(max-width:768px) {
-                            .portal-emp-dropdown {
-                              position: fixed !important;
-                              top: 50% !important;
-                              left: 50% !important;
-                              right: auto !important;
-                              transform: translate(-50%, -50%) !important;
-                              width: 85vw !important;
-                              max-width: 320px !important;
-                              margin-top: 0 !important;
-                              border-radius: 16px !important;
-                              box-shadow: 0 16px 48px rgba(0,0,0,0.25) !important;
-                            }
-                          }
-                        `}</style>
-
-                        {/* Título do modal (visível apenas no mobile via CSS) */}
-                        <div className="portal-emp-modal-header" style={{ display: 'none', padding: '14px 16px 8px', borderBottom: `1px solid ${C.border}` }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: C.txt }}>Selecione a empresa</span>
-                        </div>
-                        <style>{`@media(max-width:768px) { .portal-emp-modal-header { display: block !important; } }`}</style>
-
-                        {empresas.map(e => (
-                          <button
-                            key={e.cliente_id}
-                            onClick={() => {
-                              sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id);
-                              setClienteIdSelecionado(e.cliente_id);
-                              setEmpresaDropdownOpen(false);
-                              setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
-                              setIndicadoresCalc([]); setAlertas([]); setProximaReuniao(null);
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
-                              padding: '10px 16px', fontSize: 13, cursor: 'pointer', border: 'none',
-                              background: e.cliente_id === resolvedClienteId ? 'rgba(26,60,255,0.06)' : 'transparent',
-                              color: e.cliente_id === resolvedClienteId ? C.primary : C.txt,
-                              fontWeight: e.cliente_id === resolvedClienteId ? 700 : 500,
-                              transition: 'background 0.15s',
-                            }}
-                            onMouseEnter={ev => { (ev.currentTarget as HTMLElement).style.background = 'rgba(26,60,255,0.06)'; }}
-                            onMouseLeave={ev => { if (e.cliente_id !== resolvedClienteId) (ev.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                          >
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.cliente_id === resolvedClienteId ? C.primary : C.border, boxShadow: e.cliente_id === resolvedClienteId ? '0 0 0 2px rgba(26,60,255,0.2)' : 'none', flexShrink: 0 }} />
-                            {e.empresa_padrao && <span style={{ fontSize: 10 }}>★</span>}
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.razao_social || e.nome_empresa}</span>
-                          </button>
-                        ))}
+                {/* Modal de seleção de empresa */}
+                {empresaDropdownOpen && (
+                  <>
+                    <div onClick={() => setEmpresaDropdownOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9998 }} />
+                    <div style={{
+                      position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                      width: '88vw', maxWidth: 340, maxHeight: '60vh',
+                      background: '#fff', borderRadius: 16,
+                      border: `1.5px solid ${C.primary}22`,
+                      boxShadow: '0 20px 60px rgba(13,27,53,0.22)',
+                      zIndex: 9999, overflow: 'hidden',
+                      display: 'flex', flexDirection: 'column',
+                    }}>
+                      {/* Header */}
+                      <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${C.border}` }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: C.txt, margin: 0 }}>Selecione a empresa</p>
+                        <p style={{ fontSize: 11, color: C.txtMuted, margin: '2px 0 0' }}>{empresas.length} empresa{empresas.length > 1 ? 's' : ''} vinculada{empresas.length > 1 ? 's' : ''}</p>
                       </div>
-                    </>
-                  )}
-                </div>
-              </div>
+                      {/* Lista */}
+                      <div style={{ overflowY: 'auto', padding: 8 }}>
+                        {empresas.map(e => {
+                          const isSelected = e.cliente_id === resolvedClienteId;
+                          return (
+                            <button
+                              key={e.cliente_id}
+                              onClick={() => {
+                                sessionStorage.setItem('gpi_portal_cliente_id', e.cliente_id);
+                                setClienteIdSelecionado(e.cliente_id);
+                                setEmpresaDropdownOpen(false);
+                                setCliente(null); setKpi(null); setKpiAnterior(null); setScore(null);
+                                setIndicadoresCalc([]); setAlertas([]); setProximaReuniao(null);
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                width: '100%', textAlign: 'left',
+                                padding: '12px 14px', fontSize: 13, cursor: 'pointer',
+                                border: isSelected ? `1.5px solid ${C.primary}` : '1.5px solid transparent',
+                                borderRadius: 10, marginBottom: 4,
+                                background: isSelected ? 'rgba(26,60,255,0.05)' : 'transparent',
+                                color: isSelected ? C.primary : C.txt,
+                                fontWeight: isSelected ? 700 : 500,
+                                minHeight: 48,
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              <span style={{
+                                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                                background: isSelected ? C.primary : C.border,
+                                boxShadow: isSelected ? '0 0 0 3px rgba(26,60,255,0.15)' : 'none',
+                              }} />
+                              {e.empresa_padrao && <span style={{ fontSize: 10 }}>★</span>}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {e.razao_social || e.nome_empresa}
+                              </span>
+                              {isSelected && <span style={{ marginLeft: 'auto', fontSize: 11, color: C.primary }}>✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>
